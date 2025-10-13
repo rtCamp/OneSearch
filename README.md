@@ -1,7 +1,7 @@
 ![Banner](https://rtcamp.com/wp-content/uploads/sites/2/2024/09/OneSearch-Banner.png)
 # OneSearch [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 
-**Contributors:** [rtcamp](https://profiles.wordpress.org/rtcamp), [shreya0204](https://github.com/shreya0204), [danish17](https://github.com/danish17), [vishalkakadiya](https://github.com/vishalkakadiya), [rishavjeet](https://github.com/rishavjeet), [vishal4669](https://github.com/vishal4669), [justlevine](https://github.com/justlevine), [aviral-mittal](https://github.com/aviral-mittal)
+**Contributors:** [rtcamp](https://profiles.wordpress.org/rtcamp), [shreya0204](https://github.com/shreya0204), [danish17](https://github.com/danish17), [vishalkakadiya](https://github.com/vishalkakadiya), [rishavjeet](https://github.com/rishavjeet), [vishal4669](https://github.com/vishal4669), [up15122001](https://github.com/up1512001), [justlevine](https://github.com/justlevine), [aviral-mittal](https://github.com/aviral-mittal)
 
 **Tags:** OnePress, OneSearch, Cross-site search, Multi-brand network, WordPress multisite, Federated search, WordPress REST API, Gutenberg, WordPress plugin
 
