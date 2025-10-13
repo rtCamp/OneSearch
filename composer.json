@@ -68,7 +68,7 @@
 		"phpunit/phpunit": "^8.5|^9.6",
 		"slevomat/coding-standard": "^8.0",
 		"squizlabs/php_codesniffer": "^3.9",
-		"szepeviktor/phpstan-wordpress": "^2.0.2",
+		"szepeviktor/phpstan-wordpress": "^2.0.3",
 		"wp-coding-standards/wpcs": "^3.1",
 		"wp-phpunit/wp-phpunit": "^6.5",
 		"wpackagist-plugin/plugin-check": "^1.6",
