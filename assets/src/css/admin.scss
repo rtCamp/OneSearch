@@ -1,0 +1,808 @@
+/* stylelint-disable selector-class-pattern */
+/* stylelint-disable selector-id-pattern */
+
+#toplevel_page_onesearch + .wp-menu-separator {
+	display: none;
+}
+
+.toplevel_page_onesearch {
+
+	.onesearch-site-checkbox {
+		pointer-events: none;
+	}
+
+	.onesearch-heading {
+		display: none;
+	}
+
+	&:has(.onesearch-add-plugin-screen) {
+
+		.onesearch-heading {
+			display: inline-block;
+		}
+	}
+
+	.components-modal-header-heading {
+		font-size: 1.25rem;
+		margin-top: 1rem;
+	}
+}
+
+#onesearch-config,
+#onesearch-settings {
+
+	.components-snackbar {
+		position: fixed;
+		bottom: 20px;
+		right: 20px;
+		z-index: 1000000;
+	}
+
+	.components-notice-content {
+		white-space: pre-line !important;
+	}
+
+	.onesearch-success-notice {
+		background-color: #16a32d;
+		color: #fff;
+	}
+
+	.onesearch-error-notice {
+		background-color: #e11d1d;
+		color: #fff;
+	}
+
+}
+
+body {
+
+	.wp-first-item:has(.onesearch-plugin-manager-page) {
+		display: none;
+	}
+
+	&.onesearch-governing-site-site {
+
+		.wp-first-item:has(.onesearch-plugin-manager-page) {
+			display: inline-block;
+		}
+	}
+}
+
+[id="onesearch-site-selection-modal"] {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 10000;
+	min-width: 40vw;
+}
+
+body.onesearch-site-selection-modal {
+
+	&::before {
+		content: "";
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background-color: rgba(0, 0, 0, 0.5);
+		z-index: 9999;
+	}
+}
+
+
+[id="toplevel_page_onesearch"] {
+
+	.dashicons-admin-generic::before {
+		content: url(../images/logo.svg) !important;
+	}
+}
+
+/* Container styles */
+
+.onesearch-plugin-container {
+
+	/* Selection summary */
+	.selection-summary {
+		background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+		border: 1px solid #dee2e6;
+		border-radius: 12px;
+		padding: 16px 20px;
+		margin-bottom: 24px;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+	}
+
+	.selection-info {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.selection-count {
+		font-weight: 600;
+		color: #495057;
+		font-size: 14px;
+	}
+
+	.clear-selection {
+		color: #dc3545 !important;
+		text-decoration: none !important;
+		font-size: 14px;
+		padding: 4px 8px;
+		border-radius: 4px;
+		transition: background-color 0.2s ease;
+	}
+
+	.clear-selection:hover {
+		background-color: rgba(220, 53, 69, 0.1) !important;
+	}
+
+
+	/* Grid layout */
+	.oneupdate-plugin-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+		gap: 24px;
+		padding: 0;
+	}
+
+	/* Plugin card styles */
+	.oneupdate-plugin-card {
+		display: flex;
+		flex-direction: column;
+		border: 1px solid #e1e5e9;
+		border-radius: 12px;
+		padding: 24px;
+		background: #fff;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+		transition: all 0.3s ease;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.oneupdate-plugin-card::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 3px;
+		background: transparent;
+		transition: background 0.3s ease;
+	}
+
+	.oneupdate-plugin-card.selected {
+		border-color: #3858e9;
+		background: linear-gradient(135deg, #fff 0%, #f8fbff 100%);
+	}
+
+	/* Plugin header */
+	.plugin-card-header {
+		display: flex;
+		align-items: flex-start;
+		gap: 16px;
+		margin-bottom: 16px;
+	}
+
+	.plugin-icon-wrapper {
+		flex-shrink: 0;
+		position: relative;
+		height: 56px;
+	}
+
+	.plugin-card-logo {
+		width: 56px;
+		height: 56px;
+		max-width: 56px;
+		max-height: 56px;
+		border-radius: 12px;
+		object-fit: cover;
+		border: 2px solid #f1f3f4;
+		transition: border-color 0.2s ease;
+	}
+
+	.oneupdate-plugin-card.selected .plugin-card-logo {
+		border-color: #3858e9;
+	}
+
+	.plugin-card-header-text {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.plugin-name {
+		margin: 0 0 8px 0;
+		font-size: 18px;
+		font-weight: 600;
+		color: #23282d;
+		line-height: 1.3;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.plugin-author {
+		margin-block-end: 0.25rem;
+	}
+
+	.plugin-version-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		background: #f8f9fa;
+		padding: 4px 10px;
+		border-radius: 16px;
+		font-size: 12px;
+		border: 1px solid #e9ecef;
+	}
+
+	.version-label {
+		color: #6c757d;
+		font-weight: 500;
+	}
+
+	.version-number {
+		color: #495057;
+		font-weight: 500;
+		font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+	}
+
+	/* Plugin body */
+	.plugin-card-body {
+		flex: 1;
+		margin-bottom: 20px;
+	}
+
+	.plugin-description {
+		margin: 0;
+		color: #50575e;
+		line-height: 1.5;
+		font-size: 14px;
+		display: -webkit-box;
+		-webkit-line-clamp: 3;
+		line-clamp: 3;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+	}
+
+	/* Plugin footer */
+	.plugin-card-footer {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-end;
+		gap: 16px;
+		margin-top: auto;
+	}
+
+	/* Version select */
+	.version-select-wrapper {
+		flex: 1;
+		max-width: 140px;
+
+		.version-select {
+			gap: 2px;
+		}
+
+		.components-input-control-label {
+			font-size: 12px !important;
+			line-height: 1 !important;
+		}
+
+	}
+
+	.version-select .components-base-control-label {
+		font-size: 12px;
+		font-weight: 600;
+		color: #6c757d;
+		margin-bottom: 4px;
+	}
+
+	.version-select .components-select-control-input {
+		border-radius: 6px;
+		border: 1px solid #ddd;
+		font-size: 13px;
+		padding: 6px 8px;
+		transition: border-color 0.2s ease;
+	}
+
+	.version-select .components-select-control-input:focus {
+		border-color: #3858e9;
+		box-shadow: 0 0 0 1px #3858e9;
+	}
+
+	.components-base-control-field:has(.version-select) {
+		margin-bottom: 0 !important;
+	}
+
+	.btn-text {
+		font-size: 14px;
+	}
+
+	.btn-icon {
+		font-size: 12px;
+		font-weight: 700;
+	}
+
+	.error-content,
+	.empty-content {
+		max-width: 400px;
+	}
+
+	.error-content h3,
+	.empty-content h3 {
+		color: #dc3545;
+		margin-bottom: 12px;
+		font-size: 20px;
+	}
+
+	.empty-content h3 {
+		color: #6c757d;
+	}
+
+	.error-content p,
+	.empty-content p {
+		color: #6c757d;
+		margin-bottom: 20px;
+		line-height: 1.5;
+	}
+
+	.oneupdate-pagination {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-around;
+		background-color: #fff;
+		padding: 0.5rem;
+		margin-block-start: 1rem;
+		border-radius: 0.5rem;
+		align-items: center;
+	}
+
+	/* Responsive design */
+	@media (max-width: 768px) {
+
+		.oneupdate-plugin-grid {
+			grid-template-columns: 1fr;
+			gap: 16px;
+		}
+
+		.oneupdate-plugin-card {
+			padding: 20px;
+		}
+
+		.plugin-card-footer {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 12px;
+		}
+
+		.version-select-wrapper {
+			max-width: none;
+		}
+
+		.plugin-select-btn {
+			min-width: auto;
+		}
+
+		.selection-info {
+			flex-direction: column;
+			gap: 8px;
+			align-items: flex-start;
+		}
+	}
+
+	@media (max-width: 480px) {
+
+		.plugin-card-header {
+			gap: 12px;
+		}
+
+		.plugin-card-logo {
+			width: 48px;
+			height: 48px;
+		}
+
+		.plugin-name {
+			font-size: 16px;
+		}
+	}
+
+}
+
+/* Loading states */
+.oneupdate-plugin-sharing-app {
+
+
+	.oneupdate-loading-container,
+	.oneupdate-error-container,
+	.oneupdate-empty-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 60px 20px;
+		text-align: center;
+	}
+
+	.loading-text {
+		margin-top: 16px;
+		color: #6c757d;
+		font-size: 16px;
+	}
+}
+
+.oneupdate-add-plugin-screen {
+
+	.components-notice {
+		margin-bottom: 1rem;
+	}
+}
+
+
+// Multi-select checkbox
+.msc {
+	max-width: 70%;
+	display: grid;
+}
+
+.msc-label {
+	font-size: 12px;
+	color: #1e1e1e;
+}
+
+.msc-control {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	min-height: 45px;
+	padding: 6px 8px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	cursor: pointer;
+	text-align: left;
+	gap: 8px;
+}
+
+.msc-control:disabled,
+.msc--disabled {
+	cursor: not-allowed;
+}
+
+.msc-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	flex: 1;
+}
+
+.msc-placeholder {
+	color: #8c8f94;
+}
+
+.msc-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	border: 1px solid #d0d5dd;
+	background: #f8fafc;
+	border-radius: 999px;
+	padding: 2px 6px;
+}
+
+.msc-chip-label {
+	font-size: 12px;
+}
+
+.msc-chip-close {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border: 0;
+	background: transparent;
+	padding: 0;
+	cursor: pointer;
+}
+
+/* Dropdown */
+.msc-menu {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	max-height: 220px;
+	overflow-y: auto;
+}
+
+.msc-list {
+	list-style: none;
+	margin: 0;
+	padding: 4px 0;
+}
+
+.msc-row {
+	margin: 0;
+}
+
+.msc-row-label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+	cursor: pointer;
+	user-select: none;
+
+	/* No borders, no boxes */
+	background: transparent;
+}
+
+.msc-row-label:hover {
+	background: #f6f7f7;
+}
+
+.msc-row-text {
+	line-height: 1.4;
+}
+
+.onesearch-chip {
+	display: inline-block;
+	padding: 2px 4px;
+	background-color: #007cba;
+	color: #fff;
+	font-size: 10px;
+	font-weight: 500;
+	border-radius: 8px;
+	margin-left: 8px;
+}
+
+
+/* Main container */
+.onesearch-card {
+	margin-top: 20px;
+}
+
+/* Header styling */
+.onesearch-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+.onesearch-controls {
+	display: flex;
+	gap: 10px;
+	margin-top: 12px;
+	// justify-content: space-between;
+}
+
+/* Site cards */
+.onesearch-site-card {
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	padding: 16px;
+	margin-bottom: 16px;
+}
+
+.onesearch-site-governing {
+	background-color: #f8f9fa;
+}
+
+.onesearch-site-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin-bottom: 12px;
+}
+
+.onesearch-site-info {
+	flex: 1;
+	margin-right: 16px;
+}
+
+.onesearch-site-name {
+	margin: 0 0 4px 0;
+	font-size: 16px;
+	font-weight: 600;
+}
+
+.onesearch-site-url {
+	margin: 0;
+	font-size: 13px;
+	color: #666;
+}
+
+.onesearch-site-status {
+	margin: 4px 0 0 0;
+	font-size: 12px;
+	color: #999;
+}
+
+/* Searchable sites */
+.onesearch-searchable-sites {
+	margin-left: 14px;
+	padding-top: 12px;
+	border-top: 1px solid #eee;
+}
+
+.onesearch-searchable-title {
+	margin: 0 0 12px 0;
+	font-size: 14px;
+}
+
+.onesearch-searchable-item {
+	margin-bottom: 8px;
+	padding: 12px;
+	background-color: #f9f9f9;
+	border-radius: 4px;
+	border: 1px solid #e0e0e0;
+}
+
+.onesearch-current-site {
+	border-color: #007cba;
+}
+
+.onesearch-searchable-name {
+	font-size: 14px;
+	font-weight: 500;
+	margin-bottom: 2px;
+}
+
+.onesearch-searchable-url {
+	font-size: 12px;
+	color: #666;
+}
+
+.onesearch-current-indicator {
+	margin-left: 8px;
+	font-size: 11px;
+	color: #007cba;
+	font-weight: 500;
+}
+
+.onesearch-notice {
+	margin-bottom: 16px;
+}
+
+
+/* Main entities card */
+.onesearch-entities-card {
+	margin-top: 30px;
+}
+
+.onesearch-entities-card-group {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	color: #666;
+}
+
+.onesearch-entities-inner-card {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	align-items: flex-end;
+	gap: 6px;
+}
+
+.onesearch-entities-info {
+	width: 100%;
+	text-align: right;
+	padding: 0;
+	margin: 0;
+}
+
+.onesearch-title {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 600;
+	width: 30%;
+}
+
+.onesearch-entities-controls {
+	display: flex;
+	gap: 8px;
+}
+
+/* Individual sites */
+.onesearch-entity-site {
+	padding: 20px;
+	margin-bottom: 20px;
+	border: 1px solid #e0e0e0;
+	border-radius: 6px;
+	background: #fff;
+}
+
+.onesearch-entity-site-header {
+	margin-bottom: 16px;
+}
+
+.onesearch-entity-site-name {
+	margin: 0 0 4px 0;
+	font-size: 16px;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.onesearch-entity-site-url {
+	margin: 0 0 2px 0;
+	font-size: 13px;
+	color: #666;
+	font-family: "SF Mono", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+}
+
+.onesearch-entity-site-domain {
+	margin: 0;
+	font-size: 12px;
+	color: #999;
+	font-style: italic;
+}
+
+.onesearch-entity-selector {
+	max-width: 100%;
+}
+
+/* MultiSelectChips container adjustments */
+.onesearch-entity-selector .onesearch-multiselect {
+	max-width: 100%;
+	width: 100%;
+}
+
+
+/* Site without entities styling */
+.onesearch-site-no-entities {
+	opacity: 0.7;
+	border-color: #f0b849;
+}
+
+.onesearch-site-no-entities .onesearch-site-toggle {
+	opacity: 0.5;
+}
+
+.onesearch-site-warning {
+	margin: 4px 0 0 0;
+	font-size: 12px;
+	color: #d63638;
+	font-weight: 500;
+}
+
+.onesearch-site-warning::before {
+	margin-right: 4px;
+}
+
+.onesearch-site-selection-button {
+	margin-top: 1.5rem;
+}
+
+.onesearch-governing-site-card {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 20px;
+	gap: 12px;
+}
+
+.onesearch-site-modal-text {
+	margin-bottom: 12px;
+}
+
+.onesearch-regenerate-key-button {
+	margin-left: 10px;
+}
+
+.onesearch-brand-site-settings {
+	padding: 20px;
+	margin-top: 30px;
+}
+
+.onesearch-public-key-card {
+	margin: 1rem 0;
+}
+
+.wp-list-table td {
+	vertical-align: middle;
+}
+
+.onesearch-button-group {
+	margin-right: 8px;
+}
