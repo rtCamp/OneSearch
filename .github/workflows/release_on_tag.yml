@@ -33,7 +33,7 @@ jobs:
           mkdir -p /tmp/onesearch/assets/build
           
           # Copy necessary files to the plugin directory
-          cp -r assets/build /tmp/onesearch/assets/
+          cp -r build/ /tmp/onesearch/build/
           cp composer.json /tmp/onesearch/
           cp -r inc/ /tmp/onesearch/
           cp onesearch.php /tmp/onesearch/
