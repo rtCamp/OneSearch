@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0b90881971bbcf62ded1f15bc2b69e82",
+    "content-hash": "b015e0263f91b890e64666c0aa00d003",
     "packages": [
         {
             "name": "algolia/algoliasearch-client-php",
@@ -5194,7 +5194,7 @@
         },
         {
             "name": "wp-phpunit/wp-phpunit",
-            "version": "6.8.2",
+            "version": "6.8.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/wp-phpunit/wp-phpunit.git",
