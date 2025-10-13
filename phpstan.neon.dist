@@ -1,0 +1,37 @@
+parameters:
+		# Rules
+		treatPhpDocTypesAsCertain: false
+		inferPrivatePropertyTypeFromConstructor: true
+		checkExplicitMixedMissingReturn: true
+		checkFunctionNameCase: true
+		checkInternalClassCaseSensitivity: true
+		checkTooWideReturnTypesInProtectedAndPublicMethods: true
+		polluteScopeWithAlwaysIterableForeach: false
+		polluteScopeWithLoopInitialAssignments: false
+		reportAlwaysTrueInLastCondition: true
+		reportStaticMethodSignatures: true
+		reportWrongPhpDocTypeInVarTag: true
+
+		# Configuration
+		level: 8
+		phpVersion:
+			min: 80000
+			max: 80400
+		bootstrapFiles:
+				- onesearch.php
+		paths:
+				- onesearch.php
+				- custom-functions.php
+				- uninstall.php
+				- inc/
+		excludePaths:
+			analyse:
+				- tests/
+				- vendor/
+			analyseAndScan:
+				- node_modules (?)
+		ignoreErrors:
+			- # These are too noisy for now.
+				identifier: missingType.iterableValue
+			- # These are too noisy for now.
+				identifier: missingType.generics

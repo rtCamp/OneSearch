@@ -1,0 +1,79 @@
+{
+	"name": "onesearch",
+	"private": true,
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/rtCamp/OneSearch.git"
+	},
+	"engines": {
+		"node": ">=22.0.0",
+		"npm": ">=10.0.0"
+	},
+	"files": [
+		"build/",
+		"inc/",
+		"vendor/",
+		"languages/",
+		"readme.txt",
+		"onesearch.php",
+		"custom-functions.php",
+		"uninstall.php"
+	],
+	"dependencies": {
+		"@wordpress/block-editor": "^14.21.0",
+		"@wordpress/blocks": "^14.15.0",
+		"@wordpress/i18n": "^6.4.0",
+		"@wordpress/icons": "^10.31.0",
+		"@wordpress/interactivity": "^6.31.0",
+		"@wordpress/server-side-render": "^5.23.0",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1"
+	},
+	"devDependencies": {
+		"@babel/core": "^7.28.4",
+		"@eslint/compat": "^1.4.0",
+		"@eslint/eslintrc": "^3.3.1",
+		"@eslint/js": "^9.36.0",
+		"@wordpress/babel-preset-default": "^8.31.0",
+		"@wordpress/browserslist-config": "^6.31.0",
+		"@wordpress/env": "^10.31.0",
+		"@wordpress/eslint-plugin": "^22.17.0",
+		"@wordpress/scripts": "^30.24.0",
+		"browserslist": "^4.26.2",
+		"cross-env": "^10.1.0",
+		"css-minimizer-webpack-plugin": "^7.0.2",
+		"eslint": "^8.57.1",
+		"eslint-plugin-eslint-comments": "^3.2.0",
+		"eslint-plugin-import": "^2.32.0",
+		"globals": "^16.4.0",
+		"npm-run-all": "^4.1.5",
+		"webpack-remove-empty-scripts": "^1.1.1"
+	},
+	"scripts": {
+		"build:dev": "cross-env NODE_ENV=development npm-run-all 'build:!(dev|prod)'",
+		"build:js": "wp-scripts build --config ./webpack.config.js",
+		"build:php": "",
+		"build:prod": "cross-env NODE_ENV=production npm-run-all 'build:!(dev|prod)' && composer install --no-dev --optimize-autoloader",
+		"i18n:make-pot": "wp-env run cli wp i18n make-pot . ./languages/onesearch.pot --domain=onesearch --include='inc,assets/src,build,onesearch.php,uninstall.php'",
+		"i18n:make-json": "wp-env run cli wp i18n make-json languages/ --no-purge",
+		"lint:css:fix": "npm run lint:css -- --fix ./assets/src",
+		"lint:css": "wp-scripts lint-style ./assets/src",
+		"lint:js:fix": "npm run lint:js -- --fix",
+		"lint:js": "wp-scripts lint-js",
+		"lint:php:fix": "composer run-script lint:php:fix",
+		"lint:php:stan": "composer run-script lint:php:stan",
+		"lint:php": "composer run-script lint:php",
+		"lint": "npm-run-all --parallel lint:*",
+		"plugin-zip": "wp-scripts plugin-zip",
+		"start:js": "wp-scripts start --experimental-modules --config ./webpack.config.js",
+		"start": "npm-run-all --parallel start:*",
+		"test:php": "wp-env run tests-cli --env-cwd=wp-content/plugins/$(basename \"$(pwd)\")/ composer run-script test:php",
+		"wp-env": "wp-env"
+	},
+	"overrides": {
+		"@babel/runtime": "^7.27.6",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1",
+		"webpack-dev-server@<=5.2.0": ">=5.2.1"
+	}
+}
