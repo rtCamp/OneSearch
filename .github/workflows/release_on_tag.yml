@@ -40,6 +40,7 @@ jobs:
           cp README.md /tmp/onesearch/
           cp uninstall.php /tmp/onesearch/
           cp -r vendor/ /tmp/onesearch/
+          cp custom-functions.php /tmp/onesearch/
           
           # Create the zip file
           cd /tmp
