@@ -37,7 +37,7 @@ jobs:
           cp composer.json /tmp/onesearch/
           cp -r inc/ /tmp/onesearch/
           cp onesearch.php /tmp/onesearch/
-          cp readme.txt /tmp/onesearch/
+          cp README.md /tmp/onesearch/
           cp uninstall.php /tmp/onesearch/
           cp -r vendor/ /tmp/onesearch/
           
