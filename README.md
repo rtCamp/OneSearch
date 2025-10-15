@@ -59,14 +59,14 @@ Managing content across multiple brands, regions, or business units often result
 ---
 
 ## 🧰 Installation
-1. Download the latest OneSearch plugin from the [GitHub releases](https://github.com/rtCamp/OneDesign/releases).
-2. Install using the WordPress plugin installer or upload the OneDesign directory to the `/wp-content/plugins/` directory.
+1. Download the latest OneSearch plugin from the [GitHub releases](https://github.com/rtCamp/OneSearch/releases).
+2. Install using the WordPress plugin installer or upload the OneSearch directory to the `/wp-content/plugins/` directory.
 3. For multisite installations, network activate the plugin through the ‘Plugins’ menu in WordPress.
 4. For single site installations, activate the plugin through the ‘Plugins’ menu in WordPress.
 
 ## Setting Up OneSearch 
 ### Plugin Setup
-1. Install and activate the OneDesign plugin on the governing site and brand sites.
+1. Install and activate the OneSearch plugin on the governing site and brand sites.
 2. On the brand sites, navigate to OneSearch.
 3. Generate an API key and copy it.
 4. On the governing site, navigate to OneSearch > Settings.
