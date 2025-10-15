@@ -1,7 +1,7 @@
 ![Banner](https://rtcamp.com/wp-content/uploads/sites/2/2024/09/OneSearch-Banner.png)
 # OneSearch [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 
-**Contributors:** [rtcamp](https://profiles.wordpress.org/rtcamp), [shreya0204](https://github.com/shreya0204), [danish17](https://github.com/danish17), [vishalkakadiya](https://github.com/vishalkakadiya), [rishavjeet](https://github.com/rishavjeet), [vishal4669](https://github.com/vishal4669), [up15122001](https://github.com/up1512001), [justlevine](https://github.com/justlevine), [aviral-mittal](https://github.com/aviral-mittal)
+**Contributors:** [rtcamp](https://profiles.wordpress.org/rtcamp), [shreya0204](https://github.com/shreya0204), [danish17](https://github.com/danish17), [vishalkakadiya](https://github.com/vishalkakadiya), [rishavjeet](https://github.com/rishavjeet), [vishal4669](https://github.com/vishal4669), [up1512001](https://github.com/up1512001), [justlevine](https://github.com/justlevine), [aviral-mittal](https://github.com/aviral-mittal)
 
 **Tags:** OnePress, OneSearch, Cross-site search, Multi-brand network, WordPress multisite, Federated search, WordPress REST API, Gutenberg, WordPress plugin
 
@@ -59,14 +59,14 @@ Managing content across multiple brands, regions, or business units often result
 ---
 
 ## 🧰 Installation
-1. Download the latest OneSearch plugin from the [GitHub releases](https://github.com/rtCamp/OneDesign/releases).
-2. Install using the WordPress plugin installer or upload the OneDesign directory to the `/wp-content/plugins/` directory.
+1. Download the latest OneSearch plugin from the [GitHub releases](https://github.com/rtCamp/OneSearch/releases).
+2. Install using the WordPress plugin installer or upload the OneSearch directory to the `/wp-content/plugins/` directory.
 3. For multisite installations, network activate the plugin through the ‘Plugins’ menu in WordPress.
 4. For single site installations, activate the plugin through the ‘Plugins’ menu in WordPress.
 
 ## Setting Up OneSearch 
 ### Plugin Setup
-1. Install and activate the OneDesign plugin on the governing site and brand sites.
+1. Install and activate the OneSearch plugin on the governing site and brand sites.
 2. On the brand sites, navigate to OneSearch.
 3. Generate an API key and copy it.
 4. On the governing site, navigate to OneSearch > Settings.
