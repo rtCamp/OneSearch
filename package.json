@@ -33,7 +33,7 @@
 		"@babel/core": "^7.28.4",
 		"@eslint/compat": "^1.4.0",
 		"@eslint/eslintrc": "^3.3.1",
-		"@eslint/js": "^9.36.0",
+		"@eslint/js": "^9.38.0",
 		"@wordpress/babel-preset-default": "^8.31.0",
 		"@wordpress/browserslist-config": "^6.31.0",
 		"@wordpress/env": "^10.31.0",
