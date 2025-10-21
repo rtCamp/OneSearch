@@ -42,7 +42,6 @@ class Assets {
 		 */
 		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_enqueue_scripts' ] );
-		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_module_scripts' ] );
 	}
 
 	/**
@@ -157,25 +156,6 @@ class Assets {
 		$this->register_style( 'onesearch-admin-style', 'css/admin.css' );
 
 		wp_enqueue_style( 'onesearch-admin-style' );
-	}
-
-	/**
-	 * To enqueue module scripts.
-	 *
-	 * @return void
-	 */
-	public function enqueue_module_scripts() {
-
-		wp_register_script_module(
-			'@features-plugin-skeleton/module',
-			ONESEARCH_URL . '/build/js/modules/module.js',
-			[
-				'@wordpress/interactivity',
-			],
-			filemtime( ONESEARCH_PATH . '/build/js/modules/module.js' )
-		);
-
-		wp_enqueue_script_module( '@features-plugin-skeleton/module' );
 	}
 
 	/**
