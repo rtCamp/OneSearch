@@ -92,7 +92,7 @@ class Algolia_Index {
 		$default_settings = [
 			'attributeForDistinct'  => 'parent_post_id',
 			'distinct'              => 1,
-			'searchableAttributes'  => [ 'title', 'content', 'excerpt', 'author_display_name' ],
+			'searchableAttributes'  => [ 'title', 'clean_content', 'excerpt', 'author_display_name' ],
 			'attributesForFaceting' => [
 				'filterOnly(parent_post_id)',
 				'filterOnly(site_url)',
@@ -158,6 +158,7 @@ class Algolia_Index {
 				'title'                  => $post->post_title,
 				'excerpt'                => get_the_excerpt( $post ),
 				'content'                => $post->post_content,
+				'clean_content'          => $this->get_clean_content( $post->post_content ),
 				'name'                   => $post->post_name,
 				'type'                   => $post->post_type,
 				'permalink'              => get_permalink( $post->ID ),
@@ -212,6 +213,46 @@ class Algolia_Index {
 		);
 
 		return $records;
+	}
+
+	/**
+	 * Convert a post to its rendered version without markup
+	 *
+	 * @param string $post_content [post content (string)]
+	 *
+	 * @return string
+	 */
+	private function get_clean_content( string $post_content ): string {
+		// Render Gutenberg blocks (convert block markup to HTML).
+		$parsed_post_content = do_blocks( $post_content );
+
+		// Define allowed HTML elements and attributes useful for search context.
+		$allowed_tags = [
+			'a'      => [ 'href' => true, 'title' => true ],
+			'img'    => [ 'src' => true, 'alt' => true ],
+			'strong' => [],
+			'em'     => [],
+			'p'      => [],
+			'ul'     => [],
+			'ol'     => [],
+			'li'     => [],
+			'h1'     => [],
+			'h2'     => [],
+			'h3'     => [],
+			'h4'     => [],
+			'h5'     => [],
+			'h6'     => [],
+		];
+
+		// Sanitize the rendered HTML but keep useful structure and metadata.
+		$clean_content = wp_kses( $parsed_post_content, $allowed_tags );
+
+		// Remove excessive blank lines and normalize whitespace.
+		$clean_content = preg_replace( '/\s*\n\s*/', "\n", $clean_content ); // collapse blank lines
+		$clean_content = preg_replace( '/\n{2,}/', "\n", $clean_content );   // limit to single newlines
+		$clean_content = trim( $clean_content );
+
+		return $clean_content;
 	}
 
 	/**
