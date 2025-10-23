@@ -1,24 +1,19 @@
 /* global OneSearchSettings */
 
 /**
- * Checks whether a given string is a valid URL pattern using regex.
+ * Checks whether a given string is a valid URL pattern using URL.
  *
  * @function
  * @param {string} str - The string to validate.
- * @return {boolean} True if the string matches a URL pattern, false otherwise.
+ * @return {boolean} True if the string is a correct URL, false otherwise.
  */
 export const isURL = ( str ) => {
-	const pattern = new RegExp(
-		'^(https?:\\/\\/)?' + // protocol
-			'(([a-z\\d]([a-z\\d-]*[a-z\\d])*):([a-z\\d-]*[a-z\\d])*@)?' + // authentication
-			'((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|' + // domain name
-			'((\\d{1,3}\\.){3}\\d{1,3}))' + // OR IP (v4) address
-			'(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
-			'(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
-			'(\\#[-a-z\\d_]*)?$', // fragment locator
-		'i',
-	);
-	return pattern.test( str );
+	try {
+		const url = new URL( str );
+		return [ 'http:', 'https:' ].includes( url.protocol );
+	} catch {
+		return false;
+	}
 };
 
 /**
