@@ -86,7 +86,7 @@ class Algolia_Search {
 			foreach ( $post->onesearch_remote_taxonomies as $tax_data ) {
 				if (
 					$tax_data['taxonomy'] === $taxonomy &&
-					( $tax_data['term_id'] === (int) $term || $tax_data['slug'] === $term )
+					( $tax_data['term_id'] === $term || $tax_data['slug'] === $term )
 				) {
 					return $tax_data['term_link'] ?? $term_link;
 				}
@@ -295,6 +295,8 @@ class Algolia_Search {
 			return $posts;
 		}
 
+		var_dump(count($hits));
+
 		// Group all hits by (site_url|parent_post_id).
 		$grouped = $this->onesearch_group_hits_by_post( $hits );
 
@@ -306,12 +308,17 @@ class Algolia_Search {
 
 		$hits_for_page = $this->onesearch_pick_representative_hits( $grouped, $keys_to_build );
 
+		var_dump($hits_for_page);
+
 		$reconstruct = apply_filters( 'onesearch_reconstruct_chunked_on_search', true );
 
 		$searched_posts = $this->build_posts_from_grouped_hits( $hits_for_page, $reconstruct );
 
 		$query->post_count        = count( $searched_posts );
 		$query->is_algolia_search = true;
+
+		// var_dump($searched_posts);
+		// var_dump( ( $query->found_posts ) );
 
 		return $searched_posts;
 	}
@@ -486,6 +493,8 @@ class Algolia_Search {
 			return $searchable_indices;
 		}
 
+		// var_dump(($searchable_indices));
+
 		if ( empty( $searchable_indices ) ) {
 			return new \WP_Error( 'no_searchable_indices', __( 'No searchable indices found.', 'onesearch' ) );
 		}
@@ -494,6 +503,7 @@ class Algolia_Search {
 			'attributesToHighlight' => [ 'title', 'content', 'excerpt' ],
 			'highlightPreTag'       => '<span class="algolia-highlight">',
 			'highlightPostTag'      => '</span>',
+			'getRankingInfo' => true,
 		];
 
 		// Restrict by post type when present.
@@ -551,13 +561,19 @@ class Algolia_Search {
 			);
 		}
 
+		// var_dump($queries);
+
 		$response = $client->multipleQueries( $queries );
+
+		// var_dump($response);
 
 		$all_results = [];
 		foreach ( $response['results'] as $index_result ) {
 			$hits        = $index_result['hits'] ?? [];
 			$all_results = array_merge( $all_results, $hits );
 		}
+
+		// var_dump(($all_results));
 
 		return $all_results;
 	}

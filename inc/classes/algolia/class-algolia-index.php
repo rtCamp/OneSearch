@@ -154,7 +154,7 @@ class Algolia_Index {
 			}
 
 			$base_record = [
-				'objectID'               => $post->ID,
+				'objectID'               => wp_generate_uuid4(), // Unique ID for the record.
 				'title'                  => $post->post_title,
 				'excerpt'                => get_the_excerpt( $post ),
 				'content'                => $post->post_content,
@@ -180,7 +180,6 @@ class Algolia_Index {
 				'author_description'     => get_the_author_meta( 'description', $post->post_author ),
 				'author_avatar'          => get_avatar_url( $post->post_author ),
 				'author_posts_url'       => get_author_posts_url( $post->post_author ),
-				'author_meta'            => get_user_meta( $post->post_author ),
 				'parent_post_id'         => $post->ID,  // Used for Algolia distinct/grouping.
 				'is_chunked'             => false,
 				'onesearch_chunk_index'  => 0,
@@ -302,9 +301,7 @@ class Algolia_Index {
 		$available_space = 8000 - $base_size; // Per-chunk allowed size (left size).
 
 		if ( $available_space <= 0 ) {
-			$room_for_content  = max( 0, 9000 - $base_size - 50 );
-			$record['content'] = mb_substr( (string) $record['content'], 0, $room_for_content );
-			return [ $record ];
+			return [];
 		}
 
 		$chunks          = $this->smart_chunk_content( $content, $available_space );
