@@ -13,7 +13,7 @@ import { __ } from '@wordpress/i18n';
 /**
  * Internal dependencies
  */
-import { isValidUrl, REST_NAMESPACE } from '../js/utils';
+import { isValidUrl, REST_NAMESPACE, withTrailingSlash } from '../js/utils';
 
 const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, currentSiteUrl = '' } ) => {
 	const [ errors, setErrors ] = useState( {
@@ -42,6 +42,9 @@ const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, current
 			siteUrlError = __( 'Enter a valid URL (must start with http or https).', 'onesearch' );
 		}
 
+		// Guarantee a trailing slash in the payload
+		formData.siteUrl = withTrailingSlash( formData.siteUrl );
+
 		const newErrors = {
 			siteName: ! formData.siteName.trim() ? __( 'Site Name is required.', 'onesearch' ) : '',
 			siteUrl: siteUrlError,
@@ -69,7 +72,7 @@ const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, current
 		try {
 			// Perform health-check
 			const healthCheck = await fetch(
-				`${ formData.siteUrl }wp-json/${ REST_NAMESPACE }/health-check`,
+				`${ withTrailingSlash( formData.siteUrl ) }wp-json/${ REST_NAMESPACE }/health-check`,
 				{
 					method: 'GET',
 					headers: {
@@ -166,7 +169,7 @@ const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, current
 				value={ formData.siteUrl }
 				onChange={ ( value ) => setFormData( { ...formData, siteUrl: value } ) }
 				error={ errors.siteUrl }
-				help={ __( 'It must start with http or https and end with /, like: https://onesearch.com/', 'onesearch' ) }
+				help={ __( 'It must start with http or https, like: https://rtcamp.com/', 'onesearch' ) }
 				className="onesearch-site-modal-text"
 				__next40pxDefaultSize
 				__nextHasNoMarginBottom

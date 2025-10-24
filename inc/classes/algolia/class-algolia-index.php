@@ -92,7 +92,7 @@ class Algolia_Index {
 		$default_settings = [
 			'attributeForDistinct'  => 'parent_post_id',
 			'distinct'              => 1,
-			'searchableAttributes'  => [ 'title', 'content', 'excerpt', 'author_display_name' ],
+			'searchableAttributes'  => [ 'title', 'clean_content', 'excerpt', 'author_display_name' ],
 			'attributesForFaceting' => [
 				'filterOnly(parent_post_id)',
 				'filterOnly(site_url)',
@@ -158,6 +158,7 @@ class Algolia_Index {
 				'title'                  => $post->post_title,
 				'excerpt'                => get_the_excerpt( $post ),
 				'content'                => $post->post_content,
+				'clean_content'          => $this->get_clean_content( $post->post_content ),
 				'name'                   => $post->post_name,
 				'type'                   => $post->post_type,
 				'permalink'              => get_permalink( $post->ID ),
@@ -180,7 +181,6 @@ class Algolia_Index {
 				'author_description'     => get_the_author_meta( 'description', $post->post_author ),
 				'author_avatar'          => get_avatar_url( $post->post_author ),
 				'author_posts_url'       => get_author_posts_url( $post->post_author ),
-				'author_meta'            => get_user_meta( $post->post_author ),
 				'parent_post_id'         => $post->ID,  // Used for Algolia distinct/grouping.
 				'is_chunked'             => false,
 				'onesearch_chunk_index'  => 0,
@@ -213,6 +213,46 @@ class Algolia_Index {
 		);
 
 		return $records;
+	}
+
+	/**
+	 * Convert a post to its rendered version without markup
+	 *
+	 * @param string $post_content [post content (string)]
+	 *
+	 * @return string
+	 */
+	private function get_clean_content( string $post_content ): string {
+		// Render Gutenberg blocks (convert block markup to HTML).
+		$parsed_post_content = do_blocks( $post_content );
+
+		// Define allowed HTML elements and attributes useful for search context.
+		$allowed_tags = [
+			'a'      => [ 'href' => true, 'title' => true ],
+			'img'    => [ 'src' => true, 'alt' => true ],
+			'strong' => [],
+			'em'     => [],
+			'p'      => [],
+			'ul'     => [],
+			'ol'     => [],
+			'li'     => [],
+			'h1'     => [],
+			'h2'     => [],
+			'h3'     => [],
+			'h4'     => [],
+			'h5'     => [],
+			'h6'     => [],
+		];
+
+		// Sanitize the rendered HTML but keep useful structure and metadata.
+		$clean_content = wp_kses( $parsed_post_content, $allowed_tags );
+
+		// Remove excessive blank lines and normalize whitespace.
+		$clean_content = preg_replace( '/\s*\n\s*/', "\n", $clean_content ); // collapse blank lines
+		$clean_content = preg_replace( '/\n{2,}/', "\n", $clean_content );   // limit to single newlines
+		$clean_content = trim( $clean_content );
+
+		return $clean_content;
 	}
 
 	/**
@@ -302,9 +342,7 @@ class Algolia_Index {
 		$available_space = 8000 - $base_size; // Per-chunk allowed size (left size).
 
 		if ( $available_space <= 0 ) {
-			$room_for_content  = max( 0, 9000 - $base_size - 50 );
-			$record['content'] = mb_substr( (string) $record['content'], 0, $room_for_content );
-			return [ $record ];
+			return [];
 		}
 
 		$chunks          = $this->smart_chunk_content( $content, $available_space );
