@@ -22,7 +22,7 @@
 	"dependencies": {
 		"@wordpress/block-editor": "^14.21.0",
 		"@wordpress/blocks": "^14.15.0",
-		"@wordpress/i18n": "^6.4.0",
+		"@wordpress/i18n": "^6.6.0",
 		"@wordpress/icons": "^10.31.0",
 		"@wordpress/interactivity": "^6.31.0",
 		"@wordpress/server-side-render": "^5.23.0",
