@@ -39,7 +39,7 @@
 		"@wordpress/env": "^10.31.0",
 		"@wordpress/eslint-plugin": "^22.17.0",
 		"@wordpress/scripts": "^30.24.0",
-		"browserslist": "^4.26.2",
+		"browserslist": "^4.27.0",
 		"cross-env": "^10.1.0",
 		"css-minimizer-webpack-plugin": "^7.0.2",
 		"eslint": "^8.57.1",
