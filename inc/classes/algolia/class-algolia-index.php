@@ -187,7 +187,7 @@ class Algolia_Index {
 					'onesearch_chunk_index'  => 0,
 					'onesearch_total_chunks' => 1,
 				];
-	
+
 				/**
 				 * Allow modification of the record payload.
 				 *
@@ -195,20 +195,24 @@ class Algolia_Index {
 				 * @param \WP_Post $post        Source post.
 				 */
 				$filtered_record = apply_filters( 'onesearch_algolia_index_data', $base_record, $post );
-	
+
 				// Segment records that exceed the size threshold.
 				$chunks = $this->maybe_chunk_record( $filtered_record );
-	
+
 				$records = array_merge( $records, $chunks );
 			} catch ( \Throwable $e ) {
 				// Log and skip this post.
-				error_log( sprintf(
-					'[OneSearch] Skipping post %d (%s): %s | Trace: %s',
-					(int) $post->ID,
-					get_permalink( $post ),
-					$e->getMessage(),
-					$e->getPrevious() ? $e->getPrevious()->getMessage() : $e->getTraceAsString()
-				) );
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+					error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- only adding logs in debug mode.
+						sprintf(
+							'[OneSearch] Skipping post %d (%s): %s | Trace: %s',
+							(int) $post->ID,
+							get_permalink( $post ),
+							$e->getMessage(),
+							$e->getPrevious() ? $e->getPrevious()->getMessage() : $e->getTraceAsString()
+						)
+					);
+				}
 
 				continue;
 			}
@@ -231,7 +235,7 @@ class Algolia_Index {
 	/**
 	 * Convert a post to its rendered version without markup
 	 *
-	 * @param string $post_content [post content (string)]
+	 * @param string $post_content [post content (string)].
 	 *
 	 * @return string
 	 */
@@ -241,7 +245,10 @@ class Algolia_Index {
 
 		// Define allowed HTML elements and attributes useful for search context.
 		$allowed_tags = [
-			'a'      => [ 'href' => true, 'title' => true ],
+			'a'      => [
+				'href'  => true,
+				'title' => true,
+			],
 			'img'    => [ 'alt' => true ],
 			'strong' => [],
 			'em'     => [],
@@ -261,8 +268,8 @@ class Algolia_Index {
 		$clean_content = wp_kses( $parsed_post_content, $allowed_tags );
 
 		// Remove excessive blank lines and normalize whitespace.
-		$clean_content = preg_replace( '/\s*\n\s*/', "\n", $clean_content ); // collapse blank lines
-		$clean_content = preg_replace( '/\n{2,}/', "\n", $clean_content );   // limit to single newlines
+		$clean_content = preg_replace( '/\s*\n\s*/', "\n", $clean_content ); // collapse blank lines.
+		$clean_content = preg_replace( '/\n{2,}/', "\n", $clean_content );   // limit to single newlines.
 		$clean_content = trim( $clean_content );
 
 		return $clean_content;
@@ -272,15 +279,17 @@ class Algolia_Index {
 	 * Gracefully handle do_blocks to render blocks while indexing
 	 * Useful: if the block calls a dep which is missing, do_blocks() will fail
 	 *
-	 * @param string $content post content
+	 * @param string $content post content.
 	 *
 	 * @return string
+	 *
+	 * @throws \Exception If block rendering fails.
 	 */
 	private function render_blocks_or_throw( string $content ): string {
 		try {
-			return do_blocks( $content );
+			return do_blocks( $content ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- no need to escape here.
 		} catch ( \Throwable $e ) {
-			throw new \Exception( 'OneSearch: Block render failed', 0, $e );
+			throw new \Exception( 'OneSearch: Block render failed', 0, $e ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- no need to escape here.
 		}
 	}
 
