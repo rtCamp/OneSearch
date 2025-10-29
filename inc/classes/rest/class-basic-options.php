@@ -11,6 +11,7 @@
 namespace Onesearch\Inc\REST;
 
 use Algolia\AlgoliaSearch\SearchClient;
+use Onesearch\Inc\Algolia\Algolia;
 use Onesearch\Inc\Algolia\Algolia_Index;
 use Onesearch\Inc\Algolia\Algolia_Index_By_Post;
 use Onesearch\Inc\Plugin_Configs\Secret_Key;
@@ -189,6 +190,41 @@ class Basic_Options {
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => [ $this, 're_index' ],
 				'permission_callback' => [ $this, 'permission_admin_or_token' ],
+			]
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/indexing/batch',
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $this, 'get_indexing_batch' ],
+				'permission_callback' => [ $this, 'permission_admin_or_token' ],
+				'args'                => [
+					'page'       => [
+						'default'           => 1,
+						'sanitize_callback' => 'absint',
+						'validate_callback' => static function ( $value ) {
+							return $value >= 1;
+						},
+					],
+					'per_page'   => [
+						'default'           => 100,
+						'sanitize_callback' => 'absint',
+					],
+					'post_types' => [
+						'required'          => false,
+						'type'              => 'array',
+						'validate_callback' => static function ( $value ) {
+							return null === $value || is_array( $value );
+						},
+					],
+					'site_url'   => [
+						'required'          => false,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+				],
 			]
 		);
 
@@ -1370,7 +1406,7 @@ class Basic_Options {
 					'message' => __( 'Re-indexed successfully.', 'onesearch' ),
 				];
 
-			// Trigger re-index on each child site (child fetches its own entities).
+			// Trigger re-index on each child site by streaming batches.
 			$child_sites = get_option( 'onesearch_shared_sites', [] );
 
 			if ( is_array( $child_sites ) ) {
@@ -1380,71 +1416,16 @@ class Basic_Options {
 					$key     = isset( $child['publicKey'] ) ? (string) $child['publicKey'] : '';
 
 					if ( empty( $url ) || empty( $key ) ) {
-						$results[ $url ?: '(missing)' ] = [
+						$results[ $raw_url ?: '(missing)' ] = [
 							'status'  => 'error',
 							'message' => __( 'Missing siteUrl or publicKey for child.', 'onesearch' ),
 						];
 						continue;
 					}
 
-					$endpoint = trailingslashit( $url ) . 'wp-json/' . self::NAMESPACE . '/re-index';
+					$post_types = $entities_map[ $url ] ?? [];
 
-					$response_obj = wp_remote_post(
-						$endpoint,
-						[
-							'headers' => [
-								'Accept'       => 'application/json',
-								'Content-Type' => 'application/json',
-								'X-OneSearch-Plugins-Token' => $key,
-							],
-							'body'    => wp_json_encode( [] ),
-							'timeout' => 999, // phpcs:ignore WordPressVIPMinimum.Performance.RemoteRequestTimeout.timeout_timeout
-						]
-					);
-
-					if ( is_wp_error( $response_obj ) ) {
-						$results[ $url ] = [
-							'status'  => 'error',
-							'message' => $response_obj->get_error_message() ?: __( 'Request failed.', 'onesearch' ),
-						];
-						continue;
-					}
-
-					$code = (int) wp_remote_retrieve_response_code( $response_obj );
-					$body = (string) wp_remote_retrieve_body( $response_obj );
-					$json = json_decode( $body, true );
-
-					if ( 200 !== $code ) {
-						$pretty = '';
-						if ( is_array( $json ) && isset( $json['message'] ) && is_string( $json['message'] ) ) {
-							$pretty = trim( $json['message'] );
-						} else {
-							$strip  = trim( wp_strip_all_tags( $body ) );
-							$pretty = '' !== $strip ? $strip : __( 'Request failed.', 'onesearch' );
-						}
-
-						$results[ $url ] = [
-							'status'  => 'error',
-							'message' => $pretty,
-						];
-						continue;
-					}
-
-					if ( ! is_array( $json ) ) {
-						$results[ $url ] = [
-							'status'  => 'error',
-							'message' => __( 'Invalid response from child site.', 'onesearch' ),
-						];
-						continue;
-					}
-
-					$ok  = (bool) ( $json['success'] ?? false );
-					$msg = (string) ( $json['message'] ?? '' );
-
-					$results[ $url ] = [
-						'status'  => $ok ? 'ok' : 'error',
-						'message' => $msg ?: ( $ok ? __( 'Re-indexed successfully.', 'onesearch' ) : __( 'Re-index failed.', 'onesearch' ) ),
-					];
+					$results[ $url ] = $this->reindex_child_via_batches( $url, $key, $post_types );
 				}
 			}
 		} else {
@@ -1494,6 +1475,169 @@ class Basic_Options {
 				'results' => $results,
 			]
 		);
+	}
+
+	/**
+	 * Pull Algolia-ready records from a child site in batches and upsert them.
+	 *
+	 * @param string   $site_url    Child site URL (normalized).
+	 * @param string   $token       Child authentication token.
+	 * @param string[] $post_types  Post types to index.
+	 * @param int      $batch_size  Records batch size.
+	 *
+	 * @return array{status: string, message: string}
+	 */
+	private function reindex_child_via_batches( string $site_url, string $token, array $post_types, int $batch_size = 100 ): array {
+		$post_types = array_values(
+			array_filter(
+				array_map(
+					static fn( $type ) => sanitize_key( (string) $type ),
+					$post_types
+				)
+			)
+		);
+
+		$client = Algolia::get_instance()->get_client();
+
+		if ( is_wp_error( $client ) ) {
+			return [
+				'status'  => 'error',
+				'message' => $client->get_error_message() ?: __( 'Algolia client error.', 'onesearch' ),
+			];
+		}
+
+		$index_name = Algolia::get_instance()->get_algolia_index_name_from_url( $site_url );
+		$index      = $client->initIndex( $index_name );
+
+		if ( empty( $post_types ) ) {
+			try {
+				$index->replaceAllObjects( [] )->wait();
+			} catch ( \Throwable $e ) {
+				return [
+					'status'  => 'error',
+					'message' => $e->getMessage(),
+				];
+			}
+
+			return [
+				'status'  => 'ok',
+				'message' => __( 'Re-indexed successfully.', 'onesearch' ),
+			];
+		}
+
+		$page        = 1;
+		$first_batch = true;
+
+		while ( true ) {
+			$query_args = [
+				'page'     => $page,
+				'per_page' => $batch_size,
+			];
+
+			foreach ( $post_types as $type ) {
+				$query_args['post_types'][] = $type;
+			}
+
+			$endpoint = add_query_arg(
+				$query_args,
+				trailingslashit( $site_url ) . 'wp-json/' . self::NAMESPACE . '/indexing/batch'
+			);
+
+			$response = wp_remote_get(
+				$endpoint,
+				[
+					'headers' => [
+						'Accept'                    => 'application/json',
+						'X-OneSearch-Plugins-Token' => $token,
+					],
+					'timeout' => 120, //phpcs:ignore
+				]
+			);
+
+			if ( is_wp_error( $response ) ) {
+				return [
+					'status'  => 'error',
+					'message' => $response->get_error_message() ?: __( 'Request failed.', 'onesearch' ),
+				];
+			}
+
+			$code = (int) wp_remote_retrieve_response_code( $response );
+			$body = (string) wp_remote_retrieve_body( $response );
+
+			if ( 200 !== $code ) {
+				$pretty = trim( wp_strip_all_tags( $body ) );
+				if ( '' === $pretty ) {
+					$pretty = sprintf(
+						/* translators: %d: status code */
+						__( 'Remote batch request failed with HTTP %d.', 'onesearch' ),
+						$code
+					);
+				}
+
+				return [
+					'status'  => 'error',
+					'message' => $pretty,
+				];
+			}
+
+			$payload = json_decode( $body, true );
+			if ( ! is_array( $payload ) ) {
+				return [
+					'status'  => 'error',
+					'message' => __( 'Invalid response from child site.', 'onesearch' ),
+				];
+			}
+
+			if ( isset( $payload['success'] ) && true !== (bool) $payload['success'] ) {
+				$message = isset( $payload['message'] ) && is_string( $payload['message'] ) ? $payload['message'] : __( 'Child site returned an error.', 'onesearch' );
+				return [
+					'status'  => 'error',
+					'message' => $message,
+				];
+			}
+
+			$records = is_array( $payload['records'] ?? null ) ? $payload['records'] : [];
+
+			try {
+				if ( $first_batch ) {
+					$index->replaceAllObjects( $records )->wait();
+					$first_batch = false;
+				} elseif ( ! empty( $records ) ) {
+					$index->saveObjects( $records )->wait();
+				}
+			} catch ( \Throwable $e ) {
+				return [
+					'status'  => 'error',
+					'message' => $e->getMessage(),
+				];
+			}
+
+			$meta     = is_array( $payload['meta'] ?? null ) ? $payload['meta'] : [];
+			$has_more = ! empty( $meta['has_more'] );
+			$next     = isset( $meta['next_page'] ) ? (int) $meta['next_page'] : $page + 1;
+
+			if ( ! $has_more ) {
+				break;
+			}
+
+			$page = $next > $page ? $next : $page + 1;
+		}
+
+		if ( $first_batch ) {
+			try {
+				$index->replaceAllObjects( [] )->wait();
+			} catch ( \Throwable $e ) {
+				return [
+					'status'  => 'error',
+					'message' => $e->getMessage(),
+				];
+			}
+		}
+
+		return [
+			'status'  => 'ok',
+			'message' => __( 'Re-indexed successfully.', 'onesearch' ),
+		];
 	}
 
 	/**
@@ -1549,6 +1693,91 @@ class Basic_Options {
 		$my_entities = isset( $entities_map[ $current_site_url ] ) ? $entities_map[ $current_site_url ] : [];
 
 		return is_array( $my_entities ) ? $my_entities : [];
+	}
+
+	/**
+	 * Return a batch of Algolia-ready records for the requested site selection.
+	 *
+	 * @param \WP_REST_Request $request Incoming REST request.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	public function get_indexing_batch( \WP_REST_Request $request ): \WP_REST_Response {
+		$page     = max( 1, (int) $request->get_param( 'page' ) );
+		$per_page = (int) $request->get_param( 'per_page' );
+		if ( $per_page <= 0 ) {
+			$per_page = 100;
+		}
+		$per_page      = min( 500, max( 1, $per_page ) );
+		$current_site  = norm_url( get_site_url() );
+		$requested_url = (string) $request->get_param( 'site_url' );
+		$target_site   = '' !== $requested_url ? norm_url( $requested_url ) : $current_site;
+
+		$post_types = $request->get_param( 'post_types' );
+		if ( is_array( $post_types ) ) {
+			$post_types = array_values(
+				array_unique(
+					array_filter(
+						array_map(
+							static fn( $type ) => sanitize_key( (string) $type ),
+							$post_types
+						)
+					)
+				)
+			);
+		} else {
+			$post_types = Algolia_Index_By_Post::get_instance()->get_selected_entities_for_site( $target_site );
+			if ( empty( $post_types ) && $target_site === $current_site ) {
+				$site_type = (string) get_option( 'onesearch_site_type', '' );
+				if ( 'brand-site' === $site_type ) {
+					$child_entities = $this->get_child_indexable_entities();
+					if ( ! is_wp_error( $child_entities ) ) {
+						$post_types = $child_entities;
+					}
+				}
+			}
+		}
+
+		$post_types = array_values(
+			array_filter(
+				array_map(
+					static fn( $type ) => sanitize_key( (string) $type ),
+					(array) $post_types
+				)
+			)
+		);
+
+		if ( empty( $post_types ) ) {
+			return rest_ensure_response(
+				[
+					'success' => true,
+					'records' => [],
+					'meta'    => [
+						'page'      => $page,
+						'per_page'  => $per_page,
+						'has_more'  => false,
+						'next_page' => null,
+						'count'     => 0,
+					],
+				]
+			);
+		}
+
+		$batch = Algolia_Index::get_instance()->get_indexable_records_batch( $post_types, $page, $per_page );
+
+		return rest_ensure_response(
+			[
+				'success' => true,
+				'records' => $batch['records'],
+				'meta'    => [
+					'page'      => $batch['page'],
+					'per_page'  => $batch['per_page'],
+					'has_more'  => $batch['has_more'],
+					'next_page' => $batch['next_page'],
+					'count'     => count( $batch['records'] ),
+				],
+			]
+		);
 	}
 
 	/**
