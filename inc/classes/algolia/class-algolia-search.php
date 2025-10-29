@@ -496,20 +496,9 @@ class Algolia_Search {
 			'highlightPostTag'      => '</span>',
 			'getRankingInfo'        => true,
 			'distinct'              => false,
-			'typoTolerance'         => 'min',
-			'minWordSizefor1Typo'   => 3,
-			'minWordSizefor2Typos'  => 6,
-			'ignorePlurals'         => true,
-			'removeStopWords'       => true,
-			'queryType'             => 'prefixAll',
-			'optionalWords'         => [ 'the', 'of', 'guide' ],
 		];
 
-		// Restrict by post type when present.
-		$post_type = $wp_query->query['post_type'] ?? '';
-		if ( ! empty( $post_type ) ) {
-			$default_params['filters'] = "type:{$post_type}";
-		}
+		$dynamic_filters = $this->build_dynamic_filters( $wp_query );
 
 		/**
 		 * Filter Algolia search parameters (facets, filters, etc.).
@@ -518,7 +507,7 @@ class Algolia_Search {
 		 * @param \WP_Query $wp_query  Query context.
 		 * @param string $search_query Raw search string.
 		 */
-		$search_params = apply_filters( 'onesearch_algolia_search_params', $default_params, $wp_query, $search_query );
+		$search_params = apply_filters( 'onesearch_algolia_search_params', array_merge( $default_params, $dynamic_filters ), $wp_query, $search_query );
 
 		try {
 			return $this->search_multiple_indices( $searchable_indices, $search_query, $search_params );
@@ -529,6 +518,132 @@ class Algolia_Search {
 				sprintf( __( 'Multi-index search failed: %s', 'onesearch' ), $e->getMessage() )
 			);
 		}
+	}
+
+	/**
+	 *  Build Algolia query-time filters from WP_Query using your record fields
+	 *
+	 * @param \WP_Query $wp_query query object.
+	 *
+	 * @return array
+	 */
+	private function build_dynamic_filters( \WP_Query $wp_query ): array {
+		$facet_filters   = [];
+		$numeric_filters = [];
+		$filters_and     = []; // string-based fallbacks for non-faceted, simple equals.
+
+		$qv = $wp_query->query_vars;
+
+		// 1) Post type => facet: type
+		if ( ! empty( $qv['post_type'] ) ) {
+			$pt              = is_array( $qv['post_type'] ) ? $qv['post_type'] : [ $qv['post_type'] ];
+			$facet_filters[] = array_map(
+				static fn( $v ) => 'type:' . sanitize_text_field( $v ),
+				$pt
+			);
+		}
+
+		// 2) Author => facet: author_ID (or author_login)
+		if ( ! empty( $qv['author__in'] ) && is_array( $qv['author__in'] ) ) {
+			$facet_filters[] = array_map(
+				static fn( $id ) => 'author_ID:' . intval( $id ),
+				$qv['author__in']
+			);
+		} elseif ( ! empty( $qv['author'] ) ) {
+			$facet_filters[] = 'author_ID:' . intval( $qv['author'] );
+		}
+
+		// 3) Category / taxonomy => facets: taxonomies.slug (+ optionally taxonomies.taxonomy)
+		// category_name (slug)
+		if ( ! empty( $qv['category_name'] ) ) {
+			$slugs           = array_map( 'sanitize_title', explode( ',', $qv['category_name'] ) );
+			$facet_filters[] = array_map(
+				static fn( $slug ) => 'taxonomies.slug:' . $slug,
+				$slugs
+			);
+		}
+
+		// category__in (IDs) -> need slugs; if you don’t have slugs, map IDs→slugs first.
+		if ( ! empty( $qv['category__in'] ) && is_array( $qv['category__in'] ) ) {
+			$slugs = array_filter(
+				array_map(
+					static function ( $term_id ) {
+						$term = get_term( intval( $term_id ), 'category' );
+						return $term && ! is_wp_error( $term ) ? sanitize_title( $term->slug ) : null;
+					},
+					$qv['category__in']
+				)
+			);
+			if ( $slugs ) {
+				$facet_filters[] = array_map(
+					static fn( $slug ) => 'taxonomies.slug:' . $slug,
+					$slugs
+				);
+			}
+		}
+
+		// Generic tax_query (supports AND/OR groups).
+		if ( ! empty( $qv['tax_query'] ) && is_array( $qv['tax_query'] ) ) {
+			$txq = new \WP_Tax_Query( $qv['tax_query'] );
+			// Flatten parsed_query for AND/OR logic.
+			$parsed = $txq->queries;
+			foreach ( $parsed as $clause ) {
+				if ( ! isset( $clause['taxonomy'], $clause['terms'] ) ) {
+					continue;
+				}
+
+				$terms       = (array) $clause['terms'];
+				$operator    = strtoupper( $clause['operator'] ?? 'IN' );
+				$relation_or = in_array( $operator, [ 'IN', 'OR' ], true );
+
+				$group = [];
+
+				foreach ( $terms as $term ) {
+					$slug = null;
+
+					if ( is_numeric( $term ) ) {
+						$t = get_term( $term, $clause['taxonomy'] );
+						if ( $t && ! is_wp_error( $t ) ) {
+							$slug = $t->slug;
+						}
+					} else {
+						$slug = sanitize_title( $term );
+					}
+
+					if ( ! $slug ) {
+						continue;
+					}
+
+					$group[] = 'taxonomies.slug:' . $slug;
+				}
+
+				if ( ! $group ) {
+					continue;
+				}
+
+				// OR within group, AND across groups.
+				$facet_filters[] = $relation_or ? $group : $group; // Algolia facet_filters already ANDs groups; OR is within an array.
+			}
+		}
+
+		$params = [];
+
+		if ( $facet_filters ) {
+			$params['facet_filters'] = $facet_filters;
+		}
+		if ( $numeric_filters ) {
+			$params['numeric_filters'] = $numeric_filters;
+		}
+		if ( $filters_and ) {
+			// AND-join simple string filters; keep this minimal since facet_filters is preferred.
+			$params['filters'] = implode( ' AND ', $filters_and );
+		}
+
+		// Distinct across chunks so a post appears once in result lists.
+		// Requires index setting "attributeForDistinct": "parent_post_id".
+		$params['distinct'] = true;
+
+		return $params;
 	}
 
 	/**
@@ -543,12 +658,12 @@ class Algolia_Search {
 	 * @throws \Exception On client errors.
 	 */
 	private function search_multiple_indices( $searchable_indices, $search_query, $search_params ) {
-			$client = Algolia::get_instance()->get_client();
+		$client = Algolia::get_instance()->get_client();
 		if ( is_wp_error( $client ) ) {
 				throw new \Exception( esc_html__( 'Failed to get Algolia client.', 'onesearch' ) );
 		}
 
-			$queries = [];
+		$queries = [];
 		foreach ( $searchable_indices as $index ) {
 				$queries[] = array_merge(
 					$search_params,
@@ -559,23 +674,25 @@ class Algolia_Search {
 				);
 		}
 
-			$response = $client->multipleQueries( $queries );
+		$response = $client->multipleQueries( $queries );
 
-			$all_results = [];
+		$all_results = [];
+
 		foreach ( $response['results'] as $index_result ) {
 				$hits        = $index_result['hits'] ?? [];
 				$all_results = array_merge( $all_results, $hits );
 		}
 
-			// Re-rank across indices using Algolia ranking info.
-			usort(
-				$all_results,
-				function ( $a, $b ) {
-						return $this->compute_algolia_score( $b ) <=> $this->compute_algolia_score( $a );
-				}
-			);
+		// TODO: Denormalize into a single index
+		// Re-rank across indices using Algolia ranking info.
+		usort(
+			$all_results,
+			function ( $a, $b ) {
+					return $this->compute_algolia_score( $b ) <=> $this->compute_algolia_score( $a );
+			}
+		);
 
-			return $all_results;
+		return $all_results;
 	}
 
 	/**
@@ -594,18 +711,18 @@ class Algolia_Search {
 		}
 
 		// Otherwise, derive a reasonable composite. Tune weights to your ranking.
-		$nbTypos           = (int) ( $r['nbTypos'] ?? 0 );
-		$words             = (int) ( $r['words'] ?? 0 );
-		$proximityDistance = (int) ( $r['proximityDistance'] ?? 0 );
-		$userScore         = (int) ( $r['userScore'] ?? 0 );
-		$geoDistance       = (int) ( $r['geoDistance'] ?? 0 );
+		$nb_typos           = (int) ( $r['nb_typos'] ?? 0 );
+		$words              = (int) ( $r['words'] ?? 0 );
+		$proximity_distance = (int) ( $r['proximity_distance'] ?? 0 );
+		$user_score         = (int) ( $r['user_score'] ?? 0 );
+		$geo_distance       = (int) ( $r['geo_distance'] ?? 0 );
 
 		// Higher is better. Penalize typos/proximity/geo distance.
-		return ( $userScore * 1_000_000 )
+		return ( $user_score * 1_000_000 )
 		+ ( $words * 1_000 )
-		- ( $nbTypos * 10_000 )
-		- $proximityDistance
-		- ( $geoDistance / 1000.0 );
+		- ( $nb_typos * 10_000 )
+		- $proximity_distance
+		- ( $geo_distance / 1000.0 );
 	}
 
 	/**
