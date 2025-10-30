@@ -15,6 +15,7 @@ use Onesearch\Inc\Algolia\Algolia_Index;
 use Onesearch\Inc\Algolia\Algolia_Index_By_Post;
 use Onesearch\Inc\Plugin_Configs\Secret_Key;
 use Onesearch\Inc\Traits\Singleton;
+use Onesearch\Utils;
 use WP_REST_Server;
 
 /**
@@ -177,7 +178,7 @@ class Basic_Options {
 			[
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => [ $this, 'health_check' ],
-				'permission_callback' => 'onesearch_validate_api_key',
+				'permission_callback' => [ Utils::class, 'validate_api_key' ],
 			]
 		);
 
@@ -399,7 +400,7 @@ class Basic_Options {
 
 		$body        = json_decode( (string) $request->get_body(), true ) ?: [];
 		$records     = (array) ( $body['records'] ?? [] );
-		$site_url    = norm_url( sanitize_url( (string) ( $body['site_url'] ?? '' ) ) );
+		$site_url    = Utils::normalize_url( sanitize_url( (string) ( $body['site_url'] ?? '' ) ) );
 		$post_id     = absint( ( $body['post_id'] ?? 0 ) );
 		$post_type   = sanitize_text_field( wp_unslash( (string) ( $body['post_type'] ?? '' ) ) );
 		$post_status = sanitize_text_field( wp_unslash( (string) ( $body['post_status'] ?? '' ) ) );
@@ -492,7 +493,7 @@ class Basic_Options {
 		$deletion_results['parent_url_option'] = $parent_url_delete_result;
 
 		// 3) Delete Algolia index for this site.
-		$algolia_result                       = delete_site_algolia_index( $site_url );
+		$algolia_result                       = Utils::delete_site_algolia_index( $site_url );
 		$deletion_results['algolia_deletion'] = $algolia_result;
 
 		// 4) Remove site from option.
@@ -930,7 +931,7 @@ class Basic_Options {
 			}
 		}
 
-		$creds = get_local_algolia_credentials();
+		$creds = Utils::get_local_algolia_credentials();
 		$app   = (string) ( $creds['app_id'] ?? '' );
 		$write = (string) ( $creds['write_key'] ?? '' );
 		$admin = (string) ( $creds['admin_key'] ?? '' );
@@ -1334,7 +1335,7 @@ class Basic_Options {
 
 		$out = [];
 		foreach ( $map as $url => $list ) {
-			$key         = norm_url( (string) $url );
+			$key         = Utils::normalize_url( (string) $url );
 			$out[ $key ] = $this->is_string_list( $list ) ? array_values( array_unique( array_map( 'strval', $list ) ) ) : [];
 		}
 		return $out;
@@ -1350,7 +1351,7 @@ class Basic_Options {
 	public function re_index( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
 
 		$site_type        = (string) get_option( 'onesearch_site_type', '' );
-		$current_site_url = norm_url( get_site_url() );
+		$current_site_url = Utils::normalize_url( get_site_url() );
 		$results          = [];
 
 		if ( 'governing-site' === $site_type ) {
@@ -1376,7 +1377,7 @@ class Basic_Options {
 			if ( is_array( $child_sites ) ) {
 				foreach ( $child_sites as $child ) {
 					$raw_url = isset( $child['siteUrl'] ) ? (string) $child['siteUrl'] : '';
-					$url     = norm_url( $raw_url );
+					$url     = Utils::normalize_url( $raw_url );
 					$key     = isset( $child['publicKey'] ) ? (string) $child['publicKey'] : '';
 
 					if ( empty( $url ) || empty( $key ) ) {
@@ -1508,7 +1509,7 @@ class Basic_Options {
 			return new \WP_Error( 'no_parent_url', __( 'Parent site URL not configured.', 'onesearch' ), [ 'status' => 400 ] );
 		}
 
-		$current_site_url = norm_url( get_site_url() );
+		$current_site_url = Utils::normalize_url( get_site_url() );
 
 		$endpoint = trailingslashit( $parent_url ) . 'wp-json/' . self::NAMESPACE . '/indexable-entities';
 
@@ -1823,7 +1824,7 @@ class Basic_Options {
 	 * @return \WP_Error|true True if allowed, or WP_Error if not.
 	 */
 	public function permission_admin_or_token( \WP_REST_Request $request ) {
-		$result = verify_admin_and_token( $request );
+		$result = Utils::verify_admin_and_token( $request );
 		return is_wp_error( $result ) ? $result : true;
 	}
 }

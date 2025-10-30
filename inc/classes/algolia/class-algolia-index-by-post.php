@@ -10,6 +10,7 @@
 namespace Onesearch\Inc\Algolia;
 
 use Onesearch\Inc\Traits\Singleton;
+use Onesearch\Utils;
 
 /**
  * Class Algolia_Index_By_Post
@@ -83,7 +84,7 @@ class Algolia_Index_By_Post {
 	 * @return array Status of the operation.
 	 */
 	public function governing_handle_change( string $site_url, int $post_id, string $post_type, string $post_status, array $records ): array {
-		$site_url = norm_url( $site_url );
+		$site_url = Utils::normalize_url( $site_url );
 
 		$selected_types = $this->get_selected_entities_for_site( $site_url );
 		$type_selected  = in_array( $post_type, $selected_types, true );
@@ -220,7 +221,7 @@ class Algolia_Index_By_Post {
 			return [];
 		}
 
-		$site_url_norm = norm_url( $site_url );
+		$site_url_norm = Utils::normalize_url( $site_url );
 
 		if ( isset( $map[ $site_url_norm ] ) && is_array( $map[ $site_url_norm ] ) ) {
 			return array_values( array_unique( array_map( 'strval', $map[ $site_url_norm ] ) ) );
