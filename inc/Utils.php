@@ -16,7 +16,7 @@ use Onesearch\Inc\Algolia\Algolia;
 /**
  * Class - Utils
  */
-class Utils {
+final class Utils {
 
 	/**
 	 * Normalize a URL by trimming whitespace and ensuring it ends with a trailing slash.
