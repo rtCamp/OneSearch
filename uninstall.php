@@ -120,6 +120,8 @@ function load_dependencies(): bool {
 		return false;
 	}
 
+	require_once $autoloader_path; // phpcs:ignore WordPressVIPMinimum.Files.IncludingFile.UsingVariable
+
 	// If the autoloader succeeded we have what we need.
 	return class_exists( '\Onesearch\Autoloader' ) && \Onesearch\Autoloader::autoload();
 }
@@ -150,7 +152,7 @@ function delete_shared_site_indices( $client ): void {
 }
 
 /**
- * Deletes an algolia index.
+ * Deletes an Algolia index.
  *
  * Errors are thrown and caught by the caller.
  *
