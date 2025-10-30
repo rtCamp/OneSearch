@@ -68,7 +68,7 @@ class Governing_Data {
 
 		$endpoint = trailingslashit( $parent_url ) . 'wp-json/' . self::NAMESPACE . '/algolia-credentials';
 
-		$response = wp_remote_get(
+		$response = wp_remote_get( // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_remote_get_wp_remote_get
 			$endpoint,
 			[
 				'headers' => [
@@ -120,7 +120,7 @@ class Governing_Data {
 
 		$endpoint = trailingslashit( $parent_url ) . 'wp-json/' . self::NAMESPACE . '/searchable-sites';
 
-		$response = wp_remote_get(
+		$response = wp_remote_get( // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_remote_get_wp_remote_get
 			$endpoint,
 			[
 				'headers' => [
@@ -183,7 +183,7 @@ class Governing_Data {
 
 		$endpoint = trailingslashit( $parent_url ) . 'wp-json/' . self::NAMESPACE . '/search-settings';
 
-		$response = wp_remote_get(
+		$response = wp_remote_get( // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_remote_get_wp_remote_get
 			$endpoint,
 			[
 				'headers' => [
