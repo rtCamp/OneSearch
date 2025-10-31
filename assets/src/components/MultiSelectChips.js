@@ -93,14 +93,25 @@ function MultiSelectChips( {
 							return (
 								<span key={ itemValue } className="msc-chip">
 									<span className="msc-chip-label">{ itemLabel }</span>
-									<button
-										type="button"
+									<span
+										role="button"
+										tabIndex={ disabled ? -1 : 0 }
 										className="msc-chip-close"
 										onClick={ handleRemove }
+										onKeyDown={ ( e ) => {
+											if ( disabled ) {
+												return;
+											}
+											if ( e.key === 'Enter' || e.key === ' ' ) {
+												e.preventDefault();
+												handleRemove( e );
+											}
+										} }
 										aria-label={ `Remove ${ itemLabel }` }
+										aria-disabled={ disabled }
 									>
-										<Icon icon={ closeSmall } aria-disabled={ disabled } />
-									</button>
+										<Icon icon={ closeSmall } aria-hidden={ false } aria-disabled={ disabled } />
+									</span>
 								</span>
 							);
 						} )
