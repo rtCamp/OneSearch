@@ -10,6 +10,7 @@ namespace Onesearch\Inc\Algolia;
 use Algolia\AlgoliaSearch\SearchClient;
 use Onesearch\Inc\REST\Governing_Data;
 use Onesearch\Inc\Traits\Singleton;
+use Onesearch\Utils;
 
 /**
  * Class Algolia
@@ -43,7 +44,7 @@ class Algolia {
 			return Governing_Data::get_algolia_credentials();
 		}
 
-		$creds = get_local_algolia_credentials();
+		$creds = Utils::get_local_algolia_credentials();
 
 		return [
 			'app_id'    => (string) ( $creds['app_id'] ?? '' ),
