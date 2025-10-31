@@ -48,8 +48,11 @@ class Hooks {
 
 	/**
 	 * Load onesearch text domain.
+	 *
+	 * @todo Remove before release on wordpress.org
 	 */
-	public function load_onesearch_text_domain() {
+	public function load_onesearch_text_domain(): void {
+		// phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound
 		load_plugin_textdomain( 'onesearch', false, ONESEARCH_PATH . '/languages/' );
 	}
 

@@ -38,7 +38,7 @@ class REST {
 		Governing_Data::get_instance();
 
 		// fix cors headers for REST API requests.
-		add_filter( 'rest_pre_serve_request', [ $this, 'add_cors_headers' ], PHP_INT_MAX - 20, 4 );
+		add_filter( 'rest_pre_serve_request', [ $this, 'add_cors_headers' ], PHP_INT_MAX - 20, 1 );
 	}
 
 	/**

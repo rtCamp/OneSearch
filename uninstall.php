@@ -158,7 +158,6 @@ function delete_shared_site_indices( $client ): void {
  *
  * @param \Algolia\AlgoliaSearch\SearchClient $client Algolia client.
  * @param string                              $index_name Index name to delete.
- * @return void
  */
 function delete_algolia_index( $client, $index_name ): void {
 	if ( empty( $index_name ) ) {
