@@ -49,32 +49,31 @@ class Algolia_Index {
 
 		$index->setSettings( $settings );
 
-		// Batched indexing across pages.
 		$batch_size  = 100;
 		$page        = 1;
 		$first_batch = true;
 
 		while ( true ) {
-			$posts = $this->get_indexable_posts( $site_indexable_entities, $page, $batch_size );
-
-			if ( empty( $posts ) ) {
-				if ( true === $first_batch ) {
-					$index->replaceAllObjects( [] )->wait();
-				}
-				break;
-			}
-
-			$records = $this->get_indexable_records_from_post( $posts );
+			$batch   = $this->get_indexable_records_batch( (array) $site_indexable_entities, $page, $batch_size );
+			$records = $batch['records'];
 
 			// The first batch replaces all objects and next batched add to the index.
 			if ( $first_batch ) {
 				$index->replaceAllObjects( $records )->wait();
 				$first_batch = false;
-			} else {
+			} elseif ( ! empty( $records ) ) {
 				$index->saveObjects( $records )->wait();
 			}
 
-			++$page;
+			if ( ! $batch['has_more'] ) {
+				break;
+			}
+
+			$page = $batch['next_page'];
+		}
+
+		if ( true === $first_batch ) {
+			$index->replaceAllObjects( [] )->wait();
 		}
 
 		return true;
@@ -120,6 +119,11 @@ class Algolia_Index {
 	 */
 	public function get_indexable_posts( $site_indexable_entities, $page = 1, $posts_per_page = -1 ) {
 
+		if ( $posts_per_page > 0 ) {
+			$batch = $this->query_indexable_posts_batch( (array) $site_indexable_entities, (int) $page, (int) $posts_per_page );
+			return $batch['posts'];
+		}
+
 		$statuses = $this->compute_post_statuses_for_types( $site_indexable_entities );
 
 		$args = [
@@ -128,14 +132,77 @@ class Algolia_Index {
 			'posts_per_page' => $posts_per_page,
 		];
 
-		// Enable pagination when batching.
-		if ( $posts_per_page > 0 ) {
-			$args['paged']         = $page;
-			$args['no_found_rows'] = true;
-		}
-
 		$query = new \WP_Query( $args );
 		return $query->posts;
+	}
+
+	/**
+	 * Build a page of Algolia-ready records.
+	 *
+	 * @param string[] $site_indexable_entities Post types.
+	 * @param int      $page                    Page number (1-based).
+	 * @param int      $posts_per_page          Batch size.
+	 *
+	 * @return array{
+	 *   records: array,
+	 *   has_more: bool,
+	 *   page: int,
+	 *   per_page: int,
+	 *   next_page: int|null
+	 * }
+	 */
+	public function get_indexable_records_batch( array $site_indexable_entities, int $page = 1, int $posts_per_page = 100 ): array {
+		$page           = max( 1, $page );
+		$posts_per_page = max( 1, $posts_per_page );
+
+		$posts_batch = $this->query_indexable_posts_batch( $site_indexable_entities, $page, $posts_per_page );
+		$records     = $this->get_indexable_records_from_post( $posts_batch['posts'] );
+
+		return [
+			'records'   => $records,
+			'has_more'  => $posts_batch['has_more'],
+			'page'      => $page,
+			'per_page'  => $posts_per_page,
+			'next_page' => $posts_batch['has_more'] ? $page + 1 : null,
+		];
+	}
+
+	/**
+	 * Run a paged WP_Query that reports whether additional posts are available.
+	 *
+	 * @param string[] $site_indexable_entities Post types.
+	 * @param int      $page                    Page number (1-based).
+	 * @param int      $posts_per_page          Batch size.
+	 *
+	 * @return array{
+	 *   posts: \WP_Post[],
+	 *   has_more: bool
+	 * }
+	 */
+	private function query_indexable_posts_batch( array $site_indexable_entities, int $page, int $posts_per_page ): array {
+		$statuses = $this->compute_post_statuses_for_types( $site_indexable_entities );
+
+		$args = [
+			'post_type'      => $site_indexable_entities,
+			'post_status'    => $statuses,
+			'posts_per_page' => $posts_per_page + 1,
+			'paged'          => max( 1, $page ),
+			'no_found_rows'  => true,
+		];
+
+		$query = new \WP_Query( $args );
+		$posts = $query->posts;
+
+		$has_more = false;
+		if ( count( $posts ) > $posts_per_page ) {
+			$has_more = true;
+			$posts    = array_slice( $posts, 0, $posts_per_page );
+		}
+
+		return [
+			'posts'    => $posts,
+			'has_more' => $has_more,
+		];
 	}
 
 	/**
@@ -225,6 +292,9 @@ class Algolia_Index {
 	private function get_clean_content( string $post_content ): string {
 		// Render Gutenberg blocks (convert block markup to HTML).
 		$parsed_post_content = do_blocks( $post_content );
+
+		// Remove HTML comments early.
+		$parsed_post_content = preg_replace( '/<!--.*?-->/s', '', $parsed_post_content );
 
 		// Define allowed HTML elements and attributes useful for search context.
 		$allowed_tags = [
