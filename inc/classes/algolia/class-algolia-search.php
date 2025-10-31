@@ -497,12 +497,12 @@ class Algolia_Search {
 			'getRankingInfo'        => true,
 			'distinct'              => false,
 			'typoTolerance'         => 'min',
-  		'minWordSizefor1Typo'   => 3,
-  		'minWordSizefor2Typos'  => 6,
+			'minWordSizefor1Typo'   => 3,
+			'minWordSizefor2Typos'  => 6,
 			'ignorePlurals'         => true,
 			'removeStopWords'       => true,
 			'queryType'             => 'prefixAll',
-			'optionalWords'         => ['the', 'of', 'guide']
+			'optionalWords'         => [ 'the', 'of', 'guide' ],
 		];
 
 		// Restrict by post type when present.
@@ -544,35 +544,35 @@ class Algolia_Search {
 	 */
 	private function search_multiple_indices( $searchable_indices, $search_query, $search_params ) {
 			$client = Algolia::get_instance()->get_client();
-			if ( is_wp_error( $client ) ) {
-					throw new \Exception( esc_html__( 'Failed to get Algolia client.', 'onesearch' ) );
-			}
+		if ( is_wp_error( $client ) ) {
+				throw new \Exception( esc_html__( 'Failed to get Algolia client.', 'onesearch' ) );
+		}
 
 			$queries = [];
-			foreach ( $searchable_indices as $index ) {
-					$queries[] = array_merge(
-							$search_params,
-							[
-									'indexName' => $index->getIndexName(),
-									'query'     => $search_query,
-							]
-					);
-			}
+		foreach ( $searchable_indices as $index ) {
+				$queries[] = array_merge(
+					$search_params,
+					[
+						'indexName' => $index->getIndexName(),
+						'query'     => $search_query,
+					]
+				);
+		}
 
 			$response = $client->multipleQueries( $queries );
 
 			$all_results = [];
-			foreach ( $response['results'] as $index_result ) {
-					$hits        = $index_result['hits'] ?? [];
-					$all_results = array_merge( $all_results, $hits );
-			}
+		foreach ( $response['results'] as $index_result ) {
+				$hits        = $index_result['hits'] ?? [];
+				$all_results = array_merge( $all_results, $hits );
+		}
 
 			// Re-rank across indices using Algolia ranking info.
 			usort(
-					$all_results,
-					function ( $a, $b ) {
-							return $this->compute_algolia_score( $b ) <=> $this->compute_algolia_score( $a );
-					}
+				$all_results,
+				function ( $a, $b ) {
+						return $this->compute_algolia_score( $b ) <=> $this->compute_algolia_score( $a );
+				}
 			);
 
 			return $all_results;
@@ -581,31 +581,31 @@ class Algolia_Search {
 	/**
 	 * Build a comparable score from Algolia _rankingInfo.
 	 *
-	 * @param array $hit search hit
-	 * 
+	 * @param array $hit search hit.
+	 *
 	 * @return float ranking score
 	 */
 	private function compute_algolia_score( array $hit ): float {
-    $r = $hit['_rankingInfo'] ?? [];
+		$r = $hit['_rankingInfo'] ?? [];
 
-    // If Algolia provides rankingScore, prefer it.
-    if ( isset( $r['rankingScore'] ) ) {
-        return (float) $r['rankingScore'];
-    }
+		// If Algolia provides rankingScore, prefer it.
+		if ( isset( $r['rankingScore'] ) ) {
+			return (float) $r['rankingScore'];
+		}
 
-    // Otherwise, derive a reasonable composite. Tune weights to your ranking.
-    $nbTypos           = (int) ( $r['nbTypos'] ?? 0 );
-    $words             = (int) ( $r['words'] ?? 0 );
-    $proximityDistance = (int) ( $r['proximityDistance'] ?? 0 );
-    $userScore         = (int) ( $r['userScore'] ?? 0 );
-    $geoDistance       = (int) ( $r['geoDistance'] ?? 0 );
+		// Otherwise, derive a reasonable composite. Tune weights to your ranking.
+		$nbTypos           = (int) ( $r['nbTypos'] ?? 0 );
+		$words             = (int) ( $r['words'] ?? 0 );
+		$proximityDistance = (int) ( $r['proximityDistance'] ?? 0 );
+		$userScore         = (int) ( $r['userScore'] ?? 0 );
+		$geoDistance       = (int) ( $r['geoDistance'] ?? 0 );
 
-    // Higher is better. Penalize typos/proximity/geo distance.
-    return ($userScore * 1_000_000)
-         + ($words * 1_000)
-         - ($nbTypos * 10_000)
-         - ($proximityDistance)
-         - ($geoDistance / 1000.0);
+		// Higher is better. Penalize typos/proximity/geo distance.
+		return ( $userScore * 1_000_000 )
+		+ ( $words * 1_000 )
+		- ( $nbTypos * 10_000 )
+		- $proximityDistance
+		- ( $geoDistance / 1000.0 );
 	}
 
 	/**

@@ -228,8 +228,14 @@ class Algolia_Index {
 
 		// Define allowed HTML elements and attributes useful for search context.
 		$allowed_tags = [
-			'a'      => [ 'href' => true, 'title' => true ],
-			'img'    => [ 'src' => true, 'alt' => true ],
+			'a'      => [
+				'href'  => true,
+				'title' => true,
+			],
+			'img'    => [
+				'src' => true,
+				'alt' => true,
+			],
 			'strong' => [],
 			'em'     => [],
 			'p'      => [],
@@ -248,8 +254,8 @@ class Algolia_Index {
 		$clean_content = wp_kses( $parsed_post_content, $allowed_tags );
 
 		// Remove excessive blank lines and normalize whitespace.
-		$clean_content = preg_replace( '/\s*\n\s*/', "\n", $clean_content ); // collapse blank lines
-		$clean_content = preg_replace( '/\n{2,}/', "\n", $clean_content );   // limit to single newlines
+		$clean_content = preg_replace( '/\s*\n\s*/', "\n", $clean_content ); // collapse blank lines.
+		$clean_content = preg_replace( '/\n{2,}/', "\n", $clean_content );   // limit to single newlines.
 		$clean_content = trim( $clean_content );
 
 		return $clean_content;
