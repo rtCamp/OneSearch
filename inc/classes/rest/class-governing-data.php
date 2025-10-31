@@ -11,6 +11,7 @@
 namespace Onesearch\Inc\REST;
 
 use Onesearch\Inc\Traits\Singleton;
+use Onesearch\Utils;
 
 /**
  * Governing Data class.
@@ -56,18 +57,18 @@ class Governing_Data {
 		// If no parent is configured, use local storage.
 		$parent_url = get_option( 'onesearch_parent_site_url', '' );
 		if ( empty( $parent_url ) ) {
-			return get_local_algolia_credentials();
+			return Utils::get_local_algolia_credentials();
 		}
 
 		// Child authenticating to the governing site.
 		$our_public_key = get_option( 'onesearch_child_site_public_key', '' );
 		if ( empty( $our_public_key ) ) {
-			return get_local_algolia_credentials();
+			return Utils::get_local_algolia_credentials();
 		}
 
 		$endpoint = trailingslashit( $parent_url ) . 'wp-json/' . self::NAMESPACE . '/algolia-credentials';
 
-		$response = wp_remote_get(
+		$response = wp_remote_get( // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_remote_get_wp_remote_get
 			$endpoint,
 			[
 				'headers' => [
@@ -78,12 +79,12 @@ class Governing_Data {
 		);
 
 		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
-			return get_local_algolia_credentials();
+			return Utils::get_local_algolia_credentials();
 		}
 
 		$data = json_decode( wp_remote_retrieve_body( $response ), true );
 		if ( ! is_array( $data ) ) {
-			return get_local_algolia_credentials();
+			return Utils::get_local_algolia_credentials();
 		}
 
 		set_transient( 'onesearch_algolia_creds_cache', $data );
@@ -119,7 +120,7 @@ class Governing_Data {
 
 		$endpoint = trailingslashit( $parent_url ) . 'wp-json/' . self::NAMESPACE . '/searchable-sites';
 
-		$response = wp_remote_get(
+		$response = wp_remote_get( // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_remote_get_wp_remote_get
 			$endpoint,
 			[
 				'headers' => [
@@ -182,7 +183,7 @@ class Governing_Data {
 
 		$endpoint = trailingslashit( $parent_url ) . 'wp-json/' . self::NAMESPACE . '/search-settings';
 
-		$response = wp_remote_get(
+		$response = wp_remote_get( // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_remote_get_wp_remote_get
 			$endpoint,
 			[
 				'headers' => [

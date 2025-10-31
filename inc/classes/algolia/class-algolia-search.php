@@ -665,22 +665,21 @@ class Algolia_Search {
 
 		$queries = [];
 		foreach ( $searchable_indices as $index ) {
-				$queries[] = array_merge(
-					$search_params,
-					[
-						'indexName' => $index->getIndexName(),
-						'query'     => $search_query,
-					]
-				);
+			$queries[] = array_merge(
+				$search_params,
+				[
+					'indexName' => $index->getIndexName(),
+					'query'     => $search_query,
+				]
+			);
 		}
 
 		$response = $client->multipleQueries( $queries );
 
 		$all_results = [];
-
 		foreach ( $response['results'] as $index_result ) {
-				$hits        = $index_result['hits'] ?? [];
-				$all_results = array_merge( $all_results, $hits );
+			$hits        = $index_result['hits'] ?? [];
+			$all_results = array_merge( $all_results, $hits );
 		}
 
 		// TODO: Denormalize into a single index

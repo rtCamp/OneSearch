@@ -8,6 +8,7 @@
 namespace Onesearch\Inc\Settings;
 
 use Onesearch\Inc\Traits\Singleton;
+use Onesearch\Utils;
 
 /**
  * Class Shared_Sites
@@ -51,7 +52,7 @@ class Shared_Sites {
 		);
 
 		$site_type     = (string) get_option( 'onesearch_site_type', '' );
-		$algolia_creds = get_local_algolia_credentials();
+		$algolia_creds = Utils::get_local_algolia_credentials();
 
 		if ( 'governing-site' === $site_type ) {
 			add_submenu_page(

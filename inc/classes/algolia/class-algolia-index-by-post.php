@@ -10,6 +10,7 @@
 namespace Onesearch\Inc\Algolia;
 
 use Onesearch\Inc\Traits\Singleton;
+use Onesearch\Utils;
 
 /**
  * Class Algolia_Index_By_Post
@@ -30,20 +31,19 @@ class Algolia_Index_By_Post {
 	/**
 	 * Sets up hooks.
 	 */
-	public function setup_hooks() {
+	public function setup_hooks(): void {
 		add_action( 'transition_post_status', [ $this, 'on_transition' ], 10, 3 );
 	}
 
 	/**
 	 * Triggered when a post's status changes (e.g., publish, update, trash, etc.)
 	 *
-	 * @param string $new_status The new post status.
-	 * @param string $old_status The previous post status.
-	 *
-	 * @param object $post The post object.
+	 * @param string   $new_status The new post status.
+	 * @param string   $old_status The previous post status.
+	 * @param \WP_Post $post       The post object.
 	 */
-	public function on_transition( $new_status, $old_status, $post ) {
-		if ( ! $post || empty( $post->ID ) ) {
+	public function on_transition( $new_status, $old_status, $post ): void {
+		if ( ! $post instanceof \WP_Post ) {
 			return;
 		}
 
@@ -83,12 +83,12 @@ class Algolia_Index_By_Post {
 	 * @return array Status of the operation.
 	 */
 	public function governing_handle_change( string $site_url, int $post_id, string $post_type, string $post_status, array $records ): array {
-		$site_url = norm_url( $site_url );
+		$site_url = Utils::normalize_url( $site_url );
 
 		$selected_types = $this->get_selected_entities_for_site( $site_url );
-		$type_selected  = in_array( $post_type, $selected_types, true );
 
-		if ( empty( $type_selected ) || ! $type_selected ) {
+		// Skip early if the post type is not selected for indexing.
+		if ( ! in_array( $post_type, $selected_types, true ) ) {
 			return [
 				'ok'     => true,
 				'action' => 'skip',
@@ -96,7 +96,6 @@ class Algolia_Index_By_Post {
 		}
 
 		$allowed_statuses = Algolia_Index::get_instance()->compute_post_statuses_for_types( $selected_types );
-		$status_allowed   = in_array( $post_status, $allowed_statuses, true );
 
 		$client = Algolia::get_instance()->get_client();
 
@@ -119,7 +118,7 @@ class Algolia_Index_By_Post {
 			// Do nothing.
 		}
 
-		if ( ! $status_allowed || empty( $status_allowed ) ) {
+		if ( ! in_array( $post_status, $allowed_statuses, true ) ) {
 			return [
 				'ok'      => true,
 				'action'  => 'deleted',
@@ -151,7 +150,7 @@ class Algolia_Index_By_Post {
 	 * @param string $status       The post's status.
 	 * @param bool   $force_delete Whether to force the deletion of the post.
 	 */
-	public function brand_send_to_governing( int $post_id, string $post_type, string $status, bool $force_delete = false ) {
+	public function brand_send_to_governing( int $post_id, string $post_type, string $status, bool $force_delete = false ): void {
 		$site_url   = trailingslashit( get_site_url() );
 		$public_key = (string) get_option( 'onesearch_child_site_public_key', '' );
 		$parent_url = (string) get_option( 'onesearch_parent_site_url', '' );
@@ -184,7 +183,7 @@ class Algolia_Index_By_Post {
 					'Content-Type'              => 'application/json',
 					'X-OneSearch-Plugins-Token' => $public_key,
 				],
-				'body'    => wp_json_encode( $payload ),
+				'body'    => wp_json_encode( $payload ) ?: '',
 				'timeout' => 999, // phpcs:ignore WordPressVIPMinimum.Performance.RemoteRequestTimeout.timeout_timeout
 			]
 		);
@@ -193,7 +192,7 @@ class Algolia_Index_By_Post {
 	/**
 	 * Ensures that the Algolia index is ready.
 	 *
-	 * @param object $index The Algolia index object.
+	 * @param \Algolia\AlgoliaSearch\SearchIndex $index The Algolia index object.
 	 */
 	public function ensure_index_ready( $index ): void {
 		$settings = Algolia_Index::get_instance()->get_algolia_settings( $index );
@@ -220,7 +219,7 @@ class Algolia_Index_By_Post {
 			return [];
 		}
 
-		$site_url_norm = norm_url( $site_url );
+		$site_url_norm = Utils::normalize_url( $site_url );
 
 		if ( isset( $map[ $site_url_norm ] ) && is_array( $map[ $site_url_norm ] ) ) {
 			return array_values( array_unique( array_map( 'strval', $map[ $site_url_norm ] ) ) );

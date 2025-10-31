@@ -50,7 +50,7 @@ trait Singleton {
 	 * of the class for which it is called. This method is set
 	 * as final intentionally, it is not meant to be overridden.
 	 *
-	 * @return object Singleton instance of the class.
+	 * @return static Singleton instance of the class.
 	 */
 	final public static function get_instance() {
 
