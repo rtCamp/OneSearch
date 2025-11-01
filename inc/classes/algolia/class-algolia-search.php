@@ -591,11 +591,11 @@ class Algolia_Search {
 		}
 
 		// Otherwise, derive a reasonable composite. Tune weights to your ranking.
-		$nb_typos           = (int) ( $r['nb_typos'] ?? 0 );
+		$nb_typos           = (int) ( $r['nbTypos'] ?? 0 );
 		$words              = (int) ( $r['words'] ?? 0 );
-		$proximity_distance = (int) ( $r['proximity_distance'] ?? 0 );
-		$user_score         = (int) ( $r['user_score'] ?? 0 );
-		$geo_distance       = (int) ( $r['geo_distance'] ?? 0 );
+		$proximity_distance = (int) ( $r['proximityDistance'] ?? 0 );
+		$user_score         = (int) ( $r['userScore'] ?? 0 );
+		$geo_distance       = (int) ( $r['geoDistance'] ?? 0 );
 
 		// Higher is better. Penalize typos/proximity/geo distance.
 		return ( $user_score * 1_000_000 )
