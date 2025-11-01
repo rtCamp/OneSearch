@@ -497,7 +497,7 @@ class Algolia_Search {
 		}
 
 		// Append site_url filters.
-		$site_urls = $this::get_searchable_site_urls();
+		$site_urls = $this->get_searchable_site_urls();
 		if ( is_wp_error( $site_urls ) ) {
 			return $site_urls;
 		}
