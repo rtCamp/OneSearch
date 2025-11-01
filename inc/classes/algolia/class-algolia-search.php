@@ -550,11 +550,6 @@ class Algolia_Search {
 	 * @throws \Exception On client errors.
 	 */
 	private function search_index( $index, $search_query, $search_params ) {
-		$index = Algolia::get_instance()->get_index();
-		if ( is_wp_error( $index ) ) {
-			throw new \Exception( esc_html__( 'Failed to get Algolia index.', 'onesearch' ) );
-		}
-
 		$response = $index->search( $search_query, $search_params );
 
 		$hits = ! empty( $response['hits'] ) && is_array( $response['hits'] ) ? $response['hits'] : null;

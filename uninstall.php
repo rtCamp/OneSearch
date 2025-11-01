@@ -91,7 +91,7 @@ function cleanup_algolia_index(): void {
 		}
 
 		// For governing sites, we can delete the entire index.
-		if ( 'governing-site' !== (string) get_option( 'onesearch_site_type', '' ) ) {
+		if ( 'governing-site' === (string) get_option( 'onesearch_site_type', '' ) ) {
 			$algolia_index->getSettings();
 			$algolia_index->delete()->wait();
 			return;
