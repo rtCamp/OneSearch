@@ -30,8 +30,8 @@ class Algolia_Search {
 		if ( 'brand-site' === $site_type ) {
 			$search_config = Governing_Data::get_search_settings();
 		} else {
-			$search_config = get_option( 'onesearch_sites_search_settings', [] );
-			$search_config = $search_config[ trailingslashit( get_site_url() ) ] ?? [];
+			$all_settings  = get_option( 'onesearch_sites_search_settings', [] );
+			$search_config = $all_settings[ trailingslashit( get_site_url() ) ] ?? [];
 		}
 
 		// Do not hook the hooks if disabled or no sites are selected.
@@ -295,7 +295,7 @@ class Algolia_Search {
 			return $posts;
 		}
 
-		// Group all hits by (site_url|parent_post_id).
+		// Group all hits by their parent_post_id.
 		$grouped = $this->onesearch_group_hits_by_post( $hits );
 
 		// Set total for pagination.
@@ -331,13 +331,13 @@ class Algolia_Search {
 			foreach ( $hits_for_page as $hit ) {
 				$is_chunked = ! empty( $hit['is_chunked'] );
 				$site_url   = isset( $hit['site_url'] ) ? (string) $hit['site_url'] : '';
-				$parent_id  = isset( $hit['parent_post_id'] ) ? (int) $hit['parent_post_id'] : 0;
+				$post_id    = isset( $hit['post_id'] ) ? (int) $hit['post_id'] : 0;
 
-				if ( ! $is_chunked || ! $site_url || ! $parent_id ) {
+				if ( ! $is_chunked || ! $site_url || ! $post_id ) {
 					continue;
 				}
 
-				$ids_by_site[ $site_url ][] = $parent_id;
+				$ids_by_site[ $site_url ][] = $post_id;
 			}
 		}
 
@@ -413,9 +413,9 @@ class Algolia_Search {
 	private function batch_fetch_chunks_by_site( array $parent_ids_by_site ): array {
 		$result_by_site = [];
 
-		foreach ( $parent_ids_by_site as $site_url => $parent_ids ) {
-			$index = $this->get_index_for_site( $site_url );
+		$index = Algolia::get_instance()->get_index();
 
+		foreach ( $parent_ids_by_site as $site_url => $parent_ids ) {
 			if ( is_wp_error( $index ) ) {
 				$result_by_site[ $site_url ] = [];
 				continue;
@@ -467,7 +467,7 @@ class Algolia_Search {
 	}
 
 	/**
-	 * Execute multi-index search and return all matching records.
+	 * Execute search and return all matching records.
 	 *
 	 * @param string    $search_query User query string.
 	 * @param \WP_Query $wp_query     WP_Query instance.
@@ -475,21 +475,6 @@ class Algolia_Search {
 	 * @return array|\WP_Error Array of Algolia records or WP_Error.
 	 */
 	private function get_all_searched_record_ids( $search_query, $wp_query ) {
-
-		$index = Algolia::get_instance()->get_index();
-		if ( is_wp_error( $index ) ) {
-			return $index;
-		}
-
-		$searchable_indices = Algolia::get_instance()->get_child_sites_indices();
-		if ( is_wp_error( $searchable_indices ) ) {
-			return $searchable_indices;
-		}
-
-		if ( empty( $searchable_indices ) ) {
-			return new \WP_Error( 'no_searchable_indices', __( 'No searchable indices found.', 'onesearch' ) );
-		}
-
 		$default_params = [
 			'attributesToHighlight' => [ 'title', 'content', 'excerpt' ],
 			'highlightPreTag'       => '<span class="algolia-highlight">',
@@ -511,6 +496,23 @@ class Algolia_Search {
 			$default_params['filters'] = "type:{$post_type}";
 		}
 
+		// Append site_url filters.
+		$site_urls = $this::get_searchable_site_urls();
+		if ( is_wp_error( $site_urls ) ) {
+			return $site_urls;
+		}
+
+		$site_url_filters = [];
+		foreach ( $site_urls as $site_url ) {
+			$escaped_url        = str_replace( ':', '\:', $site_url );
+			$site_url_filters[] = "site_url:{$escaped_url}";
+		}
+		$site_url_filters_str = implode( ' OR ', $site_url_filters );
+
+		$default_params['filters'] = isset( $default_params['filters'] )
+			? '(' . $default_params['filters'] . ') AND (' . $site_url_filters_str . ')'
+			: $site_url_filters_str;
+
 		/**
 		 * Filter Algolia search parameters (facets, filters, etc.).
 		 *
@@ -521,7 +523,12 @@ class Algolia_Search {
 		$search_params = apply_filters( 'onesearch_algolia_search_params', $default_params, $wp_query, $search_query );
 
 		try {
-			return $this->search_multiple_indices( $searchable_indices, $search_query, $search_params );
+			$index = Algolia::get_instance()->get_index();
+			if ( is_wp_error( $index ) ) {
+				return $index;
+			}
+
+			return $this->search_index( $index, $search_query, $search_params );
 		} catch ( \Throwable $e ) {
 			return new \WP_Error(
 				'multi_search_failed',
@@ -534,48 +541,38 @@ class Algolia_Search {
 	/**
 	 * Run a single multi-index API request and combine all hits.
 	 *
-	 * @param array  $searchable_indices Array of Algolia index instances.
-	 * @param string $search_query       Query string.
-	 * @param array  $search_params      Search parameters.
+	 * @param \Algolia\AlgoliaSearch\SearchIndex $index         The Index to search.
+	 * @param string                             $search_query  Query string.
+	 * @param array                              $search_params Search parameters.
 	 *
 	 * @return array Combined list of hits across indices.
 	 *
 	 * @throws \Exception On client errors.
 	 */
-	private function search_multiple_indices( $searchable_indices, $search_query, $search_params ) {
-			$client = Algolia::get_instance()->get_client();
-		if ( is_wp_error( $client ) ) {
-				throw new \Exception( esc_html__( 'Failed to get Algolia client.', 'onesearch' ) );
+	private function search_index( $index, $search_query, $search_params ) {
+		$index = Algolia::get_instance()->get_index();
+		if ( is_wp_error( $index ) ) {
+			throw new \Exception( esc_html__( 'Failed to get Algolia index.', 'onesearch' ) );
 		}
 
-			$queries = [];
-		foreach ( $searchable_indices as $index ) {
-				$queries[] = array_merge(
-					$search_params,
-					[
-						'indexName' => $index->getIndexName(),
-						'query'     => $search_query,
-					]
-				);
+		$response = $index->search( $search_query, $search_params );
+
+		$hits = ! empty( $response['hits'] ) && is_array( $response['hits'] ) ? $response['hits'] : null;
+
+		if ( empty( $hits ) ) {
+			return [];
 		}
 
-			$response = $client->multipleQueries( $queries );
+		// Re-rank across indices using Algolia ranking info.
+		// @todo is this still necessary?
+		usort(
+			$hits,
+			function ( $a, $b ) {
+					return $this->compute_algolia_score( $b ) <=> $this->compute_algolia_score( $a );
+			}
+		);
 
-			$all_results = [];
-		foreach ( $response['results'] as $index_result ) {
-				$hits        = $index_result['hits'] ?? [];
-				$all_results = array_merge( $all_results, $hits );
-		}
-
-			// Re-rank across indices using Algolia ranking info.
-			usort(
-				$all_results,
-				function ( $a, $b ) {
-						return $this->compute_algolia_score( $b ) <=> $this->compute_algolia_score( $a );
-				}
-			);
-
-			return $all_results;
+		return $hits;
 	}
 
 	/**
@@ -594,18 +591,18 @@ class Algolia_Search {
 		}
 
 		// Otherwise, derive a reasonable composite. Tune weights to your ranking.
-		$nbTypos           = (int) ( $r['nbTypos'] ?? 0 );
-		$words             = (int) ( $r['words'] ?? 0 );
-		$proximityDistance = (int) ( $r['proximityDistance'] ?? 0 );
-		$userScore         = (int) ( $r['userScore'] ?? 0 );
-		$geoDistance       = (int) ( $r['geoDistance'] ?? 0 );
+		$nb_typos           = (int) ( $r['nb_typos'] ?? 0 );
+		$words              = (int) ( $r['words'] ?? 0 );
+		$proximity_distance = (int) ( $r['proximity_distance'] ?? 0 );
+		$user_score         = (int) ( $r['user_score'] ?? 0 );
+		$geo_distance       = (int) ( $r['geo_distance'] ?? 0 );
 
 		// Higher is better. Penalize typos/proximity/geo distance.
-		return ( $userScore * 1_000_000 )
+		return ( $user_score * 1_000_000 )
 		+ ( $words * 1_000 )
-		- ( $nbTypos * 10_000 )
-		- $proximityDistance
-		- ( $geoDistance / 1000.0 );
+		- ( $nb_typos * 10_000 )
+		- $proximity_distance
+		- ( $geo_distance / 1000.0 );
 	}
 
 	/**
@@ -665,27 +662,6 @@ class Algolia_Search {
 	}
 
 	/**
-	 * Resolve the correct Algolia index for a given site URL.
-	 *
-	 * @param string $site_url Site URL.
-	 *
-	 * @return mixed \Algolia\AlgoliaSearch\Index|\WP_Error
-	 */
-	private function get_index_for_site( $site_url ) {
-		if ( trailingslashit( get_site_url() ) === trailingslashit( $site_url ) ) {
-			return Algolia::get_instance()->get_index();
-		}
-
-		$client = Algolia::get_instance()->get_client();
-		if ( is_wp_error( $client ) ) {
-			return $client;
-		}
-
-		$index_name = Algolia::get_instance()->get_algolia_index_name_from_url( $site_url );
-		return $client->initIndex( $index_name );
-	}
-
-	/**
 	 * Extract highlighting data from Algolia response.
 	 *
 	 * @param array $algolia_hit Algolia search hit.
@@ -718,18 +694,21 @@ class Algolia_Search {
 	}
 
 	/**
-	 * Group Algolia hits by (site_url|parent_post_id).
+	 * Group Algolia hits by the unique parent_post_id.
 	 *
 	 * @param array $hits Search results hits.
 	 *
-	 * @return array [ compositeKey => [ hits... ], ... ]
+	 * @return array<string, array> Grouped hits by parent_post_id.
 	 */
 	private function onesearch_group_hits_by_post( array $hits ): array {
 		$grouped = [];
 
 		foreach ( $hits as $hit ) {
-			$key               = ( $hit['site_url'] ?? '' ) . '|' . ( $hit['parent_post_id'] ?? '' );
-			$grouped[ $key ][] = $hit;
+			if ( ! isset( $hit['parent_post_id'] ) ) {
+				continue;
+			}
+
+			$grouped[ (string) $hit['parent_post_id'] ][] = $hit;
 		}
 
 		return $grouped;
@@ -789,5 +768,43 @@ class Algolia_Search {
 		}
 
 		return $all_hits;
+	}
+
+	/**
+	 * Return the list of searchable sites for the current site.
+	 *
+	 * This is used to determine which sites to include in search queries.
+	 *
+	 * Behavior:
+	 * - On governing site: reads local selection for current site URL.
+	 * - On brand site: intersects local selection with server-provided availability.
+	 *
+	 * @return array|\WP_Error Array of site URLs or WP_Error on failure.
+	 */
+	private function get_searchable_site_urls() {
+		$site_type = (string) get_option( 'onesearch_site_type', '' );
+
+		// Parent: use local data.
+		if ( 'governing-site' === $site_type ) {
+			$search_config  = get_option( 'onesearch_sites_search_settings', [] );
+			$selected_sites = $search_config[ trailingslashit( get_site_url() ) ] ?? [];
+			return $selected_sites['searchable_sites'] ?? [];
+		}
+
+		// Brand: intersect local selection with governing-available sites.
+		$available_sites = Governing_Data::get_searchable_sites();
+
+		if ( empty( $available_sites ) ) {
+			return [];
+		}
+
+		$selected_sites = Governing_Data::get_search_settings();
+		$selected_sites = $selected_sites['searchable_sites'] ?? [];
+
+		if ( empty( $selected_sites ) ) {
+			return [];
+		}
+
+		return array_intersect( $selected_sites, $available_sites );
 	}
 }

@@ -222,19 +222,6 @@ class Basic_Options {
 			]
 		);
 
-		// Searchable sites (for child): list the sites the child may search.
-		register_rest_route(
-			self::NAMESPACE,
-			'/searchable-sites',
-			[
-				[
-					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => [ $this, 'get_searchable_sites_for_child' ],
-					'permission_callback' => '__return_true',
-				],
-			]
-		);
-
 		// Cache busting endpoints.
 		register_rest_route(
 			self::NAMESPACE,
@@ -863,49 +850,6 @@ class Basic_Options {
 			[
 				'success' => true,
 				'message' => __( 'Cache cleared successfully.', 'onesearch' ),
-			]
-		);
-	}
-
-	/**
-	 * Return the list of URLs the requesting brand site can search.
-	 *
-	 * @param \WP_REST_Request $request Request object (validates token for non-admin).
-	 *
-	 * @return \WP_REST_Response|\WP_Error
-	 */
-	public function get_searchable_sites_for_child( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
-
-		$incoming_key = (string) ( $request->get_header( 'X-OneSearch-Plugins-Token' ) ?? '' );
-		$is_admin     = current_user_can( 'manage_options' );
-
-		if ( ! $is_admin ) {
-			if ( empty( $incoming_key ) || ! $this->is_valid_child_site_key( $incoming_key ) ) {
-				return new \WP_Error(
-					'invalid_api_key',
-					__( 'Invalid or missing API key.', 'onesearch' ),
-					[ 'status' => 403 ]
-				);
-			}
-		}
-
-		$shared_sites    = get_option( 'onesearch_shared_sites', [] );
-		$searchable_urls = [];
-
-		foreach ( $shared_sites as $site ) {
-			if ( ! isset( $site['siteUrl'] ) ) {
-				continue;
-			}
-
-			$searchable_urls[] = (string) $site['siteUrl'];
-		}
-
-		$searchable_urls[] = trailingslashit( get_site_url() );
-
-		return rest_ensure_response(
-			[
-				'success'          => true,
-				'searchable_sites' => array_unique( $searchable_urls ),
 			]
 		);
 	}

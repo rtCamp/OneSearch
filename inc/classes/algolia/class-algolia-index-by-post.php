@@ -97,23 +97,25 @@ class Algolia_Index_By_Post {
 
 		$allowed_statuses = Algolia_Index::get_instance()->compute_post_statuses_for_types( $selected_types );
 
-		$client = Algolia::get_instance()->get_client();
+		$index = Algolia::get_instance()->get_index();
 
-		if ( is_wp_error( $client ) ) {
+		if ( is_wp_error( $index ) ) {
 			return [
 				'ok'      => false,
 				'action'  => 'error',
-				'message' => $client->get_error_message(),
+				'message' => $index->get_error_message(),
 			];
 		}
 
-		$index_name = Algolia::get_instance()->get_algolia_index_name_from_url( $site_url );
-		$index      = $client->initIndex( $index_name );
-
-		$this->ensure_index_ready( $index );
+		$settings = Algolia_Index::get_instance()->get_algolia_settings();
 
 		try {
-			$index->deleteBy( [ 'filters' => "parent_post_id:{$post_id}" ] )->wait();
+			$index->setSettings( $settings )->wait();
+
+			$site_key = sanitize_key( $site_url );
+			$index->deleteBy(
+				[ 'filters' => "parent_post_id:{$site_key}_{$post_id}" ]
+			)->wait();
 		} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
 			// Do nothing.
 		}
@@ -190,27 +192,13 @@ class Algolia_Index_By_Post {
 	}
 
 	/**
-	 * Ensures that the Algolia index is ready.
-	 *
-	 * @param \Algolia\AlgoliaSearch\SearchIndex $index The Algolia index object.
-	 */
-	public function ensure_index_ready( $index ): void {
-		$settings = Algolia_Index::get_instance()->get_algolia_settings( $index );
-		try {
-			$index->setSettings( $settings )->wait();
-		} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
-			// do nothing.
-		}
-	}
-
-	/**
 	 * Retrieves selected entities for a specific site.
 	 *
 	 * @param string $site_url The site URL.
 	 *
 	 * @return array List of selected entity types for the site.
 	 */
-	public function get_selected_entities_for_site( string $site_url ): array {
+	private function get_selected_entities_for_site( string $site_url ): array {
 		$indexable_entities = get_option( 'onesearch_indexable_entities', [] );
 
 		$map = is_array( $indexable_entities ) ? ( $indexable_entities['entities'] ?? [] ) : [];

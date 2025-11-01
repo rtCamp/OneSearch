@@ -45,7 +45,7 @@ class Algolia_Index {
 			return true;
 		}
 
-		$settings = $this->get_algolia_settings( $index );
+		$settings = $this->get_algolia_settings();
 
 		$index->setSettings( $settings );
 
@@ -83,11 +83,9 @@ class Algolia_Index {
 	/**
 	 * Retrieves the Algolia index settings.
 	 *
-	 * @param \Algolia\AlgoliaSearch\Index $index The Algolia index instance to apply settings to.
-	 *
-	 * @return array The final settings for the Algolia index.
+	 * @return array<string,mixed> The final settings for the Algolia index.
 	 */
-	public function get_algolia_settings( $index ) {
+	public function get_algolia_settings(): array {
 		// Default index configuration.
 		$default_settings = [
 			'attributeForDistinct'  => 'parent_post_id',
@@ -103,10 +101,9 @@ class Algolia_Index {
 		/**
 		 * Modify Algolia index settings.
 		 *
-		 * @param array   $settings Default settings.
-		 * @param \Algolia\AlgoliaSearch\Index $index Algolia index instance.
+		 * @param array<string,mixed> $settings Default settings.
 		 */
-		return apply_filters( 'onesearch_algolia_index_settings', $default_settings, $index );
+		return apply_filters( 'onesearch_algolia_index_settings', $default_settings );
 	}
 
 	/**
@@ -153,8 +150,10 @@ class Algolia_Index {
 				continue;
 			}
 
+			$site_key = sanitize_key( get_site_url() );
+
 			$base_record = [
-				'objectID'               => $post->ID,
+				'objectID'               => $site_key . '_' . $post->ID,
 				'title'                  => $post->post_title,
 				'excerpt'                => get_the_excerpt( $post ),
 				'content'                => $post->post_content,
@@ -168,6 +167,8 @@ class Algolia_Index {
 				'thumbnail'              => get_the_post_thumbnail_url( $post->ID ),
 				'site_url'               => trailingslashit( get_site_url() ),
 				'site_name'              => get_bloginfo( 'name' ),
+				'site_key'               => sanitize_key( get_site_url() ),
+				'post_id'                => $post->ID,
 				'postDate'               => $post->post_date,
 				'postDateGmt'            => $post->post_date_gmt,
 				'author_ID'              => $post->post_author,
@@ -181,7 +182,7 @@ class Algolia_Index {
 				'author_description'     => get_the_author_meta( 'description', $post->post_author ),
 				'author_avatar'          => get_avatar_url( $post->post_author ),
 				'author_posts_url'       => get_author_posts_url( $post->post_author ),
-				'parent_post_id'         => $post->ID,  // Used for Algolia distinct/grouping.
+				'parent_post_id'         => $site_key . '_' . $post->ID, // Used for Algolia distinct/grouping.
 				'is_chunked'             => false,
 				'onesearch_chunk_index'  => 0,
 				'onesearch_total_chunks' => 1,
@@ -218,7 +219,7 @@ class Algolia_Index {
 	/**
 	 * Convert a post to its rendered version without markup
 	 *
-	 * @param string $post_content [post content (string)]
+	 * @param string $post_content Post content (string).
 	 *
 	 * @return string
 	 */
