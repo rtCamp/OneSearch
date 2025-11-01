@@ -96,7 +96,7 @@ class Algolia {
 	 */
 	public function get_index_name(): ?string {
 
-		$site_type = (string) get_option( 'onesearch_site_type', null );
+		$site_type = (string) get_option( 'onesearch_site_type', '' );
 
 		$site_url = 'governing-site' === $site_type
 			? get_site_url()
