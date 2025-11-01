@@ -76,7 +76,7 @@ function delete_plugin_data(): void {
 /**
  * Cleans up entries from the Algolia index, or the index itself if governing site.
  *
- * @throws \RuntimeException Doesn't throw is caught by the function itself.
+ * @throws \RuntimeException Doesn't throw as it is caught by the function itself.
  */
 function cleanup_algolia_index(): void {
 	// Load required classes.
