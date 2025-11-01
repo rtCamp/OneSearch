@@ -568,7 +568,7 @@ class Algolia_Search {
 		usort(
 			$hits,
 			function ( $a, $b ) {
-					return $this->compute_algolia_score( $b ) <=> $this->compute_algolia_score( $a );
+				return $this->compute_algolia_score( $b ) <=> $this->compute_algolia_score( $a );
 			}
 		);
 
