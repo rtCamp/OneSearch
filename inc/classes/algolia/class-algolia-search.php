@@ -609,7 +609,7 @@ class Algolia_Search {
 	 * @return \WP_Post|null
 	 */
 	private function create_post_object( $post_data ) {
-		$post_id  = (int) $post_data['post_id'] ?? null;
+		$post_id  = (int) ( $post_data['post_id'] ?? 0 );
 		$site_url = trailingslashit( $post_data['site_url'] );
 
 		$algolia_highlights = $this->extract_algolia_highlights( $post_data );
