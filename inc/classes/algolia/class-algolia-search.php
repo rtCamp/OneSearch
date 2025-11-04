@@ -472,7 +472,7 @@ class Algolia_Search {
 		}
 
 		$site_url_filters     = array_map(
-			static fn ( string $site_url ) => 'site_url:' . esc_attr( trailingslashit( $site_url ) ),
+			static fn ( string $site_url ) => 'site_url:' . trailingslashit( $site_url ),
 			$site_urls
 		);
 		$site_url_filters_str = implode( ' OR ', $site_url_filters );
