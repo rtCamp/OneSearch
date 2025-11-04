@@ -296,15 +296,15 @@ class Algolia_Search {
 		}
 
 		// Group all hits by their parent_post_id.
-		$grouped = $this->onesearch_group_hits_by_post( $hits );
+		$grouped = $this->group_hits_by_post( $hits );
 
 		// Set total for pagination.
-		[ $page_keys, $total_groups ] = $this->onesearch_paged_group_keys( $grouped, $query );
+		[ $page_keys, $total_groups ] = $this->get_paged_group_keys( $grouped, $query );
 		$query->found_posts           = $total_groups;
 
 		$keys_to_build = null === $page_keys ? array_keys( $grouped ) : $page_keys;
 
-		$hits_for_page = $this->onesearch_pick_representative_hits( $grouped, $keys_to_build );
+		$hits_for_page = $this->pick_representative_hits( $grouped, $keys_to_build );
 
 		$reconstruct = apply_filters( 'onesearch_reconstruct_chunked_on_search', true );
 
@@ -317,32 +317,32 @@ class Algolia_Search {
 	}
 
 	/**
-	 * Build posts for the current page using batch chunk fetches per site.
+	 * Build posts for the current page using batch chunk fetches.
 	 *
 	 * @param array $hits_for_page One representative hit per grouped post.
 	 * @param bool  $reconstruct   Whether to reconstruct chunked posts (true = fetch chunks).
 	 * @return array               List of WP_Post / WP_Post-like objects.
 	 */
 	private function build_posts_from_grouped_hits( array $hits_for_page, bool $reconstruct = true ): array {
-		$ids_by_site = [];
+		$parent_ids = [];
 
-		// Collect all parent IDs we need to fetch.
+		// Collect all parent IDs we need to fetch (for chunked posts only).
 		if ( $reconstruct ) {
 			foreach ( $hits_for_page as $hit ) {
 				$is_chunked = ! empty( $hit['is_chunked'] );
-				$site_url   = isset( $hit['site_url'] ) ? (string) $hit['site_url'] : '';
-				$post_id    = isset( $hit['post_id'] ) ? (int) $hit['post_id'] : 0;
+				$parent_id  = $hit['parent_post_id'] ?? null;
 
-				if ( ! $is_chunked || ! $site_url || ! $post_id ) {
+				// Site filtering is already done by Algolia, so site_url is guaranteed to exist.
+				if ( ! $is_chunked || ! $parent_id ) {
 					continue;
 				}
 
-				$ids_by_site[ $site_url ][] = $post_id;
+				$parent_ids[] = $parent_id;
 			}
 		}
 
-		// Fetch chunks in batches per site.
-		$chunks_by_site = $reconstruct ? $this->batch_fetch_chunks_by_site( $ids_by_site ) : [];
+		// Fetch chunks in batches using parent_post_id (globally unique with site_key prefix).
+		$chunks_by_parent = $reconstruct ? $this->batch_fetch_chunks( $parent_ids ) : [];
 
 		$posts = [];
 
@@ -358,12 +358,8 @@ class Algolia_Search {
 				continue;
 			}
 
-			$site_url  = isset( $hit['site_url'] ) ? (string) $hit['site_url'] : '';
-			$parent_id = isset( $hit['parent_post_id'] ) ? (int) $hit['parent_post_id'] : 0;
-
-			$all_chunks = isset( $chunks_by_site[ $site_url ][ $parent_id ] )
-				? $chunks_by_site[ $site_url ][ $parent_id ]
-				: [];
+			$parent_id  = $hit['parent_post_id'] ?? null;
+			$all_chunks = $chunks_by_parent[ $parent_id ] ?? [];
 
 			// If we did not get any chunks, fall back to the single hit.
 			if ( empty( $all_chunks ) ) {
@@ -374,26 +370,7 @@ class Algolia_Search {
 				continue;
 			}
 
-			// Sort chunks by their index so the content is in order.
-			usort(
-				$all_chunks,
-				static function ( $a, $b ) {
-					$a_idx = isset( $a['onesearch_chunk_index'] ) ? (int) $a['onesearch_chunk_index'] : 0;
-					$b_idx = isset( $b['onesearch_chunk_index'] ) ? (int) $b['onesearch_chunk_index'] : 0;
-					return $a_idx <=> $b_idx;
-				}
-			);
-
-			// Join chunk contents.
-			$joined = '';
-			foreach ( $all_chunks as $chunk ) {
-				$joined .= (string) ( $chunk['content'] ?? '' ) . ' ';
-			}
-
-			$first_chunk            = $all_chunks[0];
-			$first_chunk['content'] = trim( $joined );
-
-			$post_obj = $this->create_post_object( $first_chunk );
+			$post_obj = $this->build_post_with_all_chunks( $all_chunks );
 			if ( ! $post_obj ) {
 				continue;
 			}
@@ -405,65 +382,57 @@ class Algolia_Search {
 	}
 
 	/**
-	 * Fetch chunks for many posts with one request per site.
+	 * Fetch chunks for many posts in batches.
 	 *
-	 * @param array $parent_ids_by_site [ site_url => [parent_post_id, ...], ... ].
-	 * @return array                    [ site_url => [ parent_post_id => [hits...], ... ], ... ].
+	 * @param array<string> $parent_ids Array of parent_post_id values (strings with site_key prefix).
+	 * @return array<string, array<array<string, mixed>>> Map of parent_post_id to list of chunk hits.
 	 */
-	private function batch_fetch_chunks_by_site( array $parent_ids_by_site ): array {
-		$result_by_site = [];
-
+	private function batch_fetch_chunks( array $parent_ids ): array {
 		$index = Algolia::get_instance()->get_index();
+		if ( is_wp_error( $index ) ) {
+			return [];
+		}
 
-		foreach ( $parent_ids_by_site as $site_url => $parent_ids ) {
-			if ( is_wp_error( $index ) ) {
-				$result_by_site[ $site_url ] = [];
+		// Remove duplicates and split into small groups.
+		$ids_list = array_values( array_unique( $parent_ids ) );
+		$groups   = array_chunk( $ids_list, 20 );
+
+		$collected = [];
+
+		foreach ( $groups as $group_ids ) {
+			// Build "parent_post_id:ID1 OR parent_post_id:ID2 ..." filter.
+			$parts = [];
+			foreach ( $group_ids as $parent_id ) {
+				$parts[] = 'parent_post_id:' . $parent_id;
+			}
+			$filters = implode( ' OR ', $parts );
+
+			try {
+				$res = $index->search(
+					'',
+					[
+						'filters'     => $filters,
+						'hitsPerPage' => 1000,
+						'distinct'    => false,
+					]
+				);
+			} catch ( \Throwable $e ) {
+				// Skip this group on error and continue with others.
 				continue;
 			}
 
-			// Remove duplicates and split into small groups.
-			$ids_list = array_values( array_unique( array_map( 'intval', $parent_ids ) ) );
-			$groups   = array_chunk( $ids_list, 20 );
-
-			$collected = [];
-
-			foreach ( $groups as $group_ids ) {
-				// Build "parent_post_id:ID1 OR parent_post_id:ID2 ..." filter.
-				$parts = [];
-				foreach ( $group_ids as $id ) {
-					$parts[] = 'parent_post_id:' . $id;
-				}
-				$filters = implode( ' OR ', $parts );
-
-				try {
-					$res = $index->search(
-						'',
-						[
-							'filters'     => $filters,
-							'hitsPerPage' => 1000,
-							'distinct'    => false,
-						]
-					);
-				} catch ( \Throwable $e ) {
-					// Skip this group on error and continue with others.
+			$hits = isset( $res['hits'] ) ? (array) $res['hits'] : [];
+			foreach ( $hits as $hit ) {
+				$pid = $hit['parent_post_id'] ?? null;
+				if ( ! $pid ) {
 					continue;
 				}
 
-				$hits = isset( $res['hits'] ) ? (array) $res['hits'] : [];
-				foreach ( $hits as $hit ) {
-					$pid = isset( $hit['parent_post_id'] ) ? (int) $hit['parent_post_id'] : 0;
-					if ( ! $pid ) {
-						continue;
-					}
-
-					$collected[ $pid ][] = $hit;
-				}
+				$collected[ $pid ][] = $hit;
 			}
-
-			$result_by_site[ $site_url ] = $collected;
 		}
 
-		return $result_by_site;
+		return $collected;
 	}
 
 	/**
@@ -531,21 +500,21 @@ class Algolia_Search {
 			return $this->search_index( $index, $search_query, $search_params );
 		} catch ( \Throwable $e ) {
 			return new \WP_Error(
-				'multi_search_failed',
+				'search_failed',
 				/* translators: %s: error message */
-				sprintf( __( 'Multi-index search failed: %s', 'onesearch' ), $e->getMessage() )
+				sprintf( __( 'Search failed: %s', 'onesearch' ), $e->getMessage() )
 			);
 		}
 	}
 
 	/**
-	 * Run a single multi-index API request and combine all hits.
+	 * Search the single shared Algolia index.
 	 *
 	 * @param \Algolia\AlgoliaSearch\SearchIndex $index         The Index to search.
 	 * @param string                             $search_query  Query string.
 	 * @param array                              $search_params Search parameters.
 	 *
-	 * @return array Combined list of hits across indices.
+	 * @return array List of matching hits.
 	 *
 	 * @throws \Exception On client errors.
 	 */
@@ -558,8 +527,7 @@ class Algolia_Search {
 			return [];
 		}
 
-		// Re-rank across indices using Algolia ranking info.
-		// @todo is this still necessary?
+		// Sort hits by Algolia ranking score descending.
 		usort(
 			$hits,
 			function ( $a, $b ) {
@@ -601,6 +569,39 @@ class Algolia_Search {
 	}
 
 	/**
+	 * Build a post object from all chunks, joining their content.
+	 *
+	 * @param array<string,mixed> $all_chunks Array of chunk hits for the same post.
+	 * @return \WP_Post|null
+	 */
+	private function build_post_with_all_chunks( array $all_chunks ) {
+		if ( empty( $all_chunks ) ) {
+			return null;
+		}
+
+		// Sort chunks by their index so the content is in order.
+		usort(
+			$all_chunks,
+			static function ( $a, $b ) {
+				$a_idx = isset( $a['onesearch_chunk_index'] ) ? (int) $a['onesearch_chunk_index'] : 0;
+				$b_idx = isset( $b['onesearch_chunk_index'] ) ? (int) $b['onesearch_chunk_index'] : 0;
+				return $a_idx <=> $b_idx;
+			}
+		);
+
+		// Join chunk contents.
+		$joined = '';
+		foreach ( $all_chunks as $chunk ) {
+			$joined .= (string) ( $chunk['content'] ?? '' ) . ' ';
+		}
+
+		$first_chunk            = $all_chunks[0];
+		$first_chunk['content'] = trim( $joined );
+
+		return $this->create_post_object( $first_chunk );
+	}
+
+	/**
 	 * Create a WP_Post (local) or WP_Post-like placeholder (remote) from hit data.
 	 *
 	 * @param array $post_data Algolia hit.
@@ -608,12 +609,12 @@ class Algolia_Search {
 	 * @return \WP_Post|null
 	 */
 	private function create_post_object( $post_data ) {
-		$post_id  = $post_data['parent_post_id'];
+		$post_id  = (int) $post_data['post_id'] ?? null;
 		$site_url = trailingslashit( $post_data['site_url'] );
 
 		$algolia_highlights = $this->extract_algolia_highlights( $post_data );
 
-		// Local post: load from DB, optionally override content if chunked.
+		// Remote post: create placeholder object with prefixed ID.
 		if ( trailingslashit( get_site_url() ) !== $site_url ) {
 			$custom_post                        = new WP_Post( new stdClass() );
 			$custom_post->ID                    = -1 - absint( $post_id );
@@ -695,7 +696,7 @@ class Algolia_Search {
 	 *
 	 * @return array<string, array> Grouped hits by parent_post_id.
 	 */
-	private function onesearch_group_hits_by_post( array $hits ): array {
+	private function group_hits_by_post( array $hits ): array {
 		$grouped = [];
 
 		foreach ( $hits as $hit ) {
@@ -717,7 +718,7 @@ class Algolia_Search {
 	 *
 	 * @return array
 	 */
-	private function onesearch_paged_group_keys( array $grouped, \WP_Query $query ): array {
+	private function get_paged_group_keys( array $grouped, \WP_Query $query ): array {
 		$total_groups = count( $grouped );
 
 		// Determine current page number.
@@ -755,7 +756,7 @@ class Algolia_Search {
 	 *
 	 * @return array Array of hits (one per post on the page)
 	 */
-	private function onesearch_pick_representative_hits( array $grouped, array $page_keys ): array {
+	private function pick_representative_hits( array $grouped, array $page_keys ): array {
 		$all_hits = [];
 
 		foreach ( $page_keys as $key ) {

@@ -12,6 +12,7 @@ declare(strict_types = 1);
 namespace Onesearch;
 
 use Onesearch\Inc\Algolia\Algolia;
+use Onesearch\Inc\Algolia\Algolia_Index;
 
 /**
  * Class - Utils
@@ -52,11 +53,13 @@ final class Utils {
 	}
 
 	/**
-	 * Delete the Algolia index.
+	 * Delete the Algolia results associated with a given site URL.
+	 *
+	 * @param string $site_url Absolute site URL to delete from index.
 	 *
 	 * @return string Result message indicating success or the error encountered.
-	 */ // @phpcs-ignore-next-line Squiz.Commenting.FunctionCommentThrowTag.Missing
-	public static function delete_site_algolia_index(): string {
+	 */
+	public static function delete_site_from_index( string $site_url ): string {
 
 		try {
 			$index = Algolia::get_instance()->get_index();
@@ -69,12 +72,19 @@ final class Utils {
 				);
 			}
 
-			// Delete the index.
-			$index->delete()->wait();
+			$settings = Algolia_Index::get_instance()->get_algolia_settings();
+
+			$index->setSettings( $settings )->wait();
+
+			$index->deleteBy(
+				[
+					'filters' => sprintf( 'site_url:%s', esc_attr( $site_url ) ),
+				]
+			)->wait();
 
 			return sprintf(
 				/* translators: %s: index name */
-				__( 'Algolia index deleted: %s', 'onesearch' ),
+				__( 'Algolia entries deleted for site: %s', 'onesearch' ),
 				$index->getIndexName(),
 			);
 		} catch ( \Throwable $e ) {
