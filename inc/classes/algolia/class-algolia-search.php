@@ -359,7 +359,7 @@ class Algolia_Search {
 			}
 
 			$parent_id  = $hit['parent_post_id'] ?? null;
-			$all_chunks = $chunks_by_parent[ $parent_id ] ?? [];
+			$all_chunks = isset( $parent_id, $chunks_by_parent[ $parent_id ] ) ? $chunks_by_parent[ $parent_id ] : [];
 
 			// If we did not get any chunks, fall back to the single hit.
 			if ( empty( $all_chunks ) ) {
@@ -471,11 +471,10 @@ class Algolia_Search {
 			return $site_urls;
 		}
 
-		$site_url_filters = [];
-		foreach ( $site_urls as $site_url ) {
-			$escaped_url        = str_replace( ':', '\:', $site_url );
-			$site_url_filters[] = "site_url:{$escaped_url}";
-		}
+		$site_url_filters     = array_map(
+			static fn ( string $site_url ) => 'site_url:' . esc_attr( trailingslashit( $site_url ) ),
+			$site_urls
+		);
 		$site_url_filters_str = implode( ' OR ', $site_url_filters );
 
 		$default_params['filters'] = isset( $default_params['filters'] )
@@ -694,7 +693,7 @@ class Algolia_Search {
 	 *
 	 * @param array $hits Search results hits.
 	 *
-	 * @return array<string, array> Grouped hits by parent_post_id.
+	 * @return array<string, array<array<string, mixed>>> Grouped hits by parent_post_id.
 	 */
 	private function group_hits_by_post( array $hits ): array {
 		$grouped = [];
