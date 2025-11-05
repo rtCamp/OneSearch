@@ -158,55 +158,58 @@ class Algolia_Index {
 				continue;
 			}
 
-			$base_record = [
-				'objectID'               => $site_key . '_' . $post->ID,
-				'title'                  => $post->post_title,
-				'excerpt'                => get_the_excerpt( $post ),
-				'content'                => $post->post_content,
-				'clean_content'          => $this->get_clean_content( $post->post_content ),
-				'name'                   => $post->post_name,
-				'type'                   => $post->post_type,
-				'permalink'              => get_permalink( $post->ID ),
-				'taxonomies'             => $this->get_all_taxonomies( $post ),
-				'date'                   => $post->post_date,
-				'modified'               => $post->post_modified,
-				'thumbnail'              => get_the_post_thumbnail_url( $post->ID ),
-				'site_url'               => $site_url,
-				'site_name'              => $site_name,
-				'site_key'               => $site_key,
-				'post_id'                => $post->ID,
-				'postDate'               => $post->post_date,
-				'postDateGmt'            => $post->post_date_gmt,
-				'author_ID'              => $post->post_author,
-				'author_login'           => get_the_author_meta( 'user_login', $post->post_author ),
-				'author_nicename'        => get_the_author_meta( 'user_nicename', $post->post_author ),
-				'author_email'           => get_the_author_meta( 'user_email', $post->post_author ),
-				'author_registered'      => get_the_author_meta( 'user_registered', $post->post_author ),
-				'author_display_name'    => get_the_author_meta( 'display_name', $post->post_author ),
-				'author_first_name'      => get_the_author_meta( 'first_name', $post->post_author ),
-				'author_last_name'       => get_the_author_meta( 'last_name', $post->post_author ),
-				'author_description'     => get_the_author_meta( 'description', $post->post_author ),
-				'author_avatar'          => get_avatar_url( $post->post_author ),
-				'author_posts_url'       => get_author_posts_url( $post->post_author ),
-				'parent_post_id'         => $site_key . '_' . $post->ID, // Used for Algolia distinct/grouping.
-				'is_chunked'             => false,
-				'onesearch_chunk_index'  => 0,
-				'onesearch_total_chunks' => 1,
-			];
+			try {
+				$base_record = [
+					'objectID'               => $site_key . '_' . $post->ID,
+					'title'                  => $post->post_title,
+					'excerpt'                => get_the_excerpt( $post ),
+					'content'                => $post->post_content,
+					'clean_content'          => $this->get_clean_content( $post->post_content ),
+					'name'                   => $post->post_name,
+					'type'                   => $post->post_type,
+					'permalink'              => get_permalink( $post->ID ),
+					'taxonomies'             => $this->get_all_taxonomies( $post ),
+					'date'                   => $post->post_date,
+					'modified'               => $post->post_modified,
+					'thumbnail'              => get_the_post_thumbnail_url( $post->ID ),
+					'site_url'               => $site_url,
+					'site_name'              => $site_name,
+					'site_key'               => $site_key,
+					'post_id'                => $post->ID,
+					'postDate'               => $post->post_date,
+					'postDateGmt'            => $post->post_date_gmt,
+					'author_ID'              => $post->post_author,
+					'author_login'           => get_the_author_meta( 'user_login', $post->post_author ),
+					'author_nicename'        => get_the_author_meta( 'user_nicename', $post->post_author ),
+					'author_email'           => get_the_author_meta( 'user_email', $post->post_author ),
+					'author_registered'      => get_the_author_meta( 'user_registered', $post->post_author ),
+					'author_display_name'    => get_the_author_meta( 'display_name', $post->post_author ),
+					'author_first_name'      => get_the_author_meta( 'first_name', $post->post_author ),
+					'author_last_name'       => get_the_author_meta( 'last_name', $post->post_author ),
+					'author_description'     => get_the_author_meta( 'description', $post->post_author ),
+					'author_avatar'          => get_avatar_url( $post->post_author ),
+					'author_posts_url'       => get_author_posts_url( $post->post_author ),
+					'parent_post_id'         => $site_key . '_' . $post->ID, // Used for Algolia distinct/grouping.
+					'is_chunked'             => false,
+					'onesearch_chunk_index'  => 0,
+					'onesearch_total_chunks' => 1,
+				];
 
-			/**
-			 * Allow modification of the record payload.
-			 *
-			 * @param array    $base_record Record being indexed.
-			 * @param \WP_Post $post        Source post.
-			 */
-			$filtered_record = apply_filters( 'onesearch_algolia_index_data', $base_record, $post );
+				/**
+				 * Allow modification of the record payload.
+				 *
+				 * @param array<string,mixed> $base_record Record being indexed.
+				 * @param \WP_Post            $post        Source post.
+				 */
+				$filtered_record = apply_filters( 'onesearch_algolia_index_data', $base_record, $post );
 
-			// Segment records that exceed the size threshold.
-			$chunks = $this->maybe_chunk_record( $filtered_record );
+				// Segment records that exceed the size threshold.
+				$chunks = $this->maybe_chunk_record( $filtered_record );
 
-			// Add chunks to records array.
-			$records = array_merge( $records, $chunks );
+				// Add chunks to records array.
+				$records = array_merge( $records, $chunks );
+			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- @todo errors should be logged.
+			}
 
 			// Free memory after processing each post.
 			unset( $base_record, $filtered_record, $chunks );
@@ -329,7 +332,7 @@ class Algolia_Index {
 	 *
 	 * Handles UTF-8 sanitization and returns records ready for Algolia indexing.
 	 *
-	 * @param array $record Record to evaluate and possibly split.
+	 * @param array<string,mixed> $record Record to evaluate and possibly split.
 	 *
 	 * @return array<array<string,mixed>> Array of one or more records.
 	 */
