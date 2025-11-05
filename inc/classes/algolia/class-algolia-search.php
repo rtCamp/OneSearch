@@ -616,8 +616,9 @@ class Algolia_Search {
 
 		// Remote post: create placeholder object with prefixed ID.
 		if ( trailingslashit( get_site_url() ) !== $site_url ) {
-			$custom_post                        = new WP_Post( new stdClass() );
-			$custom_post->ID                    = -1 - absint( $post_id );
+			$custom_post = new WP_Post( new stdClass() );
+			// Ensure negative ID to avoid conflicts with local posts.
+			$custom_post->ID                    = -1 - $post_id;
 			$custom_post->onesearch_original_id = $post_id;
 			$custom_post->post_title            = $post_data['title'];
 			$custom_post->post_excerpt          = $post_data['excerpt'];
@@ -629,7 +630,8 @@ class Algolia_Search {
 			$custom_post->filter                = 'raw';
 			$custom_post->post_date             = $post_data['postDate'];
 			$custom_post->post_modified         = $post_data['postDateGmt'];
-			$custom_post->post_author           = -1000 - absint( $post_id );
+			// Set negative author ID to avoid conflicts.
+			$custom_post->post_author                               = -1000 - absint( $post_id );
 			$custom_post->onesearch_remote_post_author_display_name = $post_data['author_display_name'];
 			$custom_post->onesearch_remote_post_author_link         = $post_data['author_posts_url'];
 			$custom_post->onesearch_remote_post_author_gravatar     = $post_data['author_avatar'];

@@ -151,7 +151,7 @@ class Algolia_Index_By_Post {
 	 * @param bool   $force_delete Whether to force the deletion of the post.
 	 */
 	public function brand_send_to_governing( int $post_id, string $post_type, string $status, bool $force_delete = false ): void {
-		$site_url   = trailingslashit( get_site_url() );
+		$site_url   = Utils::normalize_url( get_site_url() );
 		$public_key = (string) get_option( 'onesearch_child_site_public_key', '' );
 		$parent_url = (string) get_option( 'onesearch_parent_site_url', '' );
 

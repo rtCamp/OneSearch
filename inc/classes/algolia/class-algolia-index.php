@@ -10,6 +10,7 @@
 namespace Onesearch\Inc\Algolia;
 
 use Onesearch\Inc\Traits\Singleton;
+use Onesearch\Utils;
 use WP_Post;
 
 /**
@@ -146,7 +147,7 @@ class Algolia_Index {
 	 * @return array<array<string,mixed>> List of records.
 	 */
 	public function get_indexable_records_from_post( array $posts ) {
-		$site_url  = trailingslashit( get_site_url() );
+		$site_url  = Utils::normalize_url( get_site_url() );
 		$site_key  = sanitize_key( $site_url );
 		$site_name = get_bloginfo( 'name' );
 
