@@ -111,10 +111,8 @@ class Algolia_Index_By_Post {
 
 		try {
 			$index->setSettings( $settings )->wait();
-
-			$site_key = sanitize_key( $site_url );
 			$index->deleteBy(
-				[ 'filters' => "parent_post_id:{$site_key}_{$post_id}" ]
+				[ 'filters' => sprintf( 'parent_post_id:%s_%d', sanitize_key( $site_url ), $post_id ) ]
 			)->wait();
 		} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
 			// Do nothing.

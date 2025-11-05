@@ -78,7 +78,7 @@ final class Utils {
 
 			$index->deleteBy(
 				[
-					'filters' => sprintf( 'site_url:%s', esc_attr( $site_url ) ),
+					'filters' => sprintf( 'site_url:"%s"', self::normalize_url( $site_url ) ),
 				]
 			)->wait();
 

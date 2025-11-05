@@ -9,6 +9,7 @@ namespace Onesearch\Inc\Algolia;
 
 use Onesearch\Inc\REST\Governing_Data;
 use Onesearch\Inc\Traits\Singleton;
+use Onesearch\Utils;
 use WP_Post;
 use stdClass;
 
@@ -276,7 +277,7 @@ class Algolia_Search {
 	 *
 	 * @return array|null Array of WP_Post-like objects or original $posts on skip/error.
 	 */
-	public function get_algolia_results( $posts, $query ) {
+	public function get_algolia_results( $posts, \WP_Query $query ) {
 
 		// Only handle: main, search queries with a search term.
 		if ( ! $query->is_main_query() || ! $query->is_search() || empty( $query->get( 's' ) ) ) {
@@ -472,7 +473,7 @@ class Algolia_Search {
 		}
 
 		$site_url_filters     = array_map(
-			static fn ( string $site_url ) => 'site_url:' . trailingslashit( $site_url ),
+			static fn ( string $site_url ) => sprintf( 'site_url:"%s"', Utils::normalize_url( $site_url ) ),
 			$site_urls
 		);
 		$site_url_filters_str = implode( ' OR ', $site_url_filters );

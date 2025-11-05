@@ -98,10 +98,9 @@ function cleanup_algolia_index(): void {
 		}
 
 		// For single sites, just delete the site's records.
-		$site_url = trailingslashit( get_site_url() );
 		$algolia_index->deleteBy(
 			[
-				'filters' => "site_url:'{$site_url}'",
+				'filters' => sprintf( 'site_url:"%s"', Utils::normalize_url( get_site_url() ) ),
 			]
 		)->wait();
 	} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
