@@ -114,7 +114,7 @@ class Algolia_Index {
 	 *
 	 * @return \WP_Post[] List of posts.
 	 */
-	private function get_indexable_posts( $site_indexable_entities, $page = 1, $posts_per_page = -1 ) {
+	private function get_indexable_posts( array $site_indexable_entities, int $page = 1, int $posts_per_page = -1 ) {
 
 		$statuses = $this->compute_post_statuses_for_types( $site_indexable_entities );
 
