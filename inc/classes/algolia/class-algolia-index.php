@@ -10,6 +10,7 @@
 namespace Onesearch\Inc\Algolia;
 
 use Onesearch\Inc\Traits\Singleton;
+use Onesearch\Utils;
 use WP_Post;
 
 /**
@@ -45,28 +46,25 @@ class Algolia_Index {
 			return true;
 		}
 
-		$settings = $this->get_algolia_settings( $index );
+		$settings = $this->get_algolia_settings();
 
 		$index->setSettings( $settings );
 
 		// Batched indexing across pages.
 		$batch_size  = 100;
-		$page        = 1;
 		$first_batch = true;
 
-		while ( true ) {
-			$posts = $this->get_indexable_posts( $site_indexable_entities, $page, $batch_size );
-
-			if ( empty( $posts ) ) {
+		// Use generator pattern for memory-efficient batch processing.
+		foreach ( $this->fetch_post_batches( $site_indexable_entities, $batch_size ) as $records ) {
+			if ( empty( $records ) ) {
+				// If it's the first batch, that means the site has no posts and should be reset.
 				if ( true === $first_batch ) {
 					$index->replaceAllObjects( [] )->wait();
 				}
 				break;
 			}
 
-			$records = $this->get_indexable_records_from_post( $posts );
-
-			// The first batch replaces all objects and next batched add to the index.
+			// The first batch replaces all objects and subsequent batches add to the index.
 			if ( $first_batch ) {
 				$index->replaceAllObjects( $records )->wait();
 				$first_batch = false;
@@ -74,7 +72,8 @@ class Algolia_Index {
 				$index->saveObjects( $records )->wait();
 			}
 
-			++$page;
+			// Free memory after processing batch.
+			unset( $records );
 		}
 
 		return true;
@@ -83,11 +82,9 @@ class Algolia_Index {
 	/**
 	 * Retrieves the Algolia index settings.
 	 *
-	 * @param \Algolia\AlgoliaSearch\Index $index The Algolia index instance to apply settings to.
-	 *
-	 * @return array The final settings for the Algolia index.
+	 * @return array<string,mixed> The final settings for the Algolia index.
 	 */
-	public function get_algolia_settings( $index ) {
+	public function get_algolia_settings(): array {
 		// Default index configuration.
 		$default_settings = [
 			'attributeForDistinct'  => 'parent_post_id',
@@ -103,10 +100,9 @@ class Algolia_Index {
 		/**
 		 * Modify Algolia index settings.
 		 *
-		 * @param array   $settings Default settings.
-		 * @param \Algolia\AlgoliaSearch\Index $index Algolia index instance.
+		 * @param array<string,mixed> $settings Default settings.
 		 */
-		return apply_filters( 'onesearch_algolia_index_settings', $default_settings, $index );
+		return apply_filters( 'onesearch_algolia_index_settings', $default_settings );
 	}
 
 	/**
@@ -118,24 +114,29 @@ class Algolia_Index {
 	 *
 	 * @return \WP_Post[] List of posts.
 	 */
-	public function get_indexable_posts( $site_indexable_entities, $page = 1, $posts_per_page = -1 ) {
+	private function get_indexable_posts( array $site_indexable_entities, int $page = 1, int $posts_per_page = -1 ) {
 
 		$statuses = $this->compute_post_statuses_for_types( $site_indexable_entities );
 
 		$args = [
-			'post_type'      => $site_indexable_entities,
-			'post_status'    => $statuses,
-			'posts_per_page' => $posts_per_page,
+			'post_type'              => $site_indexable_entities,
+			'post_status'            => $statuses,
+			'posts_per_page'         => $posts_per_page,
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'ignore_sticky_posts'    => true,
+			'no_found_rows'          => true,
 		];
 
 		// Enable pagination when batching.
 		if ( $posts_per_page > 0 ) {
-			$args['paged']         = $page;
-			$args['no_found_rows'] = true;
+			$args['paged'] = $page;
 		}
 
 		$query = new \WP_Query( $args );
-		return $query->posts;
+		/** @var \WP_Post[] $posts */
+		$posts = $query->get_posts();
+		return $posts;
 	}
 
 	/**
@@ -143,9 +144,13 @@ class Algolia_Index {
 	 *
 	 * @param \WP_Post[] $posts Posts to convert.
 	 *
-	 * @return array Records ready for Algolia.
+	 * @return array<array<string,mixed>> List of records.
 	 */
-	public function get_indexable_records_from_post( $posts ) {
+	public function get_indexable_records_from_post( array $posts ) {
+		$site_url  = Utils::normalize_url( get_site_url() );
+		$site_key  = sanitize_key( $site_url );
+		$site_name = get_bloginfo( 'name' );
+
 		$records = [];
 
 		foreach ( $posts as $post ) {
@@ -154,7 +159,7 @@ class Algolia_Index {
 			}
 
 			$base_record = [
-				'objectID'               => $post->ID,
+				'objectID'               => $site_key . '_' . $post->ID,
 				'title'                  => $post->post_title,
 				'excerpt'                => get_the_excerpt( $post ),
 				'content'                => $post->post_content,
@@ -166,8 +171,10 @@ class Algolia_Index {
 				'date'                   => $post->post_date,
 				'modified'               => $post->post_modified,
 				'thumbnail'              => get_the_post_thumbnail_url( $post->ID ),
-				'site_url'               => trailingslashit( get_site_url() ),
-				'site_name'              => get_bloginfo( 'name' ),
+				'site_url'               => $site_url,
+				'site_name'              => $site_name,
+				'site_key'               => $site_key,
+				'post_id'                => $post->ID,
 				'postDate'               => $post->post_date,
 				'postDateGmt'            => $post->post_date_gmt,
 				'author_ID'              => $post->post_author,
@@ -181,7 +188,7 @@ class Algolia_Index {
 				'author_description'     => get_the_author_meta( 'description', $post->post_author ),
 				'author_avatar'          => get_avatar_url( $post->post_author ),
 				'author_posts_url'       => get_author_posts_url( $post->post_author ),
-				'parent_post_id'         => $post->ID,  // Used for Algolia distinct/grouping.
+				'parent_post_id'         => $site_key . '_' . $post->ID, // Used for Algolia distinct/grouping.
 				'is_chunked'             => false,
 				'onesearch_chunk_index'  => 0,
 				'onesearch_total_chunks' => 1,
@@ -198,19 +205,12 @@ class Algolia_Index {
 			// Segment records that exceed the size threshold.
 			$chunks = $this->maybe_chunk_record( $filtered_record );
 
+			// Add chunks to records array.
 			$records = array_merge( $records, $chunks );
+
+			// Free memory after processing each post.
+			unset( $base_record, $filtered_record, $chunks );
 		}
-
-		// This fix any invalid UTF-8 characters (not allowed by Algolia).
-		$records = array_map(
-			static function ( $record ) {
-				$record = wp_json_encode( $record, JSON_INVALID_UTF8_SUBSTITUTE );
-				$record = json_decode( $record, true );
-
-				return $record;
-			},
-			$records
-		);
 
 		return $records;
 	}
@@ -218,7 +218,7 @@ class Algolia_Index {
 	/**
 	 * Convert a post to its rendered version without markup
 	 *
-	 * @param string $post_content [post content (string)]
+	 * @param string $post_content Post content (string).
 	 *
 	 * @return string
 	 */
@@ -256,7 +256,7 @@ class Algolia_Index {
 		// Remove excessive blank lines and normalize whitespace.
 		$clean_content = preg_replace( '/\s*\n\s*/', "\n", $clean_content ); // collapse blank lines.
 		$clean_content = preg_replace( '/\n{2,}/', "\n", $clean_content );   // limit to single newlines.
-		$clean_content = trim( $clean_content );
+		$clean_content = trim( (string) $clean_content );
 
 		return $clean_content;
 	}
@@ -327,12 +327,20 @@ class Algolia_Index {
 	/**
 	 * Split a record into multiple parts if it exceeds a size threshold.
 	 *
+	 * Handles UTF-8 sanitization and returns records ready for Algolia indexing.
+	 *
 	 * @param array $record Record to evaluate and possibly split.
 	 *
-	 * @return array One or more records.
+	 * @return array<array<string,mixed>> Array of one or more records.
 	 */
-	private function maybe_chunk_record( $record ) {
-		$json_size = strlen( wp_json_encode( $record ) );
+	private function maybe_chunk_record( $record ): array {
+		// Sanitize UTF-8 and measure size in one operation.
+		$json_encoded = wp_json_encode( $record, JSON_INVALID_UTF8_SUBSTITUTE );
+		$json_size    = strlen( $json_encoded ?: '' );
+		$record       = json_decode( $json_encoded, true );
+		if ( ! is_array( $record ) ) {
+			return [];
+		}
 
 		// Size threshold: 9KB to constraint payload size.
 		if ( $json_size <= 9000 ) {
@@ -344,7 +352,7 @@ class Algolia_Index {
 		$base_record = $record;
 		unset( $base_record['content'] );
 
-		$base_size       = strlen( wp_json_encode( $base_record ) );
+		$base_size       = strlen( wp_json_encode( $base_record ) ?: '' );
 		$available_space = 8000 - $base_size; // Per-chunk allowed size (left size).
 
 		if ( $available_space <= 0 ) {
@@ -385,5 +393,34 @@ class Algolia_Index {
 		}
 
 		return str_split( (string) $content, $available_size );
+	}
+
+	/**
+	 * Generator that yields batches of records for indexing.
+	 *
+	 * This method uses a generator pattern to process posts in batches
+	 * while maintaining memory efficiency.
+	 *
+	 * @param string[] $site_indexable_entities Post types to index.
+	 * @param int      $batch_size              Number of posts per batch.
+	 *
+	 * @return \Generator<array<string,mixed>[]> Yields arrays of indexable records.
+	 */
+	private function fetch_post_batches( $site_indexable_entities, $batch_size ) {
+		$page = 1;
+
+		while ( true ) {
+			$posts = $this->get_indexable_posts( $site_indexable_entities, $page, $batch_size );
+
+			if ( empty( $posts ) ) {
+				break;
+			}
+
+			yield $this->get_indexable_records_from_post( $posts );
+
+			unset( $posts );
+
+			++$page;
+		}
 	}
 }

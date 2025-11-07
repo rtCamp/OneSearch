@@ -12,6 +12,7 @@ declare(strict_types = 1);
 namespace Onesearch;
 
 use Onesearch\Inc\Algolia\Algolia;
+use Onesearch\Inc\Algolia\Algolia_Index;
 
 /**
  * Class - Utils
@@ -52,41 +53,39 @@ final class Utils {
 	}
 
 	/**
-	 * Delete the Algolia index for a given site URL.
+	 * Delete the Algolia results associated with a given site URL.
 	 *
-	 * @param string $site_url Absolute site URL used to derive the index name.
+	 * @param string $site_url Absolute site URL to delete from index.
 	 *
-	 * @return string          Result message indicating success or the error encountered.
+	 * @return string Result message indicating success or the error encountered.
 	 */
-	public static function delete_site_algolia_index( string $site_url ): string {
-		$sanitized_url = (string) esc_url_raw( $site_url );
-
-		if ( empty( $sanitized_url ) ) {
-			return __( 'Invalid site URL.', 'onesearch' );
-		}
+	public static function delete_site_from_index( string $site_url ): string {
 
 		try {
-			$algolia = Algolia::get_instance();
-			$client  = $algolia->get_client();
+			$index = Algolia::get_instance()->get_index();
 
-			if ( is_wp_error( $client ) ) {
+			if ( is_wp_error( $index ) ) {
 				return sprintf(
 					/* translators: %s: error message */
 					__( 'Algolia client error: %s', 'onesearch' ),
-					$client->get_error_message()
+					$index->get_error_message()
 				);
 			}
 
-			$index_name = $algolia->get_algolia_index_name_from_url( $sanitized_url );
-			$index      = $client->initIndex( $index_name );
+			$settings = Algolia_Index::get_instance()->get_algolia_settings();
 
-			// Delete the index.
-			$index->delete()->wait();
+			$index->setSettings( $settings )->wait();
+
+			$index->deleteBy(
+				[
+					'filters' => sprintf( 'site_url:"%s"', self::normalize_url( $site_url ) ),
+				]
+			)->wait();
 
 			return sprintf(
 				/* translators: %s: index name */
-				__( 'Algolia index deleted: %s', 'onesearch' ),
-				$index_name
+				__( 'Algolia entries deleted for site: %s', 'onesearch' ),
+				$index->getIndexName(),
 			);
 		} catch ( \Throwable $e ) {
 			return sprintf(

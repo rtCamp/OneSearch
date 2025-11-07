@@ -493,7 +493,7 @@ class Basic_Options {
 		$deletion_results['parent_url_option'] = $parent_url_delete_result;
 
 		// 3) Delete Algolia index for this site.
-		$algolia_result                       = Utils::delete_site_algolia_index( $site_url );
+		$algolia_result                       = Utils::delete_site_from_index( $site_url );
 		$deletion_results['algolia_deletion'] = $algolia_result;
 
 		// 4) Remove site from option.

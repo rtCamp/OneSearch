@@ -46,7 +46,7 @@ function multisite_uninstall(): void {
  * The uninstall function.
  */
 function uninstall(): void {
-	cleanup_algolia_indices();
+	cleanup_algolia_index();
 
 	// Wait until the end to delete options and transients.
 	delete_plugin_data();
@@ -74,35 +74,36 @@ function delete_plugin_data(): void {
 }
 
 /**
- * Clean up Algolia indices before plugin removal.
+ * Cleans up entries from the Algolia index, or the index itself if governing site.
  *
- * @throws \Exception When Algolia client encounters an error.
+ * @throws \RuntimeException Doesn't throw as it is caught by the function itself.
  */
-function cleanup_algolia_indices(): void {
-
+function cleanup_algolia_index(): void {
 	// Load required classes.
 	if ( ! load_dependencies() ) {
 		return;
 	}
 
 	try {
-		$algolia_instance = \Onesearch\Inc\Algolia\Algolia::get_instance();
-		$client           = $algolia_instance->get_client();
-
-		// This will be bubbled to the catch block.
-		if ( is_wp_error( $client ) ) {
-			throw new \Exception( 'Algolia client error: ' . $client->get_error_message() );
+		$algolia_index = \Onesearch\Inc\Algolia\Algolia::get_instance()->get_index();
+		if ( is_wp_error( $algolia_index ) ) {
+			throw new \RuntimeException( $algolia_index->get_error_message() );
 		}
 
-		// Delete the index for the current site.
-		$current_site_index = $algolia_instance->get_algolia_index_name_from_url( get_site_url() );
-		delete_algolia_index( $client, $current_site_index );
-
-		// If it's a governing site, delete the brand site indices as well.
-		$site_type = (string) get_option( 'onesearch_site_type', '' );
-		if ( 'governing-site' === $site_type ) {
-			delete_shared_site_indices( $client );
+		// For governing sites, we can delete the entire index.
+		if ( 'governing-site' === (string) get_option( 'onesearch_site_type', '' ) ) {
+			$algolia_index->getSettings();
+			$algolia_index->delete()->wait();
+			return;
 		}
+
+		// For single sites, just delete the site's records.
+		$algolia_index->deleteBy(
+			[
+				// Shims `Utils::normalize_url()` to avoid the dependency.
+				'filters' => sprintf( 'site_url:"%s"', trailingslashit( trim( get_site_url() ) ) ),
+			]
+		)->wait();
 	} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
 		// Do nothing.
 	}
@@ -124,49 +125,6 @@ function load_dependencies(): bool {
 
 	// If the autoloader succeeded we have what we need.
 	return class_exists( '\Onesearch\Autoloader' ) && \Onesearch\Autoloader::autoload();
-}
-
-/**
- * Deletes the indexes for the brand sites associated with the governing site.
- *
- * @param \Algolia\AlgoliaSearch\SearchClient $client Algolia client.
- */
-function delete_shared_site_indices( $client ): void {
-	$shared_sites = get_option( 'onesearch_shared_sites', [] );
-
-	if ( ! is_array( $shared_sites ) ) {
-		return;
-	}
-
-	$algolia_instance = \Onesearch\Inc\Algolia\Algolia::get_instance();
-
-	foreach ( $shared_sites as $site ) {
-		if ( empty( $site['siteUrl'] ) ) {
-			continue;
-		}
-
-		$index_name = $algolia_instance->get_algolia_index_name_from_url( $site['siteUrl'] );
-
-		delete_algolia_index( $client, $index_name );
-	}
-}
-
-/**
- * Deletes an Algolia index.
- *
- * Errors are thrown and caught by the caller.
- *
- * @param \Algolia\AlgoliaSearch\SearchClient $client Algolia client.
- * @param string                              $index_name Index name to delete.
- */
-function delete_algolia_index( $client, $index_name ): void {
-	if ( empty( $index_name ) ) {
-		return;
-	}
-
-	$index = $client->initIndex( $index_name );
-	$index->getSettings();
-	$index->delete()->wait();
 }
 
 // Run the uninstaller.
