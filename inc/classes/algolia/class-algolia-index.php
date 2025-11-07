@@ -416,11 +416,9 @@ class Algolia_Index {
 				break;
 			}
 
-			$records = $this->get_indexable_records_from_post( $posts );
+			yield $this->get_indexable_records_from_post( $posts );
 
-			yield $records;
-
-			unset( $posts, $records );
+			unset( $posts );
 
 			++$page;
 		}
