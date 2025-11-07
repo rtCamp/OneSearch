@@ -48,10 +48,8 @@ class Algolia {
 
 	/**
 	 * Get the index object for the current site.
-	 *
-	 * @return \Algolia\AlgoliaSearch\SearchIndex|\WP_Error Algolia index instance or WP_Error on failure.
 	 */
-	public function get_index() {
+	public function get_index(): \Algolia\AlgoliaSearch\SearchIndex|\WP_Error {
 		$index_name = $this->get_index_name();
 
 		if ( null === $index_name ) {
@@ -72,10 +70,8 @@ class Algolia {
 
 	/**
 	 * Create an Algolia client using stored credentials.
-	 *
-	 * @return \Algolia\AlgoliaSearch\SearchClient|\WP_Error SearchClient on success, WP_Error if creds are missing.
 	 */
-	public function get_client() {
+	public function get_client(): \Algolia\AlgoliaSearch\SearchClient|\WP_Error {
 		$creds = $this->get_creds();
 
 		if ( empty( $creds['app_id'] ) || empty( $creds['write_key'] ) ) {
