@@ -77,7 +77,7 @@ final class Assets implements Registrable {
 	}
 
 	/**
-	 * Register all scripts ands and styles.
+	 * Register all scripts and styles.
 	 */
 	public function register_assets(): void {
 		$this->register_script(
