@@ -62,7 +62,7 @@ final class Utils {
 	public static function delete_site_from_index( string $site_url ): string {
 
 		try {
-			$index = Algolia::get_instance()->get_index();
+			$index = Algolia::instance()->get_index();
 
 			if ( is_wp_error( $index ) ) {
 				return sprintf(
@@ -72,7 +72,7 @@ final class Utils {
 				);
 			}
 
-			$settings = Algolia_Index::get_instance()->get_algolia_settings();
+			$settings = Algolia_Index::instance()->get_algolia_settings();
 
 			$index->setSettings( $settings )->wait();
 

@@ -9,7 +9,7 @@
 
 namespace Onesearch\Inc\Algolia;
 
-use Onesearch\Inc\Traits\Singleton;
+use Onesearch\Contracts\Traits\Singleton;
 use Onesearch\Utils;
 use WP_Post;
 
@@ -21,11 +21,6 @@ class Algolia_Index {
 	use Singleton;
 
 	/**
-	 * Constructor.
-	 */
-	final protected function __construct() {}
-
-	/**
 	 * Index the post types into Algolia.
 	 *
 	 * @param string[] $site_indexable_entities Post types to index (e.g. ['post','page']).
@@ -34,7 +29,7 @@ class Algolia_Index {
 	 */
 	public function index( $site_indexable_entities ) {
 
-		$index = Algolia::get_instance()->get_index();
+		$index = Algolia::instance()->get_index();
 
 		if ( is_wp_error( $index ) ) {
 			return $index;

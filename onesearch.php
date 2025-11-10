@@ -31,17 +31,17 @@ function constants(): void {
 	/**
 	 * Version of the plugin.
 	 */
-	define( 'ONESEARCH_VERSION', '1.0' );
+	define( 'ONESEARCH_VERSION', '1.0.0' );
 
 	/**
 	 * Root path to the plugin directory.
 	 */
-	define( 'ONESEARCH_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
+	define( 'ONESEARCH_DIR', plugin_dir_path( __FILE__ ) );
 
 	/**
 	 * Root URL to the plugin directory.
 	 */
-	define( 'ONESEARCH_URL', untrailingslashit( plugin_dir_url( __FILE__ ) ) );
+	define( 'ONESEARCH_URL', plugin_dir_url( __FILE__ ) );
 
 	/**
 	 * The plugin basename.
@@ -55,11 +55,22 @@ constants();
 
 // If autoloader failed, we cannot proceed.
 require_once __DIR__ . '/inc/Autoloader.php';
-if ( ! \Onesearch\Autoloader::autoload() ) {
+if ( ! Autoloader::autoload() ) {
 	return;
 }
 
 // Load the plugin.
-if ( class_exists( '\Onesearch\Inc\Plugin' ) ) {
-	\Onesearch\Inc\Plugin::get_instance();
+if ( class_exists( '\Onesearch\Main' ) ) {
+	Main::instance();
 }
+
+add_filter(
+	'http_request_args',
+	static function ( $args ) {
+		// Override the reject_unsafe_urls setting.
+		$args['reject_unsafe_urls'] = false;
+		return $args;
+	},
+	PHP_INT_MAX,
+	1
+);

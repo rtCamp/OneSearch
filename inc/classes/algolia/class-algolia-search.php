@@ -7,8 +7,9 @@
 
 namespace Onesearch\Inc\Algolia;
 
+use Onesearch\Contracts\Interfaces\Registrable;
+use Onesearch\Contracts\Traits\Singleton;
 use Onesearch\Inc\REST\Governing_Data;
-use Onesearch\Inc\Traits\Singleton;
 use Onesearch\Utils;
 use WP_Post;
 use stdClass;
@@ -16,8 +17,7 @@ use stdClass;
 /**
  * Class Algolia_Search
  */
-class Algolia_Search {
-
+class Algolia_Search implements Registrable {
 
 	use Singleton;
 
@@ -39,16 +39,12 @@ class Algolia_Search {
 		if ( ! is_array( $search_config ) || empty( $search_config ) || empty( $search_config['algolia_enabled'] ) || empty( $search_config['searchable_sites'] ) ) {
 			return;
 		}
-
-		$this->setup_hooks();
 	}
 
 	/**
-	 * Register filters used to map Algolia data to WordPress expectations.
-	 *
-	 * @return void
+	 * {@inheritDoc}
 	 */
-	protected function setup_hooks() {
+	public function register_hooks(): void {
 		add_filter( 'posts_pre_query', [ $this, 'get_algolia_results' ], 10, 2 );
 		// Map permalinks and author/category/tag data for remote posts.
 		add_filter( 'page_link', [ $this, 'get_post_type_permalink' ], 10, 2 );
@@ -389,7 +385,7 @@ class Algolia_Search {
 	 * @return array<string, array<array<string, mixed>>> Map of parent_post_id to list of chunk hits.
 	 */
 	private function batch_fetch_chunks( array $parent_ids ): array {
-		$index = Algolia::get_instance()->get_index();
+		$index = Algolia::instance()->get_index();
 		if ( is_wp_error( $index ) ) {
 			return [];
 		}
@@ -492,7 +488,7 @@ class Algolia_Search {
 		$search_params = apply_filters( 'onesearch_algolia_search_params', $default_params, $wp_query, $search_query );
 
 		try {
-			$index = Algolia::get_instance()->get_index();
+			$index = Algolia::instance()->get_index();
 			if ( is_wp_error( $index ) ) {
 				return $index;
 			}

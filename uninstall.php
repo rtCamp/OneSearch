@@ -14,8 +14,8 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
-if ( ! defined( 'ONESEARCH_PATH' ) ) {
-	define( 'ONESEARCH_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
+if ( ! defined( 'ONESEARCH_DIR' ) ) {
+	define( 'ONESEARCH_DIR', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
 }
 
 /**
@@ -85,7 +85,7 @@ function cleanup_algolia_index(): void {
 	}
 
 	try {
-		$algolia_index = \Onesearch\Inc\Algolia\Algolia::get_instance()->get_index();
+		$algolia_index = \Onesearch\Inc\Algolia\Algolia::instance()->get_index();
 		if ( is_wp_error( $algolia_index ) ) {
 			throw new \RuntimeException( $algolia_index->get_error_message() );
 		}

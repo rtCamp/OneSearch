@@ -7,7 +7,7 @@
 
 namespace Onesearch\Inc\Settings;
 
-use Onesearch\Inc\Traits\Singleton;
+use Onesearch\Contracts\Traits\Singleton;
 use Onesearch\Utils;
 
 /**
