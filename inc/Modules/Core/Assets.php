@@ -99,6 +99,11 @@ final class Assets implements Registrable {
 			'settings',
 		);
 
+		$this->register_script(
+			self::PLUGIN_SCRIPT_HANDLE,
+			'plugin',
+		);
+
 		$this->register_style(
 			self::ADMIN_STYLES_HANDLE,
 			'admin',
