@@ -10,7 +10,6 @@ declare(strict_types = 1);
 namespace Onesearch\Modules\Settings;
 
 use Onesearch\Contracts\Interfaces\Registrable;
-use Onesearch\Utils;
 
 /**
  * Class - Admin
@@ -73,10 +72,8 @@ final class Admin implements Registrable {
 			3
 		);
 
-		$site_type = (string) get_option( 'onesearch_site_type', '' );
-
 		// Register the "Indices and Search" submenu only for governing sites with Algolia credentials.
-		if ( 'governing-site' !== $site_type || empty( Utils::get_local_algolia_credentials() ) ) {
+		if ( ! Settings::is_governing_site() || empty( Settings::get_algolia_credentials() ) ) {
 			return;
 		}
 
@@ -108,7 +105,7 @@ final class Admin implements Registrable {
 		}
 
 		// Bail if the site type is already set.
-		if ( ! empty( get_option( 'onesearch_site_type', '' ) ) ) {
+		if ( ! empty( Settings::get_site_type() ) ) {
 			return;
 		}
 
@@ -198,7 +195,7 @@ final class Admin implements Registrable {
 		}
 
 		// Bail if the site type is already set.
-		if ( ! empty( get_option( 'onesearch_site_type', null ) ) ) {
+		if ( ! empty( Settings::get_site_type() ) ) {
 			return $classes;
 		}
 
@@ -215,8 +212,8 @@ final class Admin implements Registrable {
 	 */
 	private function add_body_class_for_missing_sites( string $classes, \WP_Screen $current_screen ): string {
 		// Bail if the shared sites are already set.
-		$shared_sites = get_option( 'onesearch_shared_sites', null );
-		if ( is_array( $shared_sites ) && ! empty( $shared_sites ) ) {
+		$shared_sites = Settings::get_shared_sites();
+		if ( ! empty( $shared_sites ) ) {
 			return $classes;
 		}
 

@@ -31,7 +31,3 @@ parameters:
 			analyseAndScan:
 				- node_modules (?)
 		ignoreErrors:
-			- # These are too noisy for now.
-				identifier: missingType.iterableValue
-			- # These are too noisy for now.
-				identifier: missingType.generics

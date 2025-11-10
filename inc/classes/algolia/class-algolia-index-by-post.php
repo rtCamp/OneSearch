@@ -11,6 +11,7 @@ namespace Onesearch\Inc\Algolia;
 
 use Onesearch\Contracts\Interfaces\Registrable;
 use Onesearch\Contracts\Traits\Singleton;
+use Onesearch\Modules\Settings\Settings;
 use Onesearch\Utils;
 
 /**
@@ -41,10 +42,9 @@ class Algolia_Index_By_Post implements Registrable {
 			return;
 		}
 
-		$site_type = (string) get_option( 'onesearch_site_type', '' );
-		$post_id   = (int) $post->ID;
+		$post_id = (int) $post->ID;
 
-		if ( 'governing-site' === $site_type ) {
+		if ( Settings::is_governing_site() ) {
 			$records = Algolia_Index::instance()->get_indexable_records_from_post( [ $post ] );
 
 			$this->governing_handle_change(
@@ -68,13 +68,18 @@ class Algolia_Index_By_Post implements Registrable {
 	/**
 	 * Handles changes for governing sites when a post's status changes.
 	 *
-	 * @param string $site_url    The site URL.
-	 * @param int    $post_id     The ID of the post.
-	 * @param string $post_type   The type of post.
-	 * @param string $post_status The new post status.
-	 * @param array  $records     The records to index.
+	 * @param string                      $site_url    The site URL.
+	 * @param int                         $post_id     The ID of the post.
+	 * @param string                      $post_type   The type of post.
+	 * @param string                      $post_status The new post status.
+	 * @param array<array<string, mixed>> $records     The records to index.
 	 *
-	 * @return array Status of the operation.
+	 * @return array{
+	 *   ok: bool,
+	 *   action: string,
+	 *   count?: int,
+	 *   message?: string
+	 * }
 	 */
 	public function governing_handle_change( string $site_url, int $post_id, string $post_type, string $post_status, array $records ): array {
 		$site_url = Utils::normalize_url( $site_url );
@@ -146,8 +151,8 @@ class Algolia_Index_By_Post implements Registrable {
 	 */
 	public function brand_send_to_governing( int $post_id, string $post_type, string $status, bool $force_delete = false ): void {
 		$site_url   = Utils::normalize_url( get_site_url() );
-		$public_key = (string) get_option( 'onesearch_child_site_public_key', '' );
-		$parent_url = (string) get_option( 'onesearch_parent_site_url', '' );
+		$public_key = Settings::get_api_key();
+		$parent_url = Settings::get_parent_site_url();
 
 		if ( empty( $public_key ) || empty( $parent_url ) ) {
 			return;
@@ -188,12 +193,12 @@ class Algolia_Index_By_Post implements Registrable {
 	 *
 	 * @param string $site_url The site URL.
 	 *
-	 * @return array List of selected entity types for the site.
+	 * @return string[] List of selected entity types.
 	 */
 	private function get_selected_entities_for_site( string $site_url ): array {
-		$indexable_entities = get_option( 'onesearch_indexable_entities', [] );
+		$indexable_entities = Settings::get_indexable_entities();
 
-		$map = is_array( $indexable_entities ) ? ( $indexable_entities['entities'] ?? [] ) : [];
+		$map = $indexable_entities['entities'] ?? [];
 
 		if ( ! is_array( $map ) ) {
 			return [];
@@ -216,11 +221,7 @@ class Algolia_Index_By_Post implements Registrable {
 	 * @return bool True if the token is valid, false otherwise.
 	 */
 	public function is_valid_child_token( string $incoming ): bool {
-		$child_sites = get_option( 'onesearch_shared_sites', [] );
-
-		if ( ! is_array( $child_sites ) ) {
-			return false;
-		}
+		$child_sites = Settings::get_shared_sites();
 
 		foreach ( $child_sites as $child ) {
 			$key = isset( $child['publicKey'] ) ? (string) $child['publicKey'] : '';

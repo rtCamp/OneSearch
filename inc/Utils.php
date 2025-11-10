@@ -11,9 +11,6 @@ declare(strict_types = 1);
 
 namespace Onesearch;
 
-use Onesearch\Inc\Algolia\Algolia;
-use Onesearch\Inc\Algolia\Algolia_Index;
-
 /**
  * Class - Utils
  */
@@ -26,110 +23,5 @@ final class Utils {
 	 */
 	public static function normalize_url( string $url ): string {
 		return trailingslashit( trim( $url ) );
-	}
-
-	/**
-	 * Validates the API key.
-	 *
-	 * @used-by health_check REST endpoint.
-	 */
-	public static function validate_api_key(): bool {
-		// check if the request is from same site.
-		if ( 'governing-site' === get_option( 'onesearch_site_type', '' ) ) {
-			return (bool) current_user_can( 'manage_options' );
-		}
-
-		// check X-onesearch-Plugins-Token header.
-		if ( isset( $_SERVER['HTTP_X_ONESEARCH_PLUGINS_TOKEN'] ) && ! empty( $_SERVER['HTTP_X_ONESEARCH_PLUGINS_TOKEN'] ) ) {
-			$token = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_ONESEARCH_PLUGINS_TOKEN'] ) );
-			// Get the public key from options.
-			$public_key = get_option( 'onesearch_child_site_public_key', '' );
-			if ( hash_equals( $token, $public_key ) ) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * Delete the Algolia results associated with a given site URL.
-	 *
-	 * @param string $site_url Absolute site URL to delete from index.
-	 *
-	 * @return string Result message indicating success or the error encountered.
-	 */
-	public static function delete_site_from_index( string $site_url ): string {
-
-		try {
-			$index = Algolia::instance()->get_index();
-
-			if ( is_wp_error( $index ) ) {
-				return sprintf(
-					/* translators: %s: error message */
-					__( 'Algolia client error: %s', 'onesearch' ),
-					$index->get_error_message()
-				);
-			}
-
-			$settings = Algolia_Index::instance()->get_algolia_settings();
-
-			$index->setSettings( $settings )->wait();
-
-			$index->deleteBy(
-				[
-					'filters' => sprintf( 'site_url:"%s"', self::normalize_url( $site_url ) ),
-				]
-			)->wait();
-
-			return sprintf(
-				/* translators: %s: index name */
-				__( 'Algolia entries deleted for site: %s', 'onesearch' ),
-				$index->getIndexName(),
-			);
-		} catch ( \Throwable $e ) {
-			return sprintf(
-				/* translators: %s: error message */
-				__( 'Error deleting Algolia index: %s', 'onesearch' ),
-				$e->getMessage()
-			);
-		}
-	}
-
-	/**
-	 * Get locally stored Algolia credentials.
-	 *
-	 * @return array{app_id?: string, write_key?: string, admin_key?: string}
-	 */
-	public static function get_local_algolia_credentials(): array {
-		return (array) get_option( 'onesearch_algolia_credentials', [] );
-	}
-
-	/**
-	 * Allow if current user is admin, otherwise require a valid token header.
-	 *
-	 * @param \WP_REST_Request $request    WP_Request.
-	 * @param string           $option_key Option that stores the expected token.
-	 * @param string           $header_key HTTP header to read the token from.
-	 *
-	 * @return true|\WP_Error
-	 */
-	public static function verify_admin_and_token( \WP_REST_Request $request, string $option_key = 'onesearch_child_site_public_key', string $header_key = 'X-OneSearch-Plugins-Token' ) {
-		$incoming_key = (string) ( $request->get_header( $header_key ) ?? '' );
-		$expected_key = (string) get_option( $option_key, '' );
-
-		$is_admin = current_user_can( 'manage_options' );
-
-		if ( ! $is_admin ) {
-			if ( empty( $incoming_key ) || $incoming_key !== $expected_key ) {
-				return new \WP_Error(
-					'invalid_api_key',
-					__( 'Invalid or missing API key.', 'onesearch' ),
-					[ 'status' => 403 ]
-				);
-			}
-		}
-
-		return true;
 	}
 }
