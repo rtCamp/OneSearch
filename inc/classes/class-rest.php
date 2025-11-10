@@ -22,18 +22,29 @@ class REST implements Registrable {
 		Basic_Options::instance();
 		Governing_Data::instance();
 
-		// fix cors headers for REST API requests.
-		add_filter( 'rest_pre_serve_request', [ $this, 'add_cors_headers' ], PHP_INT_MAX - 20, 1 );
+		// Exposes the necessary CORS headers for REST API.
+		add_filter( 'rest_allowed_cors_headers', [ $this, 'add_cors_headers' ] );
 	}
 
 	/**
 	 * Add CORS headers to REST API responses.
 	 *
-	 * @param bool $served Whether the request has been served.
-	 * @return bool
+	 * @param array<int, string> $headers Existing headers.
+	 *
+	 * @return array<int, string> Modified headers.
 	 */
-	public function add_cors_headers( $served ): bool {
-		header( 'Access-Control-Allow-Headers: X-OneSearch-Plugins-Token, X-OneSearch-Requesting-Origin, Content-Type, Authorization', false );
-		return $served;
+	public function add_cors_headers( $headers ): array {
+		// Skip if the headers are already present.
+		if ( in_array( 'X-OneSearch-Plugins-Token', $headers, true ) ) {
+			return $headers;
+		}
+
+		return array_merge(
+			$headers,
+			[
+				'X-OneSearch-Plugins-Token',
+				'X-OneSearch-Requesting-Origin',
+			]
+		);
 	}
 }
