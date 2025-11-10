@@ -1835,12 +1835,12 @@ class Basic_Options {
 	 * @used-by health_check REST endpoint.
 	 */
 	public function validate_api_key(): bool {
-		// check if the request is from the governing site.
+		// Check if the request is from the governing site.
 		if ( Settings::is_governing_site() ) {
 			return (bool) current_user_can( 'manage_options' );
 		}
 
-		// check X-onesearch-Plugins-Token header.
+		// Check X-onesearch-Plugins-Token header.
 		if ( ! empty( $_SERVER['HTTP_X_ONESEARCH_PLUGINS_TOKEN'] ) ) {
 			$token = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_ONESEARCH_PLUGINS_TOKEN'] ) );
 
