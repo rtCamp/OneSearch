@@ -170,7 +170,9 @@ class Basic_Options {
 				[
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => [ $this, 'get_indexable_entities' ],
-					'permission_callback' => '__return_true',
+					'permission_callback' => static function () {
+						return current_user_can( 'manage_options' );
+					},
 				],
 				[
 					'methods'             => WP_REST_Server::CREATABLE,
@@ -1678,7 +1680,7 @@ class Basic_Options {
 		return rest_ensure_response(
 			[
 				'success'      => true,
-				'shared_sites' => $shared_sites,
+				'shared_sites' => array_values( $shared_sites ),
 			]
 		);
 	}

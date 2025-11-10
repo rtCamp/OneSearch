@@ -43,8 +43,8 @@ final class Settings implements Registrable {
 	/**
 	 * Site type keys.
 	 */
-	public const SITE_TYPE_CONSUMER  = 'consumer';
-	public const SITE_TYPE_GOVERNING = 'governing';
+	public const SITE_TYPE_CONSUMER  = 'brand-site';
+	public const SITE_TYPE_GOVERNING = 'governing-site';
 
 	/**
 	 * {@inheritDoc}
@@ -127,7 +127,7 @@ final class Settings implements Registrable {
 								'id'        => [
 									'type' => 'string',
 								],
-								'name'      => [
+								'siteName'  => [
 									'type' => 'string',
 								],
 								'siteUrl'   => [
@@ -242,8 +242,8 @@ final class Settings implements Registrable {
 	/**
 	 * Triggers functionality when the brand sites are updated.
 	 *
-	 * @param array<int, array{id: string, siteUrl: string, name?: string, logo?: string, publicKey?: string}>|mixed $old_sites The previous option value.
-	 * @param array<int, array{id: string, siteUrl: string, name?: string, logo?: string, publicKey?: string}>|mixed $updated_sites The updated option value.
+	 * @param array<int, array{id: string, siteUrl: string, siteName?: string, logo?: string, publicKey?: string}>|mixed $old_sites The previous option value.
+	 * @param array<int, array{id: string, siteUrl: string, siteName?: string, logo?: string, publicKey?: string}>|mixed $updated_sites The updated option value.
 	 *
 	 * Detects changes in brand site URLs (by ID) and triggers a migration if any URLs have changed.
 	 */
@@ -317,7 +317,7 @@ final class Settings implements Registrable {
 	 *
 	 * @return array{
 	 * id: string,
-	 * name: string,
+	 * siteName: string,
 	 * siteUrl: string,
 	 * logo: string,
 	 * publicKey: string
@@ -336,7 +336,7 @@ final class Settings implements Registrable {
 			}
 
 			$site_id      = isset( $site_data['id'] ) ? sanitize_text_field( $site_data['id'] ) : '';
-			$site_name    = isset( $site_data['name'] ) ? sanitize_text_field( $site_data['name'] ) : '';
+			$site_name    = isset( $site_data['siteName'] ) ? sanitize_text_field( $site_data['siteName'] ) : '';
 			$site_url     = isset( $site_data['siteUrl'] ) ? esc_url_raw( $site_data['siteUrl'] ) : '';
 			$site_logo    = isset( $site_data['logo'] ) ? esc_url_raw( $site_data['logo'] ) : '';
 			$site_api_key = isset( $site_data['publicKey'] ) ? sanitize_text_field( $site_data['publicKey'] ) : '';
@@ -348,7 +348,7 @@ final class Settings implements Registrable {
 
 			$sanitized[] = [
 				'id'        => $site_id ?: wp_generate_uuid4(),
-				'name'      => $site_name,
+				'siteName'  => $site_name,
 				'siteUrl'   => Utils::normalize_url( $site_url ),
 				'logo'      => $site_logo,
 				'publicKey' => $site_api_key,
@@ -369,7 +369,7 @@ final class Settings implements Registrable {
 	 *  publicKey: string,
 	 *  id: string,
 	 *  logo: string,
-	 *  name: string,
+	 *  siteName: string,
 	 *  siteUrl: string,
 	 * }>
 	 */
@@ -386,7 +386,7 @@ final class Settings implements Registrable {
 				'publicKey' => $brand['publicKey'] ?? '',
 				'id'        => $brand['id'] ?? '',
 				'logo'      => $brand['logo'] ?? '',
-				'name'      => $brand['name'] ?? '',
+				'siteName'  => $brand['siteName'] ?? '',
 				'siteUrl'   => $brand['siteUrl'] ?? '',
 			];
 		}
@@ -403,7 +403,7 @@ final class Settings implements Registrable {
 	 *   publicKey: string,
 	 *   id: string,
 	 *   logo: string,
-	 *   name: string,
+	 *   siteName: string,
 	 *   siteUrl: string,
 	 * }
 	 */
@@ -424,7 +424,7 @@ final class Settings implements Registrable {
 	 *   publicKey?: string,
 	 *   id?: string,
 	 *   logo?: string,
-	 *   name?: string,
+	 *   siteName?: string,
 	 *   siteUrl?: string,
 	 * }> $sites The sites to set.
 	 */

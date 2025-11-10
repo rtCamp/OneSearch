@@ -190,7 +190,7 @@ final class Assets implements Registrable {
 			'publicKey'         => Settings::get_api_key(),
 			'setupUrl'          => admin_url( 'admin.php?page=onesearch-settings' ),
 			'currentSiteUrl'    => esc_url( home_url( '/' ) ),
-			'sharedSites'       => Settings::get_shared_sites(),
+			'sharedSites'       => array_values( Settings::get_shared_sites() ),
 			'indexableEntities' => Settings::get_indexable_entities(),
 		];
 
