@@ -68,7 +68,7 @@ register_activation_hook(
 	__FILE__,
 	static function (): void {
 		// Show onboarding on first admin load after activation.
-		// @todo onboarding should be it's own class.
+		// @todo onboarding should be its own class.
 		if ( get_option( 'onelogs_show_onboarding' ) ) {
 			return;
 		}
