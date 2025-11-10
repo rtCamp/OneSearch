@@ -16,7 +16,7 @@ use Onesearch\Contracts\Interfaces\Registrable;
  */
 final class Assets implements Registrable {
 	/**
-	 * The relative to the built assets directory.
+	 * The relative path to the built assets directory.
 	 * No preceding or trailing slashes.
 	 */
 	private const ASSETS_DIR = 'build';
