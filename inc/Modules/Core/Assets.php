@@ -202,7 +202,7 @@ final class Assets implements Registrable {
 	 * @param bool     $in_footer Optional. Whether to enqueue the script before </body> instead of in the <head>.
 	 */
 	private function register_script( string $handle, string $filename, array $deps = [], $ver = null, bool $in_footer = true ): bool {
-		$asset_file = sprintf( '%s/js/%s.asset.php', trailingslashit( $this->plugin_dir ) . untrailingslashit( self::ASSETS_DIR ), $filename );
+		$asset_file = sprintf( '%s/js/%s.asset.php', $this->plugin_dir . untrailingslashit( self::ASSETS_DIR ), $filename );
 
 		// Bail if the asset file does not exist. Log error and optionally show admin notice.
 		if ( ! file_exists( $asset_file ) ) {
@@ -213,7 +213,7 @@ final class Assets implements Registrable {
 		$asset = require_once $asset_file;
 
 		$version   = $ver ?? ( $asset['version'] ?? filemtime( $asset_file ) );
-		$asset_src = sprintf( '%s/js/%s.js', trailingslashit( $this->plugin_url ) . untrailingslashit( self::ASSETS_DIR ), $filename );
+		$asset_src = sprintf( '%s/js/%s.js', $this->plugin_url . untrailingslashit( self::ASSETS_DIR ), $filename );
 
 		return wp_register_script(
 			$handle,
@@ -239,7 +239,7 @@ final class Assets implements Registrable {
 	 */
 	private function register_style( string $handle, string $filename, array $deps = [], $ver = null, string $media = 'all' ): bool {
 		// CSS doesnt have a PHP assets file so we infer from the file itself.
-		$asset_file = sprintf( '%s/css/%s.css', trailingslashit( $this->plugin_dir ) . untrailingslashit( self::ASSETS_DIR ), $filename );
+		$asset_file = sprintf( '%s/css/%s.css', $this->plugin_dir . untrailingslashit( self::ASSETS_DIR ), $filename );
 
 		// Bail if the asset file does not exist.
 		if ( ! file_exists( $asset_file ) ) {
@@ -247,7 +247,7 @@ final class Assets implements Registrable {
 		}
 
 		$version   = $ver ?? (string) filemtime( $asset_file );
-		$asset_src = sprintf( '%s/css/%s.css', trailingslashit( $this->plugin_url ) . untrailingslashit( self::ASSETS_DIR ), $filename );
+		$asset_src = sprintf( '%s/css/%s.css', $this->plugin_url . untrailingslashit( self::ASSETS_DIR ), $filename );
 
 		// Register as a style.
 		return wp_register_style(

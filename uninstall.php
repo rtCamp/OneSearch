@@ -14,10 +14,6 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
-if ( ! defined( 'ONESEARCH_DIR' ) ) {
-	define( 'ONESEARCH_DIR', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
-}
-
 /**
  * Multisite loop for uninstalling from all sites.
  */

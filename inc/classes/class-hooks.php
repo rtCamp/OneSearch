@@ -43,7 +43,7 @@ class Hooks implements Registrable {
 	 */
 	public function load_onesearch_text_domain(): void {
 		// phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound
-		load_plugin_textdomain( 'onesearch', false, ONESEARCH_DIR . '/languages/' );
+		load_plugin_textdomain( 'onesearch', false, ONESEARCH_DIR . 'languages/' );
 	}
 
 	/**
