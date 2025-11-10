@@ -303,7 +303,7 @@ final class Settings implements Registrable {
 				continue;
 			}
 
-			$new_url = $url_changes[ $site_url ];
+			$new_url                     = $url_changes[ $site_url ];
 			$updated_configs[ $new_url ] = array_merge( $config, [ 'siteUrl' => $new_url ] );
 		}
 
