@@ -63,14 +63,3 @@ if ( ! \Onesearch\Autoloader::autoload() ) {
 if ( class_exists( '\Onesearch\Main' ) ) {
 	\Onesearch\Main::instance();
 }
-
-add_filter(
-	'http_request_args',
-	static function ( $args ) {
-		// Override the reject_unsafe_urls setting.
-		$args['reject_unsafe_urls'] = false;
-		return $args;
-	},
-	PHP_INT_MAX,
-	1
-);
