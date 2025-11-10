@@ -61,7 +61,7 @@ if ( ! Autoloader::autoload() ) {
 
 // Load the plugin.
 if ( class_exists( '\Onesearch\Main' ) ) {
-	Main::instance();
+	\Onesearch\Main::instance();
 }
 
 add_filter(
