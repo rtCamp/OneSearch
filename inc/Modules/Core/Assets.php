@@ -60,7 +60,7 @@ final class Assets implements Registrable {
 	/**
 	 * {@inheritDoc}
 	 *
-	 * Assets are only registered globally. Enqueuing is handled in specific that needs them.
+	 * Assets are only registered globally. Enqueuing is handled in specific contexts that need them.
 	 */
 	public function register_hooks(): void {
 		// Assets are always registered. They can be enqueued later as needed.
