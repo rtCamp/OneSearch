@@ -69,10 +69,10 @@ register_activation_hook(
 	static function (): void {
 		// Show onboarding on first admin load after activation.
 		// @todo onboarding should be its own class.
-		if ( get_option( 'onelogs_show_onboarding' ) ) {
+		if ( get_option( 'onesearch_show_onboarding' ) ) {
 			return;
 		}
 
-		add_option( 'onelogs_show_onboarding', '1', '', false );
+		add_option( 'onesearch_show_onboarding', '1', '', false );
 	}
 );
