@@ -7,30 +7,18 @@
 
 namespace Onesearch\Inc;
 
+use Onesearch\Contracts\Interfaces\Registrable;
 use Onesearch\Inc\Settings\Shared_Sites;
-use Onesearch\Inc\Traits\Singleton;
 
 /**
  * Class Settings
  */
-class Settings {
+class Settings implements Registrable {
 
 	/**
-	 * Use Singleton trait.
+	 * {@inheritDoc}
 	 */
-	use Singleton;
-
-	/**
-	 * Protected class constructor
-	 */
-	protected function __construct() {
-		$this->setup_hooks();
-	}
-
-	/**
-	 * Setup WordPress hooks
-	 */
-	public function setup_hooks(): void {
-		Shared_Sites::get_instance();
+	public function register_hooks(): void {
+		Shared_Sites::instance();
 	}
 }

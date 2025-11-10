@@ -60,7 +60,7 @@ export const API_NAMESPACE = OneSearchSettings.restUrl + OneSearchSettings.restN
  * @constant
  * @type {string}
  */
-export const NONCE = OneSearchSettings.restNonce;
+export const NONCE = OneSearchSettings.nonce;
 
 /**
  * REST namespace used by the OneSearch plugin.

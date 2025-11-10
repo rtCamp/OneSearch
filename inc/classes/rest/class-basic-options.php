@@ -11,10 +11,10 @@
 namespace Onesearch\Inc\REST;
 
 use Algolia\AlgoliaSearch\SearchClient;
+use Onesearch\Contracts\Traits\Singleton;
 use Onesearch\Inc\Algolia\Algolia_Index;
 use Onesearch\Inc\Algolia\Algolia_Index_By_Post;
 use Onesearch\Inc\Plugin_Configs\Secret_Key;
-use Onesearch\Inc\Traits\Singleton;
 use Onesearch\Utils;
 use WP_REST_Server;
 
@@ -394,7 +394,7 @@ class Basic_Options {
 
 		$incoming_key = (string) ( $request->get_header( 'X-OneSearch-Plugins-Token' ) ?? '' );
 
-		if ( empty( $incoming_key ) || ! Algolia_Index_By_Post::get_instance()->is_valid_child_token( $incoming_key ) ) {
+		if ( empty( $incoming_key ) || ! Algolia_Index_By_Post::instance()->is_valid_child_token( $incoming_key ) ) {
 			return new \WP_Error( 'invalid_api_key', __( 'Invalid or missing API key.', 'onesearch' ), [ 'status' => 403 ] );
 		}
 
@@ -409,7 +409,7 @@ class Basic_Options {
 			return new \WP_Error( 'bad_request', __( 'Missing site_url or post_id.', 'onesearch' ), [ 'status' => 400 ] );
 		}
 
-		$result = Algolia_Index_By_Post::get_instance()->governing_handle_change( $site_url, $post_id, $post_type, $post_status, $records );
+		$result = Algolia_Index_By_Post::instance()->governing_handle_change( $site_url, $post_id, $post_type, $post_status, $records );
 
 		return rest_ensure_response( $result );
 	}
@@ -1359,7 +1359,7 @@ class Basic_Options {
 			$entities_map = $this->get_governing_entities_map();
 			$my_entities  = isset( $entities_map[ $current_site_url ] ) ? $entities_map[ $current_site_url ] : [];
 
-			$indexed = Algolia_Index::get_instance()->index( $my_entities );
+			$indexed = Algolia_Index::instance()->index( $my_entities );
 
 			$results[ $current_site_url ] = is_wp_error( $indexed )
 				? [
@@ -1457,7 +1457,7 @@ class Basic_Options {
 			}
 
 			try {
-				$indexed = Algolia_Index::get_instance()->index( $my_entities );
+				$indexed = Algolia_Index::instance()->index( $my_entities );
 
 				if ( is_wp_error( $indexed ) ) {
 					return new \WP_Error( 'reindex_failed', __( 'Re-indexing failed.', 'onesearch' ), [ 'status' => 500 ] );

@@ -2,34 +2,24 @@
 /**
  * Add actions and filters for Onesearch plugin.
  *
+ * @todo colocate with the modules that use them.
+ *
  * @package Onesearch
  */
 
 namespace Onesearch\Inc;
 
-use Onesearch\Inc\Traits\Singleton;
+use Onesearch\Contracts\Interfaces\Registrable;
 
 /**
  * Class Hooks initializes the actions and filters.
  */
-class Hooks {
+class Hooks implements Registrable {
 
 	/**
-	 * Use Singleton trait.
+	 * {@inheritDoc}
 	 */
-	use Singleton;
-
-	/**
-	 * Protected class constructor
-	 */
-	protected function __construct() {
-		$this->setup_hooks();
-	}
-
-	/**
-	 * Setup WordPress hooks
-	 */
-	public function setup_hooks(): void {
+	public function register_hooks(): void {
 		// create global variable called onesearch_sites which has info like site name, site url, site id, etc.
 		add_action( 'init', [ $this, 'create_global_onesearch_sites' ], -1 );
 
@@ -53,7 +43,7 @@ class Hooks {
 	 */
 	public function load_onesearch_text_domain(): void {
 		// phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound
-		load_plugin_textdomain( 'onesearch', false, ONESEARCH_PATH . '/languages/' );
+		load_plugin_textdomain( 'onesearch', false, ONESEARCH_DIR . 'languages/' );
 	}
 
 	/**
@@ -62,10 +52,6 @@ class Hooks {
 	 * @return void
 	 */
 	public function create_global_onesearch_sites(): void {
-		if ( ! defined( 'ONESEARCH_PLUGIN_LOADER_SLUG' ) ) {
-			return;
-		}
-
 		$sites = get_option( 'onesearch_shared_sites', [] );
 
 		if ( empty( $sites ) || ! is_array( $sites ) ) {
@@ -111,10 +97,6 @@ class Hooks {
 		$current_screen = get_current_screen();
 
 		if ( ! $current_screen || 'plugins' !== $current_screen->base ) {
-			return;
-		}
-
-		if ( ! defined( 'ONESEARCH_PLUGIN_LOADER_SLUG' ) ) {
 			return;
 		}
 

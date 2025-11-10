@@ -31,17 +31,17 @@ function constants(): void {
 	/**
 	 * Version of the plugin.
 	 */
-	define( 'ONESEARCH_VERSION', '1.0' );
+	define( 'ONESEARCH_VERSION', '1.0.0' );
 
 	/**
 	 * Root path to the plugin directory.
 	 */
-	define( 'ONESEARCH_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
+	define( 'ONESEARCH_DIR', plugin_dir_path( __FILE__ ) );
 
 	/**
 	 * Root URL to the plugin directory.
 	 */
-	define( 'ONESEARCH_URL', untrailingslashit( plugin_dir_url( __FILE__ ) ) );
+	define( 'ONESEARCH_URL', plugin_dir_url( __FILE__ ) );
 
 	/**
 	 * The plugin basename.
@@ -60,6 +60,6 @@ if ( ! \Onesearch\Autoloader::autoload() ) {
 }
 
 // Load the plugin.
-if ( class_exists( '\Onesearch\Inc\Plugin' ) ) {
-	\Onesearch\Inc\Plugin::get_instance();
+if ( class_exists( '\Onesearch\Main' ) ) {
+	\Onesearch\Main::instance();
 }

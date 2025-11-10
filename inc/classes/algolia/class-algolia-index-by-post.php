@@ -9,29 +9,23 @@
 
 namespace Onesearch\Inc\Algolia;
 
-use Onesearch\Inc\Traits\Singleton;
+use Onesearch\Contracts\Interfaces\Registrable;
+use Onesearch\Contracts\Traits\Singleton;
 use Onesearch\Utils;
 
 /**
  * Class Algolia_Index_By_Post
  */
-class Algolia_Index_By_Post {
+class Algolia_Index_By_Post implements Registrable {
 
 	use Singleton;
 
 	private const NAMESPACE = 'onesearch/v1';
 
 	/**
-	 * Constructor.
+	 * {@inheritDoc}
 	 */
-	final protected function __construct() {
-		$this->setup_hooks();
-	}
-
-	/**
-	 * Sets up hooks.
-	 */
-	public function setup_hooks(): void {
+	public function register_hooks(): void {
 		add_action( 'transition_post_status', [ $this, 'on_transition' ], 10, 3 );
 	}
 
@@ -51,7 +45,7 @@ class Algolia_Index_By_Post {
 		$post_id   = (int) $post->ID;
 
 		if ( 'governing-site' === $site_type ) {
-			$records = Algolia_Index::get_instance()->get_indexable_records_from_post( [ $post ] );
+			$records = Algolia_Index::instance()->get_indexable_records_from_post( [ $post ] );
 
 			$this->governing_handle_change(
 				trailingslashit( get_site_url() ),
@@ -95,9 +89,9 @@ class Algolia_Index_By_Post {
 			];
 		}
 
-		$allowed_statuses = Algolia_Index::get_instance()->compute_post_statuses_for_types( $selected_types );
+		$allowed_statuses = Algolia_Index::instance()->compute_post_statuses_for_types( $selected_types );
 
-		$index = Algolia::get_instance()->get_index();
+		$index = Algolia::instance()->get_index();
 
 		if ( is_wp_error( $index ) ) {
 			return [
@@ -107,7 +101,7 @@ class Algolia_Index_By_Post {
 			];
 		}
 
-		$settings = Algolia_Index::get_instance()->get_algolia_settings();
+		$settings = Algolia_Index::instance()->get_algolia_settings();
 
 		try {
 			$index->setSettings( $settings )->wait();
@@ -163,7 +157,7 @@ class Algolia_Index_By_Post {
 		if ( ! $force_delete ) {
 			$post = get_post( $post_id );
 			if ( $post ) {
-				$records = Algolia_Index::get_instance()->get_indexable_records_from_post( [ $post ] );
+				$records = Algolia_Index::instance()->get_indexable_records_from_post( [ $post ] );
 			}
 		}
 

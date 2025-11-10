@@ -7,28 +7,17 @@
 
 namespace Onesearch\Inc\Plugin_Configs;
 
-use Onesearch\Inc\Traits\Singleton;
+use Onesearch\Contracts\Interfaces\Registrable;
 
 /**
  * Class Secret_Key
  */
-class Secret_Key {
-	/**
-	 * Use Singleton trait.
-	 */
-	use Singleton;
+class Secret_Key implements Registrable {
 
 	/**
-	 * Protected class constructor
+	 * {@inheritDoc}
 	 */
-	protected function __construct() {
-		$this->setup_hooks();
-	}
-
-	/**
-	 * Setup WordPress hooks
-	 */
-	public function setup_hooks(): void {
+	public function register_hooks(): void {
 		add_action( 'admin_init', [ $this, 'generate_secret_key' ] );
 	}
 

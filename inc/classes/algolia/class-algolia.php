@@ -8,8 +8,8 @@
 namespace Onesearch\Inc\Algolia;
 
 use Algolia\AlgoliaSearch\SearchClient;
+use Onesearch\Contracts\Traits\Singleton;
 use Onesearch\Inc\REST\Governing_Data;
-use Onesearch\Inc\Traits\Singleton;
 use Onesearch\Utils;
 
 /**
