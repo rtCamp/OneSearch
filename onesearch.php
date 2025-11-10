@@ -55,7 +55,7 @@ constants();
 
 // If autoloader failed, we cannot proceed.
 require_once __DIR__ . '/inc/Autoloader.php';
-if ( ! Autoloader::autoload() ) {
+if ( ! \Onesearch\Autoloader::autoload() ) {
 	return;
 }
 
