@@ -303,7 +303,8 @@ final class Settings implements Registrable {
 				continue;
 			}
 
-			$updated_configs[ $site_url ] = array_merge( $config, [ 'siteUrl' => $url_changes[ $site_url ] ] );
+			$new_url = $url_changes[ $site_url ];
+			$updated_configs[ $new_url ] = array_merge( $config, [ 'siteUrl' => $new_url ] );
 		}
 
 		self::set_shared_sites( $updated_configs );
