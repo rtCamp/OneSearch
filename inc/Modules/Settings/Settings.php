@@ -573,7 +573,7 @@ final class Settings implements Registrable {
 	/**
 	 * Build a map of id => url from a list of brand sites.
 	 *
-	 * @param array<int, array{id?: string, url?: string}>|mixed $sites The sites array.
+	 * @param array<int, array{id?: string, siteUrl?: string}>|mixed $sites The sites array.
 	 * @return array<string, string> id => url
 	 */
 	private static function build_id_url_map( $sites ): array {
