@@ -46,8 +46,7 @@ function constants(): void {
 	/**
 	 * The plugin basename.
 	 */
-	define( 'ONESEARCH_PLUGIN_LOADER_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
-	define( 'ONESEARCH_PLUGIN_LOADER_SLUG', 'onesearch' );
+	define( 'ONESEARCH_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 }
 
 constants();
@@ -63,3 +62,17 @@ if ( ! \Onesearch\Autoloader::autoload() ) {
 if ( class_exists( '\Onesearch\Main' ) ) {
 	\Onesearch\Main::instance();
 }
+
+// Activation Hooks.
+register_activation_hook(
+	__FILE__,
+	static function (): void {
+		// Show onboarding on first admin load after activation.
+		// @todo onboarding should be its own class.
+		if ( get_option( 'onesearch_show_onboarding' ) ) {
+			return;
+		}
+
+		add_option( 'onesearch_show_onboarding', '1', '', false );
+	}
+);
