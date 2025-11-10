@@ -28,7 +28,6 @@ final class Main {
 		Modules\Settings\Admin::class,
 		Inc\REST::class,
 		Inc\Plugin_Configs\Secret_Key::class,
-		Inc\Hooks::class,
 	];
 
 	/**
