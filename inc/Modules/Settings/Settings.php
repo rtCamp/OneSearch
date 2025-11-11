@@ -495,6 +495,6 @@ final class Settings implements Registrable {
 	 * @return string API key prefixed with 'token_'.
 	 */
 	private static function generate_api_key(): string {
-		return 'token_' . wp_generate_password( 32, false );
+		return 'token_' . wp_generate_password( 128, false, false );
 	}
 }
