@@ -28,7 +28,6 @@ class Algolia_Index {
 	 * @return true|\WP_Error True on success, WP_Error if index not available.
 	 */
 	public function index( $site_indexable_entities ) {
-
 		$index = Algolia::instance()->get_index();
 
 		if ( is_wp_error( $index ) ) {

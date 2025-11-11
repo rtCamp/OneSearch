@@ -170,9 +170,7 @@ class Basic_Options {
 				[
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => [ $this, 'get_indexable_entities' ],
-					'permission_callback' => static function () {
-						return current_user_can( 'manage_options' );
-					},
+					'permission_callback' => '__return_true',
 				],
 				[
 					'methods'             => WP_REST_Server::CREATABLE,
