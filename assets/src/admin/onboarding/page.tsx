@@ -97,10 +97,8 @@ const OnboardingScreen = () => {
 			setIsSaving( false );
 		}
 	};
-
-	return (
-		<>
-			<Card>
+		<Card>
+			<>
 				{ !! notice?.message && (
 					<Notice
 						status={ notice?.type ?? 'success' }
@@ -110,26 +108,26 @@ const OnboardingScreen = () => {
 						{ notice?.message }
 					</Notice>
 				) }
-				<CardHeader>
-					<h2>{ __( 'OneSearch', 'onesearch' ) }</h2>
-				</CardHeader>
-				<CardBody className="onesearch-onboarding-page">
-					<SiteTypeSelector
-						value={ siteType }
-						setSiteType={ setSiteType }
-					/>
-					<Button
-						variant="primary"
-						onClick={ () => handleSiteTypeChange( siteType ) }
-						disabled={ isSaving || ! siteType }
-						style={ { marginTop: '1.5rem' } }
-						className={ isSaving ? 'is-busy' : '' }
-					>
-						{ __( 'Select Current Site Type', 'onesearch' ) }
-					</Button>
-				</CardBody>
-			</Card>
-		</>
+			</>
+			<CardHeader>
+				<h2>{ __( 'OneSearch', 'onesearch' ) }</h2>
+			</CardHeader>
+			<CardBody className="onesearch-onboarding-page">
+				<SiteTypeSelector
+					value={ siteType }
+					setSiteType={ setSiteType }
+				/>
+				<Button
+					variant="primary"
+					onClick={ () => handleSiteTypeChange( siteType ) }
+					disabled={ isSaving || ! siteType }
+					style={ { marginTop: '1.5rem' } }
+					className={ isSaving ? 'is-busy' : '' }
+				>
+					{ __( 'Select Current Site Type', 'onesearch' ) }
+				</Button>
+			</CardBody>
+		</Card>
 	);
 };
 
