@@ -497,24 +497,4 @@ final class Settings implements Registrable {
 	private static function generate_api_key(): string {
 		return 'token_' . wp_generate_password( 32, false );
 	}
-
-	/**
-	 * Build a map of id => url from a list of brand sites.
-	 *
-	 * @param array<int, array{id?: string, siteUrl?: string}>|mixed $sites The sites array.
-	 * @return array<string, string> id => url
-	 */
-	private static function build_id_url_map( $sites ): array {
-		if ( ! is_array( $sites ) ) {
-			return [];
-		}
-		$map = [];
-		foreach ( $sites as $site ) {
-			if ( ! is_array( $site ) || empty( $site['id'] ) || empty( $site['siteUrl'] ) ) {
-				continue;
-			}
-			$map[ (string) $site['id'] ] = Utils::normalize_url( $site['siteUrl'] );
-		}
-		return $map;
-	}
 }
