@@ -26,8 +26,8 @@ final class Main {
 	private const REGISTRABLE_CLASSES = [
 		Modules\Core\Assets::class,
 		Modules\Settings\Admin::class,
+		Modules\Settings\Settings::class,
 		Inc\REST::class,
-		Inc\Plugin_Configs\Secret_Key::class,
 	];
 
 	/**

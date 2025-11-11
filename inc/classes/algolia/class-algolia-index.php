@@ -28,7 +28,6 @@ class Algolia_Index {
 	 * @return true|\WP_Error True on success, WP_Error if index not available.
 	 */
 	public function index( $site_indexable_entities ) {
-
 		$index = Algolia::instance()->get_index();
 
 		if ( is_wp_error( $index ) ) {
@@ -174,16 +173,16 @@ class Algolia_Index {
 					'postDate'               => $post->post_date,
 					'postDateGmt'            => $post->post_date_gmt,
 					'author_ID'              => $post->post_author,
-					'author_login'           => get_the_author_meta( 'user_login', $post->post_author ),
-					'author_nicename'        => get_the_author_meta( 'user_nicename', $post->post_author ),
-					'author_email'           => get_the_author_meta( 'user_email', $post->post_author ),
-					'author_registered'      => get_the_author_meta( 'user_registered', $post->post_author ),
-					'author_display_name'    => get_the_author_meta( 'display_name', $post->post_author ),
-					'author_first_name'      => get_the_author_meta( 'first_name', $post->post_author ),
-					'author_last_name'       => get_the_author_meta( 'last_name', $post->post_author ),
-					'author_description'     => get_the_author_meta( 'description', $post->post_author ),
+					'author_login'           => get_the_author_meta( 'user_login', (int) $post->post_author ),
+					'author_nicename'        => get_the_author_meta( 'user_nicename', (int) $post->post_author ),
+					'author_email'           => get_the_author_meta( 'user_email', (int) $post->post_author ),
+					'author_registered'      => get_the_author_meta( 'user_registered', (int) $post->post_author ),
+					'author_display_name'    => get_the_author_meta( 'display_name', (int) $post->post_author ),
+					'author_first_name'      => get_the_author_meta( 'first_name', (int) $post->post_author ),
+					'author_last_name'       => get_the_author_meta( 'last_name', (int) $post->post_author ),
+					'author_description'     => get_the_author_meta( 'description', (int) $post->post_author ),
 					'author_avatar'          => get_avatar_url( $post->post_author ),
-					'author_posts_url'       => get_author_posts_url( $post->post_author ),
+					'author_posts_url'       => get_author_posts_url( (int) $post->post_author ),
 					'parent_post_id'         => $site_key . '_' . $post->ID, // Used for Algolia distinct/grouping.
 					'is_chunked'             => false,
 					'onesearch_chunk_index'  => 0,
@@ -253,7 +252,7 @@ class Algolia_Index {
 
 		// Remove excessive blank lines and normalize whitespace.
 		$clean_content = preg_replace( '/\s*\n\s*/', "\n", $clean_content ); // collapse blank lines.
-		$clean_content = preg_replace( '/\n{2,}/', "\n", $clean_content );   // limit to single newlines.
+		$clean_content = null !== $clean_content ? preg_replace( '/\n{2,}/', "\n", $clean_content ) : ''; // limit to single newlines.
 		$clean_content = trim( (string) $clean_content );
 
 		return $clean_content;
@@ -264,7 +263,16 @@ class Algolia_Index {
 	 *
 	 * @param \WP_Post $post Post object.
 	 *
-	 * @return array Array of term data.
+	 * @return array{
+	 *  taxonomy: string,
+	 *  term_id: int,
+	 *  name: string,
+	 *  slug: string,
+	 *  description: string,
+	 *  parent: int,
+	 *  count: int,
+	 *  term_link: string,
+	 * }[]
 	 */
 	private function get_all_taxonomies( $post ) {
 		$taxonomies    = get_object_taxonomies( $post->post_type );
@@ -282,6 +290,9 @@ class Algolia_Index {
 			}
 
 			foreach ( $terms as $term ) {
+				/** @var string $term_link */
+				$term_link = get_term_link( $term );
+
 				$taxonomy_data[] = [
 					'taxonomy'    => $taxonomy,
 					'term_id'     => $term->term_id,
@@ -290,7 +301,7 @@ class Algolia_Index {
 					'description' => $term->description,
 					'parent'      => $term->parent,
 					'count'       => $term->count,
-					'term_link'   => get_term_link( $term ),
+					'term_link'   => $term_link,
 				];
 			}
 		}
@@ -335,7 +346,7 @@ class Algolia_Index {
 		// Sanitize UTF-8 and measure size in one operation.
 		$json_encoded = wp_json_encode( $record, JSON_INVALID_UTF8_SUBSTITUTE );
 		$json_size    = strlen( $json_encoded ?: '' );
-		$record       = json_decode( $json_encoded, true );
+		$record       = false !== $json_encoded ? json_decode( $json_encoded, true ) : null;
 		if ( ! is_array( $record ) ) {
 			return [];
 		}

@@ -54,19 +54,17 @@ function uninstall(): void {
 function delete_plugin_data(): void {
 
 	// Governing site options.
-	delete_option( 'onesearch_child_site_public_key' );
 	delete_option( 'onesearch_site_type' );
 	delete_option( 'onesearch_shared_sites' );
 	delete_option( 'onesearch_indexable_entities' );
 	delete_option( 'onesearch_algolia_credentials' );
 	delete_option( 'onesearch_sites_search_settings' );
-	delete_transient( 'onesearch_site_type_transient' );
 
 	// Brand site options.
 	delete_option( 'onesearch_parent_site_url' );
+	delete_option( 'onesearch_consumer_api_key' );
 	delete_transient( 'onesearch_search_settings_cache' );
-	delete_transient( 'onesearch_algolia_creds_cache' );
-	delete_transient( 'onesearch_searchable_sites_cache' );
+	delete_transient( 'onesearch_algolia_credentials_cache' );
 }
 
 /**

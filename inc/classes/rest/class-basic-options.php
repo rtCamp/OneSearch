@@ -12,9 +12,10 @@ namespace Onesearch\Inc\REST;
 
 use Algolia\AlgoliaSearch\SearchClient;
 use Onesearch\Contracts\Traits\Singleton;
+use Onesearch\Inc\Algolia\Algolia;
 use Onesearch\Inc\Algolia\Algolia_Index;
 use Onesearch\Inc\Algolia\Algolia_Index_By_Post;
-use Onesearch\Inc\Plugin_Configs\Secret_Key;
+use Onesearch\Modules\Settings\Settings;
 use Onesearch\Utils;
 use WP_REST_Server;
 
@@ -96,14 +97,33 @@ class Basic_Options {
 			[
 				[
 					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => [ Secret_Key::class, 'get_secret_key' ],
+					'callback'            => static function () {
+						$api_key = Settings::get_api_key();
+
+						return new \WP_REST_Response(
+							[
+								'success'    => ! empty( $api_key ),
+								'secret_key' => $api_key,
+							]
+						);
+					},
 					'permission_callback' => static function () {
 						return current_user_can( 'manage_options' );
 					},
 				],
 				[
 					'methods'             => WP_REST_Server::EDITABLE,
-					'callback'            => [ Secret_Key::class, 'regenerate_secret_key' ],
+					'callback'            => static function () {
+						$api_key = Settings::regenerate_api_key();
+
+						return new \WP_REST_Response(
+							[
+								'success'    => true,
+								'message'    => __( 'Secret key regenerated successfully.', 'onesearch' ),
+								'secret_key' => $api_key,
+							]
+						);
+					},
 					'permission_callback' => static function () {
 						return current_user_can( 'manage_options' );
 					},
@@ -178,7 +198,7 @@ class Basic_Options {
 			[
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => [ $this, 'health_check' ],
-				'permission_callback' => [ Utils::class, 'validate_api_key' ],
+				'permission_callback' => [ $this, 'validate_api_key' ],
 			]
 		);
 
@@ -355,7 +375,7 @@ class Basic_Options {
 				],
 				[
 					'methods'             => WP_REST_Server::DELETABLE,
-					'callback'            => [ $this, 'delete_parent_url' ],
+					'callback'            => [ $this, 'delete_governing_url' ],
 					'permission_callback' => static function () {
 						return current_user_can( 'manage_options' );
 					},
@@ -387,8 +407,7 @@ class Basic_Options {
 	 * @return \WP_REST_Response|\WP_Error The response with indexing result or error.
 	 */
 	public function reindex_post( \WP_REST_Request $request ) {
-		$site_type = (string) get_option( 'onesearch_site_type', '' );
-		if ( 'governing-site' !== $site_type ) {
+		if ( ! Settings::is_governing_site() ) {
 			return new \WP_Error( 'forbidden', __( 'Only governing site can reindex posts.', 'onesearch' ), [ 'status' => 403 ] );
 		}
 
@@ -420,31 +439,12 @@ class Basic_Options {
 	 * @return \WP_REST_Response
 	 */
 	public function get_parent_url(): \WP_REST_Response {
-		$url = (string) get_option( 'onesearch_parent_site_url', '' );
+		$url = Settings::get_parent_site_url();
 
 		return rest_ensure_response(
 			[
 				'success'         => true,
 				'parent_site_url' => $url,
-			]
-		);
-	}
-
-	/**
-	 * Delete the governing site URL option.
-	 *
-	 * @return \WP_REST_Response
-	 */
-	public function delete_parent_url(): \WP_REST_Response {
-		delete_option( 'onesearch_parent_site_url' );
-
-		// Also delete search setting to prevent brand site taking data from other sites.
-		Governing_Data::clear_search_settings_cache();
-
-		return rest_ensure_response(
-			[
-				'success' => true,
-				'message' => __( 'Parent site URL removed.', 'onesearch' ),
 			]
 		);
 	}
@@ -460,7 +460,7 @@ class Basic_Options {
 
 		$site_index = (int) $request->get_param( 'site_index' );
 
-		$sites_data = get_option( 'onesearch_shared_sites', [] );
+		$sites_data = array_values( Settings::get_shared_sites() );
 
 		if ( ! isset( $sites_data[ $site_index ] ) ) {
 			return new \WP_Error(
@@ -493,7 +493,7 @@ class Basic_Options {
 		$deletion_results['parent_url_option'] = $parent_url_delete_result;
 
 		// 3) Delete Algolia index for this site.
-		$algolia_result                       = Utils::delete_site_from_index( $site_url );
+		$algolia_result                       = $this->delete_site_from_index( $site_url );
 		$deletion_results['algolia_deletion'] = $algolia_result;
 
 		// 4) Remove site from option.
@@ -502,7 +502,7 @@ class Basic_Options {
 
 		// 5) Reuse set_shared_sites logic by mocking a request with updated payload.
 		$mock_request = new \WP_REST_Request();
-		$mock_request->set_body( wp_json_encode( [ 'sites_data' => $sites_data ] ) );
+		$mock_request->set_body( wp_json_encode( [ 'sites_data' => $sites_data ] ) ?: '' );
 
 		$shared_sites_result = $this->set_shared_sites( $mock_request );
 		if ( is_wp_error( $shared_sites_result ) ) {
@@ -521,7 +521,7 @@ class Basic_Options {
 			unset( $governing_entities[ $site_url ] );
 
 			$mock_request = new \WP_REST_Request();
-			$mock_request->set_body( wp_json_encode( [ 'entities' => $governing_entities ] ) );
+			$mock_request->set_body( wp_json_encode( [ 'entities' => $governing_entities ] ) ?: '' );
 
 			$governing_entities_result = $this->set_indexable_entities( $mock_request );
 			if ( is_wp_error( $governing_entities_result ) ) {
@@ -592,7 +592,7 @@ class Basic_Options {
 	 * @param string $site_url Target site URL.
 	 * @param string $site_key Target site public key.
 	 *
-	 * @return array Endpoint => result string.
+	 * @return array<string, string> Results of each cache-busting attempt.
 	 */
 	private function bust_site_all_caches( string $site_url, string $site_key ): array {
 		$sanitized_url = trailingslashit( (string) esc_url_raw( $site_url ) );
@@ -617,7 +617,7 @@ class Basic_Options {
 						'Content-Type'              => 'application/json',
 						'X-OneSearch-Plugins-Token' => $site_key,
 					],
-					'body'    => wp_json_encode( [] ),
+					'body'    => wp_json_encode( [] ) ?: '',
 				]
 			);
 
@@ -644,11 +644,9 @@ class Basic_Options {
 	/**
 	 * Clear the cached search settings configuration.
 	 *
-	 * @param \WP_REST_Request $request Request object.
-	 *
 	 * @return \WP_REST_Response|\WP_Error
 	 */
-	public function bust_search_settings_cache( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+	public function bust_search_settings_cache(): \WP_REST_Response|\WP_Error {
 
 		Governing_Data::clear_search_settings_cache();
 
@@ -666,7 +664,7 @@ class Basic_Options {
 	 * @return \WP_REST_Response
 	 */
 	public function get_sites_search_settings() {
-		$settings = get_option( 'onesearch_sites_search_settings', [] );
+		$settings = Settings::get_search_settings();
 		return rest_ensure_response(
 			[
 				'success'  => true,
@@ -685,7 +683,7 @@ class Basic_Options {
 	public function update_sites_search_settings( \WP_REST_Request $request ) {
 		$settings = $request->get_param( 'settings' );
 
-		update_option( 'onesearch_sites_search_settings', $settings );
+		update_option( Settings::OPTION_GOVERNING_SEARCH_SETTINGS, $settings );
 
 		// Notify each brand site to refresh its cached search settings.
 		$this->bust_search_settings_cache_on_all_sites();
@@ -725,7 +723,7 @@ class Basic_Options {
 			return new \WP_Error( 'invalid_site', __( 'Could not identify requesting site.', 'onesearch' ), [ 'status' => 400 ] );
 		}
 
-		$all_settings = get_option( 'onesearch_sites_search_settings', [] );
+		$all_settings = Settings::get_search_settings();
 		$site_config  = $all_settings[ $requesting_site_url ] ?? [
 			'algolia_enabled'  => false,
 			'searchable_sites' => [],
@@ -745,7 +743,7 @@ class Basic_Options {
 	 * @return void
 	 */
 	private function bust_search_settings_cache_on_all_sites() {
-		$shared_sites = get_option( 'onesearch_shared_sites', [] );
+		$shared_sites = Settings::get_shared_sites();
 
 		foreach ( $shared_sites as $site ) {
 			if ( empty( $site['siteUrl'] ) || empty( $site['publicKey'] ) ) {
@@ -773,7 +771,7 @@ class Basic_Options {
 	 * @return string Site URL (trailed) or empty string.
 	 */
 	private function get_site_url_from_key( $public_key ) {
-		$shared_sites = get_option( 'onesearch_shared_sites', [] );
+		$shared_sites = Settings::get_shared_sites();
 
 		foreach ( $shared_sites as $site ) {
 			if ( isset( $site['publicKey'] ) && $site['publicKey'] === $public_key ) {
@@ -800,7 +798,7 @@ class Basic_Options {
 			return new \WP_Error( 'invalid_url', __( 'Valid parent site URL is required.', 'onesearch' ), [ 'status' => 400 ] );
 		}
 
-		update_option( 'onesearch_parent_site_url', esc_url_raw( $parent_url ) );
+		Settings::set_parent_site_url( esc_url_raw( $parent_url ) );
 
 		return rest_ensure_response(
 			[
@@ -813,13 +811,13 @@ class Basic_Options {
 	/**
 	 * Delete the governing site URL from current site.
 	 *
-	 * @param \WP_REST_Request $request Request object.
-	 *
 	 * @return \WP_REST_Response|\WP_Error
 	 */
-	public function delete_governing_url( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+	public function delete_governing_url(): \WP_REST_Response|\WP_Error {
+		delete_option( Settings::OPTION_CONSUMER_PARENT_SITE_URL );
 
-		delete_option( 'onesearch_parent_site_url' );
+		// Also delete search setting to prevent brand site taking data from other sites.
+		Governing_Data::clear_search_settings_cache();
 
 		return rest_ensure_response(
 			[
@@ -832,11 +830,9 @@ class Basic_Options {
 	/**
 	 * Clear the cached Algolia credentials.
 	 *
-	 * @param \WP_REST_Request $request Request object (validates token for non-admin).
-	 *
 	 * @return \WP_REST_Response|\WP_Error
 	 */
-	public function bust_creds_cache( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+	public function bust_creds_cache(): \WP_REST_Response|\WP_Error {
 
 		Governing_Data::clear_credentials_cache();
 
@@ -851,11 +847,9 @@ class Basic_Options {
 	/**
 	 * Clear the cached searchable sites data.
 	 *
-	 * @param \WP_REST_Request $request Request object (validates token for non-admin).
-	 *
 	 * @return \WP_REST_Response|\WP_Error
 	 */
-	public function bust_sites_cache( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+	public function bust_sites_cache(): \WP_REST_Response|\WP_Error {
 
 		Governing_Data::clear_searchable_sites_cache();
 
@@ -889,7 +883,7 @@ class Basic_Options {
 			}
 		}
 
-		$shared_sites    = get_option( 'onesearch_shared_sites', [] );
+		$shared_sites    = Settings::get_shared_sites();
 		$searchable_urls = [];
 
 		foreach ( $shared_sites as $site ) {
@@ -931,16 +925,14 @@ class Basic_Options {
 			}
 		}
 
-		$creds = Utils::get_local_algolia_credentials();
-		$app   = (string) ( $creds['app_id'] ?? '' );
-		$write = (string) ( $creds['write_key'] ?? '' );
-		$admin = (string) ( $creds['admin_key'] ?? '' );
+		$creds = Settings::get_algolia_credentials();
 
-		return rest_ensure_response(
+		return new \WP_REST_Response(
 			[
-				'app_id'    => $app,
-				'write_key' => $write,
-				'admin_key' => $admin,
+				'success'   => true,
+				'app_id'    => $creds['app_id'] ?? '',
+				'write_key' => $creds['write_key'] ?? '',
+				'admin_key' => $creds['admin_key'] ?? '',
 			]
 		);
 	}
@@ -953,11 +945,7 @@ class Basic_Options {
 	 * @return bool
 	 */
 	private function is_valid_child_site_key( string $key ): bool {
-		$shared_sites = get_option( 'onesearch_shared_sites', [] );
-
-		if ( ! is_array( $shared_sites ) ) {
-			return false;
-		}
+		$shared_sites = Settings::get_shared_sites();
 
 		foreach ( $shared_sites as $site ) {
 			$site_key = isset( $site['publicKey'] ) ? (string) $site['publicKey'] : '';
@@ -1004,20 +992,19 @@ class Basic_Options {
 			'admin_key' => $admin_key,
 		];
 
-		$response = update_option( 'onesearch_algolia_credentials', $new, 'no' );
+		$success = Settings::set_algolia_credentials( $new );
 
-		if ( false === $response ) {
+		if ( false === $success ) {
 			return new \WP_Error( 'update_failed', __( 'Failed to update Algolia credentials.', 'onesearch' ), [ 'status' => 500 ] );
 		}
 
 		// If governing: instruct all child sites to clear their credentials cache.
-		$site_type    = (string) get_option( 'onesearch_site_type', '' );
 		$bust_results = [];
 
-		if ( 'governing-site' === $site_type ) {
-			$child_sites = get_option( 'onesearch_shared_sites', [] );
+		if ( Settings::is_governing_site() ) {
+			$child_sites = Settings::get_shared_sites();
 
-			if ( is_array( $child_sites ) ) {
+			if ( ! empty( $child_sites ) ) {
 				foreach ( $child_sites as $child ) {
 					$raw_url = isset( $child['siteUrl'] ) ? (string) $child['siteUrl'] : '';
 					$url     = rtrim( $raw_url, '/' );
@@ -1038,7 +1025,7 @@ class Basic_Options {
 								'Content-Type' => 'application/json',
 								'X-OneSearch-Plugins-Token' => $key,
 							],
-							'body'    => wp_json_encode( [] ),
+							'body'    => wp_json_encode( [] ) ?: '',
 						]
 					);
 
@@ -1176,7 +1163,11 @@ class Basic_Options {
 	/**
 	 * Build payload of public post types for this site.
 	 *
-	 * @return array
+	 * @return array{
+	 *  slug: string,
+	 *  label: string,
+	 *  restBase: string,
+	 * }[]
 	 */
 	private function get_public_post_types_payload(): array {
 		$objects = get_post_types( [ 'public' => true ], 'objects' );
@@ -1186,7 +1177,7 @@ class Basic_Options {
 			$payload[] = [
 				'slug'     => $slug,
 				'label'    => isset( $obj->labels->name ) ? (string) $obj->labels->name : $slug,
-				'restBase' => isset( $obj->rest_base ) ? (string) $obj->rest_base : $slug,
+				'restBase' => ! empty( $obj->rest_base ) ? (string) $obj->rest_base : $slug,
 			];
 		}
 
@@ -1196,7 +1187,10 @@ class Basic_Options {
 	/**
 	 * Identify the current site.
 	 *
-	 * @return array { site_url, site_name }
+	 * @return array{
+	 *   site_url: string,
+	 *   site_name: string,
+	 * }
 	 */
 	private function get_local_site_identity(): array {
 		return [
@@ -1208,13 +1202,9 @@ class Basic_Options {
 	/**
 	 * Return public post types for the current site (and children if governing).
 	 *
-	 * @param \WP_REST_Request $request Request object (validates token for non-admin).
-	 *
 	 * @return \WP_REST_Response|\WP_Error
 	 */
-	public function get_all_post_types( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
-
-		$site_type = (string) get_option( 'onesearch_site_type', '' );
+	public function get_all_post_types(): \WP_REST_Response|\WP_Error {
 
 		$current_identity = $this->get_local_site_identity();
 		$sites            = [
@@ -1226,72 +1216,70 @@ class Basic_Options {
 
 		$errors = [];
 
-		if ( 'governing-site' === $site_type ) {
-			$child_sites = get_option( 'onesearch_shared_sites', [] );
+		if ( Settings::is_governing_site() ) {
+			$child_sites = Settings::get_shared_sites();
 
-			if ( is_array( $child_sites ) ) {
-				foreach ( $child_sites as $child ) {
-					$child_site_url = isset( $child['siteUrl'] ) ? rtrim( (string) $child['siteUrl'], '/' ) : '';
-					$child_site_key = isset( $child['publicKey'] ) ? (string) $child['publicKey'] : '';
+			foreach ( $child_sites as $child ) {
+				$child_site_url = isset( $child['siteUrl'] ) ? rtrim( (string) $child['siteUrl'], '/' ) : '';
+				$child_site_key = isset( $child['publicKey'] ) ? (string) $child['publicKey'] : '';
 
-					if ( empty( $child_site_url ) || empty( $child_site_key ) ) {
-						$errors[] = [
-							'site_url' => $child_site_url ?: '(missing)',
-							'message'  => __( 'Missing siteUrl or publicKey.', 'onesearch' ),
-						];
+				if ( empty( $child_site_url ) || empty( $child_site_key ) ) {
+					$errors[] = [
+						'site_url' => $child_site_url ?: '(missing)',
+						'message'  => __( 'Missing siteUrl or publicKey.', 'onesearch' ),
+					];
+					continue;
+				}
+
+				$endpoint = trailingslashit( $child_site_url ) . 'wp-json/' . self::NAMESPACE . '/all-post-types';
+
+				$response = wp_remote_get(
+					$endpoint,
+					[
+						'headers' => [
+							'Accept'                    => 'application/json',
+							'X-OneSearch-Plugins-Token' => $child_site_key,
+						],
+					]
+				);
+
+				if ( is_wp_error( $response ) ) {
+					$errors[] = [
+						'site_url' => $child_site_url,
+						'message'  => $response->get_error_message(),
+					];
+					continue;
+				}
+
+				$code = (int) wp_remote_retrieve_response_code( $response );
+
+				if ( 200 !== $code ) {
+					$errors[] = [
+						'site_url' => $child_site_url,
+						'message'  => sprintf(
+							/* translators: %s: status code */
+							__( 'HTTP: %s', 'onesearch' ),
+							$code
+						),
+					];
+					continue;
+				}
+
+				$body = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+				if ( ! is_array( $body ) || ! isset( $body['sites'] ) || ! is_array( $body['sites'] ) ) {
+					$errors[] = [
+						'site_url' => $child_site_url,
+						'message'  => __( 'Malformed JSON response.', 'onesearch' ),
+					];
+					continue;
+				}
+
+				foreach ( $body['sites'] as $url => $site_payload ) {
+					if ( ! is_array( $site_payload ) ) {
 						continue;
 					}
 
-					$endpoint = trailingslashit( $child_site_url ) . 'wp-json/' . self::NAMESPACE . '/all-post-types';
-
-					$response = wp_remote_get(
-						$endpoint,
-						[
-							'headers' => [
-								'Accept' => 'application/json',
-								'X-OneSearch-Plugins-Token' => $child_site_key,
-							],
-						]
-					);
-
-					if ( is_wp_error( $response ) ) {
-						$errors[] = [
-							'site_url' => $child_site_url,
-							'message'  => $response->get_error_message(),
-						];
-						continue;
-					}
-
-					$code = (int) wp_remote_retrieve_response_code( $response );
-
-					if ( 200 !== $code ) {
-						$errors[] = [
-							'site_url' => $child_site_url,
-							'message'  => sprintf(
-								/* translators: %s: status code */
-								__( 'HTTP: %s', 'onesearch' ),
-								$code
-							),
-						];
-						continue;
-					}
-
-					$body = json_decode( (string) wp_remote_retrieve_body( $response ), true );
-					if ( ! is_array( $body ) || ! isset( $body['sites'] ) || ! is_array( $body['sites'] ) ) {
-						$errors[] = [
-							'site_url' => $child_site_url,
-							'message'  => __( 'Malformed JSON response.', 'onesearch' ),
-						];
-						continue;
-					}
-
-					foreach ( $body['sites'] as $url => $site_payload ) {
-						if ( ! is_array( $site_payload ) ) {
-							continue;
-						}
-
-						$sites[ trailingslashit( (string) $url ) ] = $site_payload;
-					}
+					$sites[ trailingslashit( (string) $url ) ] = $site_payload;
 				}
 			}
 		}
@@ -1327,11 +1315,11 @@ class Basic_Options {
 	/**
 	 * Governing: read the full entities map from option storage.
 	 *
-	 * @return array Map of site_url => [post_type, ...].
+	 * @return array<string, string[]>
 	 */
 	private function get_governing_entities_map(): array {
-		$opt = get_option( 'onesearch_indexable_entities', [] );
-		$map = is_array( $opt ) && isset( $opt['entities'] ) && is_array( $opt['entities'] ) ? $opt['entities'] : [];
+		$opt = Settings::get_indexable_entities();
+		$map = isset( $opt['entities'] ) && is_array( $opt['entities'] ) ? $opt['entities'] : [];
 
 		$out = [];
 		foreach ( $map as $url => $list ) {
@@ -1344,17 +1332,13 @@ class Basic_Options {
 	/**
 	 * Re-index current site, and for governing sites, trigger re-index on children.
 	 *
-	 * @param \WP_REST_Request $request Request object.
-	 *
 	 * @return \WP_REST_Response|\WP_Error
 	 */
-	public function re_index( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
-
-		$site_type        = (string) get_option( 'onesearch_site_type', '' );
+	public function re_index(): \WP_REST_Response|\WP_Error {
 		$current_site_url = Utils::normalize_url( get_site_url() );
 		$results          = [];
 
-		if ( 'governing-site' === $site_type ) {
+		if ( Settings::is_governing_site() ) {
 			// Index self using governing entities map.
 			$entities_map = $this->get_governing_entities_map();
 			$my_entities  = isset( $entities_map[ $current_site_url ] ) ? $entities_map[ $current_site_url ] : [];
@@ -1372,9 +1356,9 @@ class Basic_Options {
 				];
 
 			// Trigger re-index on each child site (child fetches its own entities).
-			$child_sites = get_option( 'onesearch_shared_sites', [] );
+			$child_sites = Settings::get_shared_sites();
 
-			if ( is_array( $child_sites ) ) {
+			if ( ! empty( $child_sites ) ) {
 				foreach ( $child_sites as $child ) {
 					$raw_url = isset( $child['siteUrl'] ) ? (string) $child['siteUrl'] : '';
 					$url     = Utils::normalize_url( $raw_url );
@@ -1398,7 +1382,7 @@ class Basic_Options {
 								'Content-Type' => 'application/json',
 								'X-OneSearch-Plugins-Token' => $key,
 							],
-							'body'    => wp_json_encode( [] ),
+							'body'    => wp_json_encode( [] ) ?: '',
 							'timeout' => 999, // phpcs:ignore WordPressVIPMinimum.Performance.RemoteRequestTimeout.timeout_timeout
 						]
 					);
@@ -1474,14 +1458,14 @@ class Basic_Options {
 
 		$had_errors = (bool) array_filter(
 			$results,
-			static fn( $r ) => ( $r['status'] ?? '' ) === 'error'
+			static fn( $r ) => 'error' === $r['status']
 		);
 
 		$lines = [];
 		foreach ( $results as $site => $r ) {
 			$site_label = $site ?: __( '(unknown site)', 'onesearch' );
 			$msg        = is_string( $r['message'] ?? '' ) ? $r['message'] : wp_json_encode( $r['message'] );
-			$lines[]    = sprintf( '%s: %s', $site_label, $msg ?: ( 'ok' === ( $r['status'] ?? '' ) ? __( 'Re-indexed successfully.', 'onesearch' ) : __( 'Error', 'onesearch' ) ) );
+			$lines[]    = sprintf( '%s: %s', $site_label, $msg ?: ( 'ok' === $r['status'] ? __( 'Re-indexed successfully.', 'onesearch' ) : __( 'Error', 'onesearch' ) ) );
 		}
 
 		$final_message = $had_errors
@@ -1500,10 +1484,10 @@ class Basic_Options {
 	/**
 	 * Retrieve the indexable entities for this brand site from the parent.
 	 *
-	 * @return array|\WP_Error List of post types or WP_Error.
+	 * @return string[]|\WP_Error List of post type slugs or WP_Error on failure.
 	 */
 	private function get_child_indexable_entities(): array|\WP_Error {
-		$parent_url = get_option( 'onesearch_parent_site_url', '' );
+		$parent_url = Settings::get_parent_site_url();
 
 		if ( empty( $parent_url ) ) {
 			return new \WP_Error( 'no_parent_url', __( 'Parent site URL not configured.', 'onesearch' ), [ 'status' => 400 ] );
@@ -1558,13 +1542,12 @@ class Basic_Options {
 	 * @return \WP_REST_Response
 	 */
 	public function health_check(): \WP_REST_Response|\WP_Error {
-		$existing_parent_url = (string) get_option( 'onesearch_parent_site_url', '' );
-
 		$requesting_origin = '';
 		if ( isset( $_SERVER['HTTP_X_ONESEARCH_REQUESTING_ORIGIN'] ) && ! empty( $_SERVER['HTTP_X_ONESEARCH_REQUESTING_ORIGIN'] ) ) {
 			$requesting_origin = trailingslashit( esc_url_raw( wp_unslash( $_SERVER['HTTP_X_ONESEARCH_REQUESTING_ORIGIN'] ) ) );
 		}
 
+		$existing_parent_url = Settings::get_parent_site_url();
 		if ( ! empty( $existing_parent_url ) ) {
 			$governing_site_url = trailingslashit( esc_url_raw( $existing_parent_url ) );
 
@@ -1598,14 +1581,11 @@ class Basic_Options {
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_indexable_entities(): \WP_REST_Response|\WP_Error {
-
-		$site_type = (string) get_option( 'onesearch_site_type', '' );
-
-		if ( 'governing-site' !== $site_type ) {
+		if ( ! Settings::is_governing_site() ) {
 			return new \WP_Error( 'not_governing_site', __( 'Only governing sites can provide indexable entities.', 'onesearch' ), [ 'status' => 403 ] );
 		}
 
-		$indexable_entities = get_option( 'onesearch_indexable_entities', [] );
+		$indexable_entities = Settings::get_indexable_entities();
 
 		return rest_ensure_response(
 			[
@@ -1630,7 +1610,7 @@ class Basic_Options {
 			return new \WP_Error( 'invalid_data', __( 'Failed saving settings. Please try again', 'onesearch' ), [ 'status' => 400 ] );
 		}
 
-		update_option( 'onesearch_indexable_entities', $indexable_entities );
+		update_option( Settings::OPTION_GOVERNING_INDEXABLE_SITES, $indexable_entities );
 
 		return rest_ensure_response(
 			[
@@ -1647,12 +1627,9 @@ class Basic_Options {
 	 * @return \WP_REST_Response
 	 */
 	public function get_site_type(): \WP_REST_Response|\WP_Error {
-
-		$site_type = get_option( 'onesearch_site_type', '' );
-
 		return rest_ensure_response(
 			[
-				'site_type' => $site_type,
+				'site_type' => Settings::get_site_type() ?? '',
 			]
 		);
 	}
@@ -1668,14 +1645,25 @@ class Basic_Options {
 
 		$site_type = sanitize_text_field( wp_unslash( $request->get_param( 'site_type' ) ) );
 
-		update_option( 'onesearch_site_type', $site_type );
+		update_option( Settings::OPTION_SITE_TYPE, $site_type );
 
-		// Persist a marker indicating site type was set.
-		set_transient( 'onesearch_site_type_transient', true, 0 );
+		$updated_site_type = Settings::get_site_type();
+
+		if ( $updated_site_type !== $site_type ) {
+			return new \WP_Error(
+				'update_failed',
+				\sprintf(
+					/* translators: %s: site type */
+					__( 'Failed to update site type to: %s', 'onesearch' ),
+					$site_type
+				),
+				[ 'status' => 500 ]
+			);
+		}
 
 		return rest_ensure_response(
 			[
-				'site_type' => $site_type,
+				'site_type' => $updated_site_type,
 			]
 		);
 	}
@@ -1686,11 +1674,11 @@ class Basic_Options {
 	 * @return \WP_REST_Response
 	 */
 	public function get_shared_sites(): \WP_REST_Response|\WP_Error {
-		$shared_sites = get_option( 'onesearch_shared_sites', [] );
+		$shared_sites = Settings::get_shared_sites();
 		return rest_ensure_response(
 			[
 				'success'      => true,
-				'shared_sites' => $shared_sites,
+				'shared_sites' => array_values( $shared_sites ),
 			]
 		);
 	}
@@ -1718,7 +1706,7 @@ class Basic_Options {
 			$urls[] = $site['siteUrl'] ?? '';
 		}
 
-		$response = update_option( 'onesearch_shared_sites', $sites_data );
+		$response = Settings::set_shared_sites( $sites_data );
 
 		if ( false === $response ) {
 			return new \WP_Error( 'update_failed', __( 'Failed saving settings. Please try again', 'onesearch' ), [ 'status' => 500 ] );
@@ -1755,7 +1743,7 @@ class Basic_Options {
 						[
 							'parent_site_url' => $parent_url,
 						]
-					),
+					) ?: '',
 				]
 			);
 
@@ -1770,7 +1758,7 @@ class Basic_Options {
 						'Content-Type'              => 'application/json',
 						'X-OneSearch-Plugins-Token' => $key,
 					],
-					'body'    => wp_json_encode( [] ),
+					'body'    => wp_json_encode( [] ) ?: '',
 				]
 			);
 
@@ -1824,7 +1812,87 @@ class Basic_Options {
 	 * @return \WP_Error|true True if allowed, or WP_Error if not.
 	 */
 	public function permission_admin_or_token( \WP_REST_Request $request ) {
-		$result = Utils::verify_admin_and_token( $request );
-		return is_wp_error( $result ) ? $result : true;
+		if ( current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+		$incoming_key = (string) $request->get_header( 'X-OneSearch-Plugins-Token' );
+		$expected_key = Settings::get_api_key();
+
+		if ( empty( $incoming_key ) || ! hash_equals( $incoming_key, $expected_key ) ) {
+			return new \WP_Error(
+				'invalid_api_key',
+				__( 'Invalid or missing API key.', 'onesearch' ),
+				[ 'status' => 403 ]
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Validates the API key.
+	 *
+	 * @used-by health_check REST endpoint.
+	 */
+	public function validate_api_key(): bool {
+		// Check if the request is from the governing site.
+		if ( Settings::is_governing_site() ) {
+			return (bool) current_user_can( 'manage_options' );
+		}
+
+		// Check X-onesearch-Plugins-Token header.
+		if ( ! empty( $_SERVER['HTTP_X_ONESEARCH_PLUGINS_TOKEN'] ) ) {
+			$token = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_ONESEARCH_PLUGINS_TOKEN'] ) );
+
+			if ( ! empty( $token ) && hash_equals( $token, Settings::get_api_key() ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Delete the Algolia results associated with a given site URL.
+	 *
+	 * @param string $site_url Absolute site URL to delete from index.
+	 *
+	 * @return string Result message indicating success or the error encountered.
+	 */
+	private function delete_site_from_index( string $site_url ): string {
+
+		try {
+			$index = Algolia::instance()->get_index();
+
+			if ( is_wp_error( $index ) ) {
+				return sprintf(
+					/* translators: %s: error message */
+					__( 'Algolia client error: %s', 'onesearch' ),
+					$index->get_error_message()
+				);
+			}
+
+			$settings = Algolia_Index::instance()->get_algolia_settings();
+
+			$index->setSettings( $settings )->wait();
+
+			$index->deleteBy(
+				[
+					'filters' => sprintf( 'site_url:"%s"', Utils::normalize_url( $site_url ) ),
+				]
+			)->wait();
+
+			return sprintf(
+				/* translators: %s: index name */
+				__( 'Algolia entries deleted for site: %s', 'onesearch' ),
+				$index->getIndexName()
+			);
+		} catch ( \Throwable $e ) {
+			return sprintf(
+				/* translators: %s: error message */
+				__( 'Error deleting Algolia index: %s', 'onesearch' ),
+				$e->getMessage()
+			);
+		}
 	}
 }

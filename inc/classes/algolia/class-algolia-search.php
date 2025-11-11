@@ -10,6 +10,7 @@ namespace Onesearch\Inc\Algolia;
 use Onesearch\Contracts\Interfaces\Registrable;
 use Onesearch\Contracts\Traits\Singleton;
 use Onesearch\Inc\REST\Governing_Data;
+use Onesearch\Modules\Settings\Settings;
 use Onesearch\Utils;
 use WP_Post;
 use stdClass;
@@ -25,13 +26,11 @@ class Algolia_Search implements Registrable {
 	 * Constructor.
 	 */
 	final protected function __construct() {
-		$site_type = (string) get_option( 'onesearch_site_type', '' );
-
 		// Select search config based on site role.
-		if ( 'brand-site' === $site_type ) {
+		if ( Settings::is_consumer_site() ) {
 			$search_config = Governing_Data::get_search_settings();
 		} else {
-			$all_settings  = get_option( 'onesearch_sites_search_settings', [] );
+			$all_settings  = Settings::get_search_settings();
 			$search_config = $all_settings[ trailingslashit( get_site_url() ) ] ?? [];
 		}
 
@@ -55,7 +54,7 @@ class Algolia_Search implements Registrable {
 
 		add_filter( 'get_the_author_display_name', [ $this, 'get_post_author' ], 10, 2 );
 		add_filter( 'author_link', [ $this, 'get_post_author_link' ], 10, 3 );
-		add_filter( 'get_avatar_url', [ $this, 'get_post_author_avatar' ], 10, 3 );
+		add_filter( 'get_avatar_url', [ $this, 'get_post_author_avatar' ], 10 );
 
 		// Term and taxonomy link handling for remote objects.
 		add_filter( 'category_link', [ $this, 'get_post_category_link' ], 10, 2 );
@@ -181,12 +180,10 @@ class Algolia_Search implements Registrable {
 	 * Author avatar URL mapping for remote posts.
 	 *
 	 * @param string $avatar_url Default avatar URL.
-	 * @param mixed  $author_id  Value passed by the filter for the avatar.
-	 * @param array  $args       Arguments array forwarded by the filter (size, scheme, etc.).
 	 *
 	 * @return string
 	 */
-	public function get_post_author_avatar( $avatar_url, $author_id, $args ) {
+	public function get_post_author_avatar( $avatar_url ) {
 		global $post;
 
 		if ( isset( $post->ID ) && (int) $post->ID < 0 ) {
@@ -268,10 +265,10 @@ class Algolia_Search implements Registrable {
 	/**
 	 * Fulfill the main search query with Algolia results.
 	 *
-	 * @param array|null $posts Posts.
-	 * @param \WP_Query  $query Current query.
+	 * @param ?\WP_Post[] $posts Current posts.
+	 * @param \WP_Query   $query Current query.
 	 *
-	 * @return array|null Array of WP_Post-like objects or original $posts on skip/error.
+	 * @return ?\WP_Post[] Array of WP_Post-like objects or original $posts on skip/error.
 	 */
 	public function get_algolia_results( $posts, \WP_Query $query ) {
 
@@ -316,9 +313,9 @@ class Algolia_Search implements Registrable {
 	/**
 	 * Build posts for the current page using batch chunk fetches.
 	 *
-	 * @param array $hits_for_page One representative hit per grouped post.
-	 * @param bool  $reconstruct   Whether to reconstruct chunked posts (true = fetch chunks).
-	 * @return array               List of WP_Post / WP_Post-like objects.
+	 * @param array<string,mixed>[] $hits_for_page One representative hit per grouped post.
+	 * @param bool                  $reconstruct   Whether to reconstruct chunked posts (true = fetch chunks).
+	 * @return \WP_Post[] List of WP_Post / WP_Post-like objects.
 	 */
 	private function build_posts_from_grouped_hits( array $hits_for_page, bool $reconstruct = true ): array {
 		$parent_ids = [];
@@ -438,7 +435,7 @@ class Algolia_Search implements Registrable {
 	 * @param string    $search_query User query string.
 	 * @param \WP_Query $wp_query     WP_Query instance.
 	 *
-	 * @return array|\WP_Error Array of Algolia records or WP_Error.
+	 * @return array<array<string,mixed>>|\WP_Error Array of Algolia records or WP_Error.
 	 */
 	private function get_all_searched_record_ids( $search_query, $wp_query ) {
 		$default_params = [
@@ -464,8 +461,8 @@ class Algolia_Search implements Registrable {
 
 		// Append site_url filters.
 		$site_urls = $this->get_searchable_site_urls();
-		if ( is_wp_error( $site_urls ) ) {
-			return $site_urls;
+		if ( empty( $site_urls ) ) {
+			return [];
 		}
 
 		$site_url_filters     = array_map(
@@ -508,9 +505,9 @@ class Algolia_Search implements Registrable {
 	 *
 	 * @param \Algolia\AlgoliaSearch\SearchIndex $index         The Index to search.
 	 * @param string                             $search_query  Query string.
-	 * @param array                              $search_params Search parameters.
+	 * @param array<string,mixed>                $search_params Search parameters.
 	 *
-	 * @return array List of matching hits.
+	 * @return array<array<string,mixed>> Array of search hits.
 	 *
 	 * @throws \Exception On client errors.
 	 */
@@ -537,7 +534,7 @@ class Algolia_Search implements Registrable {
 	/**
 	 * Build a comparable score from Algolia _rankingInfo.
 	 *
-	 * @param array $hit search hit.
+	 * @param array<string,mixed> $hit Algolia hit.
 	 *
 	 * @return float ranking score
 	 */
@@ -600,7 +597,7 @@ class Algolia_Search implements Registrable {
 	/**
 	 * Create a WP_Post (local) or WP_Post-like placeholder (remote) from hit data.
 	 *
-	 * @param array $post_data Algolia hit.
+	 * @param array<string,mixed> $post_data Algolia hit.
 	 *
 	 * @return \WP_Post|null
 	 */
@@ -658,9 +655,9 @@ class Algolia_Search implements Registrable {
 	/**
 	 * Extract highlighting data from Algolia response.
 	 *
-	 * @param array $algolia_hit Algolia search hit.
+	 * @param array<string,mixed> $algolia_hit Algolia search hit.
 	 *
-	 * @return array Highlighting data.
+	 * @return array<string,string> Map of field names to highlighted values.
 	 */
 	private function extract_algolia_highlights( $algolia_hit ) {
 		$highlights = [];
@@ -690,7 +687,7 @@ class Algolia_Search implements Registrable {
 	/**
 	 * Group Algolia hits by the unique parent_post_id.
 	 *
-	 * @param array $hits Search results hits.
+	 * @param array<array<string, mixed>> $hits List of Algolia hits.
 	 *
 	 * @return array<string, array<array<string, mixed>>> Grouped hits by parent_post_id.
 	 */
@@ -711,10 +708,10 @@ class Algolia_Search implements Registrable {
 	/**
 	 * Compute current page's group keys for pagination.
 	 *
-	 * @param array     $grouped The group of search hits.
-	 * @param \WP_Query $query   WP_Query.
+	 * @param array<string,array<string, mixed>[]> $grouped Grouped hits by parent_post_id.
+	 * @param \WP_Query                            $query   WP_Query.
 	 *
-	 * @return array
+	 * @return array{0: ?string[], 1: int} Array with page keys and total group count.
 	 */
 	private function get_paged_group_keys( array $grouped, \WP_Query $query ): array {
 		$total_groups = count( $grouped );
@@ -749,10 +746,10 @@ class Algolia_Search implements Registrable {
 	/**
 	 * Choose the representative hit per grouped post for the requested page slice.
 	 *
-	 * @param array $grouped   The group of search hits.
-	 * @param array $page_keys Keys selected for the current page.
+	 * @param array<string, array<array<string, mixed>>> $grouped   Grouped hits by parent_post_id.
+	 * @param string[]                                   $page_keys Keys selected for the current page.
 	 *
-	 * @return array Array of hits (one per post on the page)
+	 * @return array<string,mixed>[] Representative hits for the current page.
 	 */
 	private function pick_representative_hits( array $grouped, array $page_keys ): array {
 		$all_hits = [];
@@ -773,14 +770,12 @@ class Algolia_Search implements Registrable {
 	 * - On governing site: reads local selection for current site URL.
 	 * - On brand site: intersects local selection with server-provided availability.
 	 *
-	 * @return array|\WP_Error Array of site URLs or WP_Error on failure.
+	 * @return string[] Array of searchable site URLs.
 	 */
-	private function get_searchable_site_urls() {
-		$site_type = (string) get_option( 'onesearch_site_type', '' );
-
+	private function get_searchable_site_urls(): array {
 		// Parent: use local data.
-		if ( 'governing-site' === $site_type ) {
-			$search_config  = get_option( 'onesearch_sites_search_settings', [] );
+		if ( Settings::is_governing_site() ) {
+			$search_config  = Settings::get_search_settings();
 			$selected_sites = $search_config[ trailingslashit( get_site_url() ) ] ?? [];
 			return $selected_sites['searchable_sites'] ?? [];
 		}

@@ -10,7 +10,7 @@ namespace Onesearch\Inc\Algolia;
 use Algolia\AlgoliaSearch\SearchClient;
 use Onesearch\Contracts\Traits\Singleton;
 use Onesearch\Inc\REST\Governing_Data;
-use Onesearch\Utils;
+use Onesearch\Modules\Settings\Settings;
 
 /**
  * Class Algolia
@@ -32,12 +32,9 @@ class Algolia {
 	 * }
 	 */
 	private function get_creds(): array {
-
-		$site_type = (string) get_option( 'onesearch_site_type', '' );
-
-		$creds = 'brand-site' === $site_type
+		$creds = Settings::is_consumer_site()
 			? Governing_Data::get_algolia_credentials()
-			: Utils::get_local_algolia_credentials();
+			: Settings::get_algolia_credentials();
 
 		return [
 			'app_id'    => (string) ( $creds['app_id'] ?? '' ),
@@ -91,12 +88,9 @@ class Algolia {
 	 *                 Null if site URL is invalid.
 	 */
 	public function get_index_name(): ?string {
-
-		$site_type = (string) get_option( 'onesearch_site_type', '' );
-
-		$site_url = 'governing-site' === $site_type
+		$site_url = Settings::is_governing_site()
 			? get_site_url()
-			: (string) get_option( 'onesearch_parent_site_url', null );
+			: Settings::get_parent_site_url();
 
 		if ( empty( $site_url ) ) {
 			return null;

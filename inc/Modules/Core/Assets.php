@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 namespace Onesearch\Modules\Core;
 
 use Onesearch\Contracts\Interfaces\Registrable;
+use Onesearch\Modules\Settings\Settings;
 
 /**
  * Class Assets
@@ -186,11 +187,11 @@ final class Assets implements Registrable {
 			'nonce'             => wp_create_nonce( 'wp_rest' ),
 			'restUrl'           => esc_url( home_url( '/wp-json/' ) ),
 			'restNamespace'     => 'onesearch/v1',
-			'publicKey'         => get_option( 'onesearch_child_site_public_key', '' ),
+			'publicKey'         => Settings::get_api_key(),
 			'setupUrl'          => admin_url( 'admin.php?page=onesearch-settings' ),
 			'currentSiteUrl'    => esc_url( home_url( '/' ) ),
-			'sharedSites'       => get_option( 'onesearch_shared_sites', [] ),
-			'indexableEntities' => get_option( 'onesearch_indexable_entities', [] ),
+			'sharedSites'       => array_values( Settings::get_shared_sites() ),
+			'indexableEntities' => Settings::get_indexable_entities(),
 		];
 
 		wp_localize_script( $handle, $object_name, $localized_args );

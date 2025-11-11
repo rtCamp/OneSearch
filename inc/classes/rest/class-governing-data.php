@@ -11,7 +11,7 @@
 namespace Onesearch\Inc\REST;
 
 use Onesearch\Contracts\Traits\Singleton;
-use Onesearch\Utils;
+use Onesearch\Modules\Settings\Settings;
 
 /**
  * Governing Data class.
@@ -42,28 +42,32 @@ class Governing_Data {
 	 * or when authentication details are unavailable.
 	 *
 	 * @return array{
-	 *   app_id?: string,
-	 *   write_key?: string,
-	 *   admin_key?: string
+	 *   app_id: ?string,
+	 *   write_key: ?string,
+	 *   admin_key: ?string
 	 * }
 	 */
 	public static function get_algolia_credentials(): array {
 		// Return cached value when available.
-		$cached = get_transient( 'onesearch_algolia_creds_cache' );
+		$cached = get_transient( Settings::OPTION_GOVERNING_ALGOLIA_CREDENTIALS . '_cache' );
 		if ( false !== $cached && is_array( $cached ) ) {
-			return $cached;
+			return [
+				'app_id'    => $cached['app_id'] ?? null,
+				'write_key' => $cached['write_key'] ?? null,
+				'admin_key' => $cached['admin_key'] ?? null,
+			];
 		}
 
 		// If no parent is configured, use local storage.
-		$parent_url = get_option( 'onesearch_parent_site_url', '' );
+		$parent_url = Settings::get_parent_site_url();
 		if ( empty( $parent_url ) ) {
-			return Utils::get_local_algolia_credentials();
+			return Settings::get_algolia_credentials();
 		}
 
 		// Child authenticating to the governing site.
-		$our_public_key = get_option( 'onesearch_child_site_public_key', '' );
+		$our_public_key = Settings::get_api_key();
 		if ( empty( $our_public_key ) ) {
-			return Utils::get_local_algolia_credentials();
+			return Settings::get_algolia_credentials();
 		}
 
 		$endpoint = trailingslashit( $parent_url ) . 'wp-json/' . self::NAMESPACE . '/algolia-credentials';
@@ -79,15 +83,21 @@ class Governing_Data {
 		);
 
 		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
-			return Utils::get_local_algolia_credentials();
+			return Settings::get_algolia_credentials();
 		}
 
 		$data = json_decode( wp_remote_retrieve_body( $response ), true );
 		if ( ! is_array( $data ) ) {
-			return Utils::get_local_algolia_credentials();
+			return Settings::get_algolia_credentials();
 		}
 
-		set_transient( 'onesearch_algolia_creds_cache', $data );
+		$data = [
+			'app_id'    => isset( $data['app_id'] ) ? (string) $data['app_id'] : null,
+			'write_key' => isset( $data['write_key'] ) ? (string) $data['write_key'] : null,
+			'admin_key' => isset( $data['admin_key'] ) ? (string) $data['admin_key'] : null,
+		];
+
+		set_transient( Settings::OPTION_GOVERNING_ALGOLIA_CREDENTIALS . '_cache', $data );
 
 		return $data;
 	}
@@ -107,15 +117,15 @@ class Governing_Data {
 		}
 
 		// If no parent is configured, use local storage.
-		$parent_url = get_option( 'onesearch_parent_site_url', '' );
+		$parent_url = Settings::get_parent_site_url();
 		if ( empty( $parent_url ) ) {
-			return get_option( 'onesearch_searchable_sites', [] );
+			return [];
 		}
 
 		// Child authenticating to the governing site.
-		$our_public_key = get_option( 'onesearch_child_site_public_key', '' );
+		$our_public_key = Settings::get_api_key();
 		if ( empty( $our_public_key ) ) {
-			return get_option( 'onesearch_searchable_sites', [] );
+			return [];
 		}
 
 		$endpoint = trailingslashit( $parent_url ) . 'wp-json/' . self::NAMESPACE . '/searchable-sites';
@@ -131,12 +141,12 @@ class Governing_Data {
 		);
 
 		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
-			return get_option( 'onesearch_searchable_sites', [] );
+			return [];
 		}
 
 		$data = json_decode( wp_remote_retrieve_body( $response ), true );
 		if ( ! is_array( $data ) || ! isset( $data['searchable_sites'] ) ) {
-			return get_option( 'onesearch_searchable_sites', [] );
+			return [];
 		}
 
 		$sites = $data['searchable_sites'];
@@ -154,17 +164,23 @@ class Governing_Data {
 	 *   'searchable_sites' => string[],
 	 * ]
 	 *
-	 * @return array<string, mixed> Search configuration.
+	 * @return array{
+	 *  algolia_enabled: bool,
+	 *  searchable_sites: string[],
+	 * }
 	 */
 	public static function get_search_settings(): array {
 		// Return cached value when available.
 		$cached = get_transient( 'onesearch_search_settings_cache' );
 		if ( false !== $cached && is_array( $cached ) ) {
-			return $cached;
+			return [
+				'algolia_enabled'  => $cached['algolia_enabled'] ?? false,
+				'searchable_sites' => $cached['searchable_sites'] ?? [],
+			];
 		}
 
 		// If no parent is configured, return a disabled default.
-		$parent_url = get_option( 'onesearch_parent_site_url', '' );
+		$parent_url = Settings::get_parent_site_url();
 		if ( empty( $parent_url ) ) {
 			return [
 				'algolia_enabled'  => false,
@@ -173,7 +189,7 @@ class Governing_Data {
 		}
 
 		// Child authenticating to the governing site.
-		$our_public_key = get_option( 'onesearch_child_site_public_key', '' );
+		$our_public_key = Settings::get_api_key();
 		if ( empty( $our_public_key ) ) {
 			return [
 				'algolia_enabled'  => false,
@@ -229,7 +245,7 @@ class Governing_Data {
 	 * @return void
 	 */
 	public static function clear_credentials_cache(): void {
-		delete_transient( 'onesearch_algolia_creds_cache' );
+		delete_transient( Settings::OPTION_GOVERNING_ALGOLIA_CREDENTIALS . '_cache' );
 	}
 
 	/**
