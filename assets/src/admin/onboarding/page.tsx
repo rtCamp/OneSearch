@@ -97,21 +97,23 @@ const OnboardingScreen = () => {
 			setIsSaving( false );
 		}
 	};
+
+	return (
 		<Card>
-			<>
-				{ !! notice?.message && (
-					<Notice
-						status={ notice?.type ?? 'success' }
-						isDismissible={ true }
-						onRemove={ () => setNotice( null ) }
-					>
-						{ notice?.message }
-					</Notice>
-				) }
-			</>
+			{ !! notice?.message && (
+				<Notice
+					status={ notice?.type ?? 'success' }
+					isDismissible={ true }
+					onRemove={ () => setNotice( null ) }
+				>
+					{ notice?.message }
+				</Notice>
+			) }
+
 			<CardHeader>
 				<h2>{ __( 'OneSearch', 'onesearch' ) }</h2>
 			</CardHeader>
+
 			<CardBody className="onesearch-onboarding-page">
 				<SiteTypeSelector
 					value={ siteType }
