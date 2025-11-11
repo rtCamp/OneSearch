@@ -56,7 +56,7 @@
 	},
 	"require-dev": {
 		"automattic/vipwpcs": "^3.0",
-		"dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+		"dealerdirect/phpcodesniffer-composer-installer": "^1.2",
 		"phpcompatibility/php-compatibility": "10.x-dev as 9.99.99",
 		"phpcompatibility/phpcompatibility-wp": "^2.1",
 		"phpstan/extension-installer": "^1.3",
