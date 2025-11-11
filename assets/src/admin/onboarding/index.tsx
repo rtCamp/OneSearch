@@ -3,7 +3,7 @@ import OnboardingScreen, { type SiteType } from './page';
 
 interface OneSearchPluginGlobal {
 	nonce: string;
-	site_type: SiteType;
+	site_type: SiteType | '';
 	setup_url: string;
 }
 
