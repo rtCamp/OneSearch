@@ -215,7 +215,7 @@ final class Admin implements Registrable {
 			[
 				'nonce'     => wp_create_nonce( 'wp_rest' ),
 				'setup_url' => admin_url( sprintf( 'admin.php?page=%s', self::SCREEN_ID ) ),
-				'site_type' => Settings::get_site_type() ?: '',
+				'site_type' => Settings::get_site_type(), // @todo We can probably remove this.
 			]
 		);
 
