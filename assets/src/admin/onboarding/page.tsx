@@ -102,17 +102,15 @@ const OnboardingScreen = () => {
 	return (
 		<>
 			<Card>
-				<>
-					{ !! notice?.message && (
-						<Notice
-							status={ notice?.type ?? 'success' }
-							isDismissible={ true }
-							onRemove={ () => setNotice( null ) }
-						>
-							{ notice?.message }
-						</Notice>
-					) }
-				</>
+				{ !! notice?.message && (
+					<Notice
+						status={ notice?.type ?? 'success' }
+						isDismissible={ true }
+						onRemove={ () => setNotice( null ) }
+					>
+						{ notice?.message }
+					</Notice>
+				) }
 				<CardHeader>
 					<h2>{ __( 'OneSearch', 'onesearch' ) }</h2>
 				</CardHeader>
