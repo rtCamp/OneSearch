@@ -197,7 +197,7 @@ final class Admin implements Registrable {
 			$this->enqueue_onboarding_scripts();
 		}
 
-		// @todo move other scripts from Assets to here.
+		// @todo Move other scripts from Assets to here.
 	}
 
 	/**
