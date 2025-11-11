@@ -66,7 +66,7 @@ const OnboardingScreen = () => {
 			} );
 	}, [ nonce ] );
 
-	const handleSiteTypeChange = async ( value: SiteType|'' ) => {
+	const handleSiteTypeChange = async ( value: SiteType | '' ) => {
 		// Optimistically set site type.
 		setSiteType( value );
 		setIsSaving( true );
