@@ -346,7 +346,7 @@ class Algolia_Index {
 		// Sanitize UTF-8 and measure size in one operation.
 		$json_encoded = wp_json_encode( $record, JSON_INVALID_UTF8_SUBSTITUTE );
 		$json_size    = strlen( $json_encoded ?: '' );
-		$record       = ! empty( $json_encoded ) ? json_decode( $json_encoded, true ) : null;
+		$record       = false !== $json_encoded ? json_decode( $json_encoded, true ) : null;
 		if ( ! is_array( $record ) ) {
 			return [];
 		}
