@@ -65,7 +65,6 @@ function delete_plugin_data(): void {
 	delete_option( 'onesearch_consumer_api_key' );
 	delete_transient( 'onesearch_search_settings_cache' );
 	delete_transient( 'onesearch_algolia_credentials_cache' );
-	delete_transient( 'onesearch_sites_search_settings_cache' );
 }
 
 /**

@@ -55,8 +55,6 @@ final class Settings implements Registrable {
 
 		// Listen to updates.
 		add_action( 'update_option_' . self::OPTION_SITE_TYPE, [ $this, 'on_site_type_change' ], 10, 2 );
-		add_action( 'update_option_' . self::OPTION_GOVERNING_SHARED_SITES, [ $this, 'on_brand_sites_update' ], 10, 2 );
-		add_action( 'onesearch_url_changes', [ $this, 'migrate_sites_on_url_changes' ] );
 	}
 
 	/**
@@ -237,77 +235,6 @@ final class Settings implements Registrable {
 
 		// By getting the API key, it will be generated if it doesn't exist.
 		self::get_api_key();
-	}
-
-	/**
-	 * Triggers functionality when the brand sites are updated.
-	 *
-	 * @param array<int, array{id: string, siteUrl: string, siteName?: string, logo?: string, publicKey?: string}>|mixed $old_sites The previous option value.
-	 * @param array<int, array{id: string, siteUrl: string, siteName?: string, logo?: string, publicKey?: string}>|mixed $updated_sites The updated option value.
-	 *
-	 * Detects changes in brand site URLs (by ID) and triggers a migration if any URLs have changed.
-	 */
-	public function on_brand_sites_update( $old_sites, $updated_sites ): void {
-		// Bail if there's no previous value.
-		if ( ! is_array( $old_sites ) ) {
-			return;
-		}
-
-		$old_map = self::build_id_url_map( $old_sites );
-		$new_map = self::build_id_url_map( $updated_sites );
-
-		// Determine URL changes: old_url => new_url by matching ids that exist in both.
-		$url_changes = [];
-		foreach ( $new_map as $id => $new_url ) {
-			if ( ! isset( $old_map[ $id ] ) ) {
-				continue;
-			}
-
-			$old_url = $old_map[ $id ];
-			if ( strcasecmp( $old_url, $new_url ) === 0 ) {
-				continue;
-			}
-			$url_changes[ $old_url ] = $new_url;
-		}
-
-		if ( empty( $url_changes ) ) {
-			return;
-		}
-
-		/**
-		 * Fires when brand site URLs have changed.
-		 *
-		 * @internal
-		 * @param array<string, string> $url_changes Map of old_url => new_url.
-		 */
-		do_action( 'onesearch_url_changes', $url_changes );
-	}
-
-	/**
-	 * Migrates sites settings when the url changes on the governing site.
-	 *
-	 * @param array<string, string> $url_changes Map of old URLs to new ones.
-	 */
-	public function migrate_sites_on_url_changes( array $url_changes ): void {
-		if ( empty( $url_changes ) ) {
-			return;
-		}
-
-		$configs = self::get_shared_sites();
-
-		$updated_configs = [];
-
-		foreach ( $configs as $site_url => $config ) {
-			if ( ! isset( $url_changes[ $site_url ] ) ) {
-				$updated_configs[ $site_url ] = $config;
-				continue;
-			}
-
-			$new_url                     = $url_changes[ $site_url ];
-			$updated_configs[ $new_url ] = array_merge( $config, [ 'siteUrl' => $new_url ] );
-		}
-
-		self::set_shared_sites( $updated_configs );
 	}
 
 	/**
