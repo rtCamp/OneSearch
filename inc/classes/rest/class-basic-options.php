@@ -1885,7 +1885,7 @@ class Basic_Options {
 			return sprintf(
 				/* translators: %s: index name */
 				__( 'Algolia entries deleted for site: %s', 'onesearch' ),
-				$index->getIndexName(),
+				$index->getIndexName()
 			);
 		} catch ( \Throwable $e ) {
 			return sprintf(
