@@ -1,0 +1,75 @@
+{
+	"root": true,
+	"extends": [
+		"plugin:@wordpress/eslint-plugin/recommended-with-formatting",
+		"plugin:import/recommended",
+		"plugin:import/typescript",
+		"plugin:eslint-comments/recommended"
+	],
+	"plugins": [],
+	"env": {
+		"browser": true
+	},
+	"settings": {
+		"import/resolver": {
+			"node": {
+				"extensions": [".js", ".jsx", ".ts", ".tsx"]
+			}
+		}
+	},
+	"globals": {
+		"_": true,
+		"patternSyncData": true
+	},
+	"rules": {
+		"jsdoc/check-indentation": "error",
+		"no-shadow": "warn",
+		/* WordPress surfaces snake_case keys and globals; allow them */
+		"camelcase": "off",
+		"import/no-unresolved": "off",
+		"import/extensions": "off",
+		"import/no-extraneous-dependencies": "off",
+		"import/default": "off",
+		"import/namespace": "off",
+		"import/no-named-as-default": "off",
+		"import/no-named-as-default-member": "off",
+		"eslint-comments/disable-enable-pair": "off",
+		"eslint-comments/no-unlimited-disable": "error",
+		"jsx-a11y/label-has-associated-control": "off",
+		"no-unused-vars": "off" // TODO: Fix this for flagging the types from functions.
+	},
+	"overrides": [
+		{
+			"files": ["**/*.{ts,tsx}"],
+			"parser": "@typescript-eslint/parser",
+			"parserOptions": {
+				"ecmaFeatures": { "jsx": true },
+				"sourceType": "module"
+			},
+			"rules": {
+				"no-undef": "off"
+			}
+		},
+		{
+			"files": ["**/*.d.ts"],
+			"parser": "@typescript-eslint/parser",
+			"rules": {
+				"no-undef": "off",
+				"import/no-unresolved": "off",
+				"@typescript-eslint/triple-slash-reference": "off"
+			}
+		},
+		{
+			"files": [
+				"**/__tests__/**/*.js",
+				"**/test/*.js",
+				"**/?(*.)test.js",
+				"tests/js/**/*.js"
+			],
+			"extends": ["plugin:jest/all"],
+			"rules": {
+				// Add Rules for Jest here
+			}
+		}
+	]
+}

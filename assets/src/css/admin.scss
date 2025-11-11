@@ -1,7 +1,7 @@
 /* stylelint-disable selector-class-pattern */
 /* stylelint-disable selector-id-pattern */
 
-#toplevel_page_onesearch + .wp-menu-separator {
+#toplevel_page_onesearch+.wp-menu-separator {
 	display: none;
 }
 
@@ -67,30 +67,6 @@ body {
 		}
 	}
 }
-
-[id="onesearch-site-selection-modal"] {
-	position: fixed;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
-	z-index: 10000;
-	min-width: 40vw;
-}
-
-body.onesearch-site-selection-modal {
-
-	&::before {
-		content: "";
-		position: fixed;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
-		background-color: rgba(0, 0, 0, 0.5);
-		z-index: 9999;
-	}
-}
-
 
 [id="toplevel_page_onesearch"] {
 
@@ -769,10 +745,6 @@ body.onesearch-site-selection-modal {
 
 .onesearch-site-warning::before {
 	margin-right: 4px;
-}
-
-.onesearch-site-selection-button {
-	margin-top: 1.5rem;
 }
 
 .onesearch-governing-site-card {
