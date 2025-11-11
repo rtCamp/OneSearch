@@ -50,9 +50,8 @@ const OnboardingScreen = () => {
 	const [ notice, setNotice ] = useState<NoticeState | null>( null );
 	const [ isSaving, setIsSaving ] = useState<boolean>( false );
 
-	apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
-
 	useEffect( () => {
+		apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
 		apiFetch<{ onesearch_site_type?: SiteType }>( { path: '/wp/v2/settings' } )
 			.then( ( settings ) => {
 				if ( settings?.onesearch_site_type ) {
@@ -65,7 +64,7 @@ const OnboardingScreen = () => {
 					message: __( 'Error fetching site type.', 'onesearch' ),
 				} );
 			} );
-	}, [] );
+	}, [ nonce ] );
 
 	const handleSiteTypeChange = async ( value: SiteType|'' ) => {
 		// Optimistically set site type.
