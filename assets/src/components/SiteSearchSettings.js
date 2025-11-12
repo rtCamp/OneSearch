@@ -234,9 +234,24 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 				skippedCount++;
 			}
 
+			// Preserve previous searchable_sites when enabling.
+			const prev = searchSettings[ siteUrl ] || {};
+			const prevSites = Array.isArray( prev?.searchable_sites )
+			// Keep only targets that still have entities.
+				? prev.searchable_sites.filter( ( targetUrl ) =>
+					siteHasEntities( targetUrl ),
+				)
+				: [];
+
+			let sitesToReturn = [];
+
+			if ( enable && canEnable ) {
+				sitesToReturn = prevSites.length > 0 ? prevSites : [ siteUrl ];
+			}
+
 			newSettings[ siteUrl ] = {
 				algolia_enabled: canEnable ? enable : false,
-				searchable_sites: canEnable && enable ? [ siteUrl ] : [],
+				searchable_sites: sitesToReturn,
 			};
 		} );
 
