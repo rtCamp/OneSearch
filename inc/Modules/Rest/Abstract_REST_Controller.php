@@ -4,7 +4,7 @@
  *
  * Includes the shared namespace, version and hook registration.
  *
- * @package OneSearch
+ * @package OneSearch\Modules\Rest
  */
 
 declare( strict_types = 1 );

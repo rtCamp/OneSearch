@@ -2,7 +2,7 @@
 /**
  * Algolia Search integration.
  *
- * @package onesearch
+ * @package OneSearch\Inc\Algolia
  */
 
 namespace OneSearch\Inc\Algolia;

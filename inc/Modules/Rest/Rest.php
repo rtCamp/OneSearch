@@ -2,7 +2,7 @@
 /**
  * Handles REST API behavior.
  *
- * @package onesearch
+ * @package OneSearch\Modules\Rest
  */
 
 declare( strict_types = 1 );

@@ -2,7 +2,7 @@
 /**
  * Registers plugin assets.
  *
- * @package onesearch
+ * @package OneSearch\Modules\Core
  */
 
 declare( strict_types = 1 );

@@ -4,7 +4,7 @@
  *
  * Builds and updates the Algolia index from WordPress posts.
  *
- * @package onesearch
+ * @package OneSearch\Inc\Algolia
  */
 
 namespace OneSearch\Inc\Algolia;

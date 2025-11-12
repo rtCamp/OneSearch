@@ -2,7 +2,7 @@
 /**
  * Registers the plugin's settings and options
  *
- * @package OneSearch
+ * @package OneSearch\Modules\Settings
  */
 
 declare(strict_types = 1);

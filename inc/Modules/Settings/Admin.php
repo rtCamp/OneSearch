@@ -2,7 +2,7 @@
 /**
  * Registers the Admin menu and settings screen.
  *
- * @package OneSearch
+ * @package OneSearch\Modules\Settings
  */
 
 declare(strict_types = 1);

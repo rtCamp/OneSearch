@@ -5,7 +5,7 @@
  * Exposes administration and utility endpoints for configuring sites,
  * credentials, search settings, and indexing.
  *
- * @package OneSearch
+ * @package OneSearch\Inc\REST
  */
 
 namespace OneSearch\Inc\REST;
