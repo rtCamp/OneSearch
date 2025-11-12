@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 namespace Onesearch\Modules\Core;
 
 use Onesearch\Contracts\Interfaces\Registrable;
+use Onesearch\Modules\Rest\Abstract_REST_Controller;
 use Onesearch\Modules\Settings\Settings;
 
 /**
@@ -163,7 +164,7 @@ final class Assets implements Registrable {
 		$localized_args = [
 			'nonce'             => wp_create_nonce( 'wp_rest' ),
 			'restUrl'           => esc_url( home_url( '/wp-json/' ) ),
-			'restNamespace'     => 'onesearch/v1',
+			'restNamespace'     => Abstract_REST_Controller::NAMESPACE,
 			'publicKey'         => Settings::get_api_key(),
 			'setupUrl'          => admin_url( 'admin.php?page=onesearch-settings' ),
 			'currentSiteUrl'    => esc_url( home_url( '/' ) ),

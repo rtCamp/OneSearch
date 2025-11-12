@@ -15,6 +15,7 @@ use Onesearch\Contracts\Traits\Singleton;
 use Onesearch\Inc\Algolia\Algolia;
 use Onesearch\Inc\Algolia\Algolia_Index;
 use Onesearch\Inc\Algolia\Algolia_Index_By_Post;
+use Onesearch\Modules\Rest\Governing_Data;
 use Onesearch\Modules\Settings\Settings;
 use Onesearch\Utils;
 use WP_REST_Server;

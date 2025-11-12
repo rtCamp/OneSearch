@@ -9,7 +9,7 @@ namespace Onesearch\Inc\Algolia;
 
 use Algolia\AlgoliaSearch\SearchClient;
 use Onesearch\Contracts\Traits\Singleton;
-use Onesearch\Inc\REST\Governing_Data;
+use Onesearch\Modules\Rest\Governing_Data;
 use Onesearch\Modules\Settings\Settings;
 
 /**
@@ -35,6 +35,14 @@ class Algolia {
 		$creds = Settings::is_consumer_site()
 			? Governing_Data::get_algolia_credentials()
 			: Settings::get_algolia_credentials();
+
+		if ( is_wp_error( $creds ) ) {
+			return [
+				'app_id'    => '',
+				'write_key' => '',
+				'admin_key' => '',
+			];
+		}
 
 		return [
 			'app_id'    => (string) ( $creds['app_id'] ?? '' ),

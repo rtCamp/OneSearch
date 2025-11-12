@@ -9,7 +9,7 @@ namespace Onesearch\Inc\Algolia;
 
 use Onesearch\Contracts\Interfaces\Registrable;
 use Onesearch\Contracts\Traits\Singleton;
-use Onesearch\Inc\REST\Governing_Data;
+use Onesearch\Modules\Rest\Governing_Data;
 use Onesearch\Modules\Settings\Settings;
 use Onesearch\Utils;
 use WP_Post;
@@ -23,27 +23,22 @@ class Algolia_Search implements Registrable {
 	use Singleton;
 
 	/**
-	 * Constructor.
+	 * {@inheritDoc}
 	 */
-	final protected function __construct() {
+	public function register_hooks(): void {
 		// Select search config based on site role.
 		if ( Settings::is_consumer_site() ) {
 			$search_config = Governing_Data::get_search_settings();
 		} else {
 			$all_settings  = Settings::get_search_settings();
-			$search_config = $all_settings[ trailingslashit( get_site_url() ) ] ?? [];
+			$search_config = $all_settings[ Utils::normalize_url( (string) get_site_url() ) ] ?? null;
 		}
 
 		// Do not hook the hooks if disabled or no sites are selected.
 		if ( ! is_array( $search_config ) || empty( $search_config ) || empty( $search_config['algolia_enabled'] ) || empty( $search_config['searchable_sites'] ) ) {
 			return;
 		}
-	}
 
-	/**
-	 * {@inheritDoc}
-	 */
-	public function register_hooks(): void {
 		add_filter( 'posts_pre_query', [ $this, 'get_algolia_results' ], 10, 2 );
 		// Map permalinks and author/category/tag data for remote posts.
 		add_filter( 'page_link', [ $this, 'get_post_type_permalink' ], 10, 2 );
@@ -783,17 +778,17 @@ class Algolia_Search implements Registrable {
 		// Brand: intersect local selection with governing-available sites.
 		$available_sites = Governing_Data::get_searchable_sites();
 
-		if ( empty( $available_sites ) ) {
+		if ( empty( $available_sites ) || is_wp_error( $available_sites ) ) {
 			return [];
 		}
 
 		$selected_sites = Governing_Data::get_search_settings();
-		$selected_sites = $selected_sites['searchable_sites'] ?? [];
-
-		if ( empty( $selected_sites ) ) {
+		if ( is_wp_error( $selected_sites ) || empty( $selected_sites ) ) {
 			return [];
 		}
 
-		return array_intersect( $selected_sites, $available_sites );
+		$selected_sites = $selected_sites['searchable_sites'] ?? [];
+
+		return ! empty( $selected_sites ) ? array_intersect( $selected_sites, $available_sites ) : [];
 	}
 }
