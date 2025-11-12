@@ -4,13 +4,13 @@
  *
  * Builds and updates the Algolia index from WordPress posts.
  *
- * @package onesearch
+ * @package OneSearch\Inc\Algolia
  */
 
-namespace Onesearch\Inc\Algolia;
+namespace OneSearch\Inc\Algolia;
 
-use Onesearch\Contracts\Traits\Singleton;
-use Onesearch\Utils;
+use OneSearch\Contracts\Traits\Singleton;
+use OneSearch\Utils;
 use WP_Post;
 
 /**

@@ -7,9 +7,9 @@
 
 declare( strict_types = 1 );
 
-namespace Onesearch;
+namespace OneSearch;
 
-use Onesearch\Contracts\Traits\Singleton;
+use OneSearch\Contracts\Traits\Singleton;
 
 /**
  * Class - Main
@@ -21,7 +21,7 @@ final class Main {
 	 * Registrable classes are entrypoints that "hook" into WordPress.
 	 * They should implement the Registrable interface.
 	 *
-	 * @var class-string<\Onesearch\Contracts\Interfaces\Registrable>[]
+	 * @var class-string<\OneSearch\Contracts\Interfaces\Registrable>[]
 	 */
 	private const REGISTRABLE_CLASSES = [
 		Modules\Core\Assets::class,

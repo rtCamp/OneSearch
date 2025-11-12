@@ -2,12 +2,12 @@
 /**
  * This will be executed when the plugin is uninstalled via the WordPress admin.
  *
- * @package Onesearch
+ * @package OneSearch
  */
 
 declare( strict_types=1 );
 
-namespace Onesearch;
+namespace OneSearch;
 
 // If uninstall not called from WordPress, exit.
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
@@ -79,7 +79,7 @@ function cleanup_algolia_index(): void {
 	}
 
 	try {
-		$algolia_index = \Onesearch\Inc\Algolia\Algolia::instance()->get_index();
+		$algolia_index = \OneSearch\Inc\Algolia\Algolia::instance()->get_index();
 		if ( is_wp_error( $algolia_index ) ) {
 			throw new \RuntimeException( $algolia_index->get_error_message() );
 		}
@@ -118,7 +118,7 @@ function load_dependencies(): bool {
 	require_once $autoloader_path; // phpcs:ignore WordPressVIPMinimum.Files.IncludingFile.UsingVariable
 
 	// If the autoloader succeeded we have what we need.
-	return class_exists( '\Onesearch\Autoloader' ) && \Onesearch\Autoloader::autoload();
+	return class_exists( '\OneSearch\Autoloader' ) && \OneSearch\Autoloader::autoload();
 }
 
 // Run the uninstaller.

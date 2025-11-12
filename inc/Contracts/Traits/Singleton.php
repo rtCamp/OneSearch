@@ -7,7 +7,7 @@
 
 declare(strict_types = 1);
 
-namespace Onesearch\Contracts\Traits;
+namespace OneSearch\Contracts\Traits;
 
 /**
  * Singleton trait.

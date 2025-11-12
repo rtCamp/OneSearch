@@ -4,12 +4,12 @@
  *
  * Utilities are a domain antipattern - where ever possible, colocate methods with their related classes.
  *
- * @package Onesearch
+ * @package OneSearch
  */
 
 declare(strict_types = 1);
 
-namespace Onesearch;
+namespace OneSearch;
 
 /**
  * Class - Utils

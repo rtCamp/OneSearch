@@ -2,16 +2,16 @@
 /**
  * Algolia Search integration.
  *
- * @package onesearch
+ * @package OneSearch\Inc\Algolia
  */
 
-namespace Onesearch\Inc\Algolia;
+namespace OneSearch\Inc\Algolia;
 
-use Onesearch\Contracts\Interfaces\Registrable;
-use Onesearch\Contracts\Traits\Singleton;
-use Onesearch\Modules\Rest\Governing_Data;
-use Onesearch\Modules\Settings\Settings;
-use Onesearch\Utils;
+use OneSearch\Contracts\Interfaces\Registrable;
+use OneSearch\Contracts\Traits\Singleton;
+use OneSearch\Modules\Rest\Governing_Data;
+use OneSearch\Modules\Settings\Settings;
+use OneSearch\Utils;
 use WP_Post;
 use stdClass;
 

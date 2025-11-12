@@ -31,7 +31,7 @@
 	},
 	"autoload": {
 		"psr-4": {
-			"Onesearch\\": "inc/"
+			"OneSearch\\": "inc/"
 		},
 		"classmap": [
 			"inc/classes"

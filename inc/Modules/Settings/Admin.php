@@ -2,15 +2,15 @@
 /**
  * Registers the Admin menu and settings screen.
  *
- * @package Onesearch
+ * @package OneSearch\Modules\Settings
  */
 
 declare(strict_types = 1);
 
-namespace Onesearch\Modules\Settings;
+namespace OneSearch\Modules\Settings;
 
-use Onesearch\Contracts\Interfaces\Registrable;
-use Onesearch\Modules\Core\Assets;
+use OneSearch\Contracts\Interfaces\Registrable;
+use OneSearch\Modules\Core\Assets;
 
 /**
  * Class - Admin
@@ -59,7 +59,7 @@ final class Admin implements Registrable {
 			'manage_options',
 			self::MENU_SLUG,
 			// Redirect to the submenu that shares the slug.
-			null,
+			'',
 			self::SVG_LOGO_PATH,
 			2
 		);

@@ -5,12 +5,12 @@
  * Provides cached getters for Algolia credentials, the list of searchable sites,
  * and brand-site search settings. Also exposes helpers to clear related caches.
  *
- * @package OneSearch
+ * @package OneSearch\Modules\Rest
  */
 
-namespace Onesearch\Modules\Rest;
+namespace OneSearch\Modules\Rest;
 
-use Onesearch\Modules\Settings\Settings;
+use OneSearch\Modules\Settings\Settings;
 
 /**
  * Governing Data class.

@@ -2,7 +2,7 @@
 /**
  * Global (pluggable) functions for interacting with OneSearch.
  *
- * @package Onesearch
+ * @package OneSearch
  */
 
 declare(strict_types = 1);

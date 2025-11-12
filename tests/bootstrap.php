@@ -2,7 +2,7 @@
 /**
  * Bootstrap the PHPUnit tests.
  *
- * @package onesearch
+ * @package OneSearch
  *
  * phpcs:disable WordPressVIPMinimum.Files.IncludingFile.UsingVariable
  */

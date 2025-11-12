@@ -4,14 +4,14 @@
  *
  * Includes the shared namespace, version and hook registration.
  *
- * @package Onesearch
+ * @package OneSearch\Modules\Rest
  */
 
 declare( strict_types = 1 );
 
-namespace Onesearch\Modules\Rest;
+namespace OneSearch\Modules\Rest;
 
-use Onesearch\Contracts\Interfaces\Registrable;
+use OneSearch\Contracts\Interfaces\Registrable;
 use WP_REST_Controller;
 
 /**

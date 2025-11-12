@@ -4,12 +4,12 @@
  *
  * Registrable classes are those that register hooks (actions/filters) with WordPress.
  *
- * @package OneSearch
+ * @package OneSearch\Contracts\Interfaces
  */
 
 declare( strict_types = 1 );
 
-namespace Onesearch\Contracts\Interfaces;
+namespace OneSearch\Contracts\Interfaces;
 
 /**
  * Interface - Registrable
