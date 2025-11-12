@@ -58,8 +58,8 @@ final class Admin implements Registrable {
 			__( 'OneSearch', 'onesearch' ),
 			'manage_options',
 			self::MENU_SLUG,
-			// Redirect to the first sub-menu.
-			[ $this, 'sites_screen_callback' ],
+			// Redirect to the submenu that shares the slug.
+			null,
 			self::SVG_LOGO_PATH,
 			2
 		);
