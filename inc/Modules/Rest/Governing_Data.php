@@ -40,7 +40,7 @@ class Governing_Data {
 				'admin_key' => $cached['admin_key'] ?? null,
 			];
 		}
-		// If no parent is configured return empty state.
+		// If no parent is configured, use local credentials.
 		$parent_url = Settings::get_parent_site_url();
 		if ( empty( $parent_url ) ) {
 			return Settings::get_algolia_credentials();
