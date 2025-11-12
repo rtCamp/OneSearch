@@ -14,12 +14,12 @@
  * Requires at least: 6.8
  * Tested up to:      6.8.2
  *
- * @package Onesearch
+ * @package OneSearch
  */
 
 declare (strict_types = 1);
 
-namespace Onesearch;
+namespace OneSearch;
 
 // Exit if accessed directly.
 defined( 'ABSPATH' ) || exit();
@@ -54,13 +54,13 @@ constants();
 
 // If autoloader failed, we cannot proceed.
 require_once __DIR__ . '/inc/Autoloader.php';
-if ( ! \Onesearch\Autoloader::autoload() ) {
+if ( ! \OneSearch\Autoloader::autoload() ) {
 	return;
 }
 
 // Load the plugin.
-if ( class_exists( '\Onesearch\Main' ) ) {
-	\Onesearch\Main::instance();
+if ( class_exists( '\OneSearch\Main' ) ) {
+	\OneSearch\Main::instance();
 }
 
 // Activation Hooks.

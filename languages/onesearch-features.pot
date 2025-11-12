@@ -2,7 +2,7 @@
 # This file is distributed under the GPL2.
 msgid ""
 msgstr ""
-"Project-Id-Version: Onesearch 1.0\n"
+"Project-Id-Version: OneSearch 1.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/features-plugin-skeleton\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,7 +16,7 @@ msgstr ""
 
 #. Plugin Name of the plugin
 #: onesearch.php
-msgid "Onesearch"
+msgid "OneSearch"
 msgstr ""
 
 #. Plugin URI of the plugin
