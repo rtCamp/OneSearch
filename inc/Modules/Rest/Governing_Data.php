@@ -8,9 +8,8 @@
  * @package OneSearch
  */
 
-namespace Onesearch\REST\Modules;
+namespace Onesearch\Modules\Rest;
 
-use Onesearch\Modules\Rest\Abstract_REST_Controller;
 use Onesearch\Modules\Settings\Settings;
 
 /**

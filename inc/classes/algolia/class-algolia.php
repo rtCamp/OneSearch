@@ -9,8 +9,8 @@ namespace Onesearch\Inc\Algolia;
 
 use Algolia\AlgoliaSearch\SearchClient;
 use Onesearch\Contracts\Traits\Singleton;
+use Onesearch\Modules\Rest\Governing_Data;
 use Onesearch\Modules\Settings\Settings;
-use Onesearch\REST\Modules\Governing_Data;
 
 /**
  * Class Algolia

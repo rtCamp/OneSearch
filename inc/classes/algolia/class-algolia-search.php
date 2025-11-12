@@ -9,8 +9,8 @@ namespace Onesearch\Inc\Algolia;
 
 use Onesearch\Contracts\Interfaces\Registrable;
 use Onesearch\Contracts\Traits\Singleton;
+use Onesearch\Modules\Rest\Governing_Data;
 use Onesearch\Modules\Settings\Settings;
-use Onesearch\REST\Modules\Governing_Data;
 use Onesearch\Utils;
 use WP_Post;
 use stdClass;
