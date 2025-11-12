@@ -1,26 +1,27 @@
 <?php
 /**
- * Register All OneSearch related REST API endpoints.
+ * Handles REST API behavior.
  *
- * @package OneSearch
+ * @package onesearch
  */
 
-namespace Onesearch\Inc;
+declare( strict_types = 1 );
+
+namespace Onesearch\Modules\Rest;
 
 use Onesearch\Contracts\Interfaces\Registrable;
 use Onesearch\Inc\REST\Basic_Options;
-use Onesearch\Inc\REST\Governing_Data;
+
 /**
  * Class REST
  */
-class REST implements Registrable {
+final class Rest implements Registrable {
 
 	/**
 	 * {@inheritDoc}
 	 */
 	public function register_hooks(): void {
 		Basic_Options::instance();
-		Governing_Data::instance();
 
 		// Exposes the necessary CORS headers for REST API.
 		add_filter( 'rest_allowed_cors_headers', [ $this, 'add_cors_headers' ] );

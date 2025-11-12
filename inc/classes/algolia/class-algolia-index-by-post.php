@@ -11,6 +11,7 @@ namespace Onesearch\Inc\Algolia;
 
 use Onesearch\Contracts\Interfaces\Registrable;
 use Onesearch\Contracts\Traits\Singleton;
+use Onesearch\Modules\Rest\Abstract_REST_Controller;
 use Onesearch\Modules\Settings\Settings;
 use Onesearch\Utils;
 
@@ -21,7 +22,7 @@ class Algolia_Index_By_Post implements Registrable {
 
 	use Singleton;
 
-	private const NAMESPACE = 'onesearch/v1';
+	private const NAMESPACE = Abstract_REST_Controller::NAMESPACE;
 
 	/**
 	 * {@inheritDoc}

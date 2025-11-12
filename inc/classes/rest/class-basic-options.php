@@ -16,6 +16,7 @@ use Onesearch\Inc\Algolia\Algolia;
 use Onesearch\Inc\Algolia\Algolia_Index;
 use Onesearch\Inc\Algolia\Algolia_Index_By_Post;
 use Onesearch\Modules\Settings\Settings;
+use Onesearch\REST\Modules\Governing_Data;
 use Onesearch\Utils;
 use WP_REST_Server;
 

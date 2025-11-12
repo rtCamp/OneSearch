@@ -22,6 +22,6 @@ final class Utils {
 	 * @param string $url The URL to normalize.
 	 */
 	public static function normalize_url( string $url ): string {
-		return trailingslashit( trim( $url ) );
+		return (string) trailingslashit( trim( $url ) );
 	}
 }
