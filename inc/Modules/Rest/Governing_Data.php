@@ -8,9 +8,9 @@
  * @package OneSearch
  */
 
-namespace Onesearch\Modules\Rest;
+namespace OneSearch\Modules\Rest;
 
-use Onesearch\Modules\Settings\Settings;
+use OneSearch\Modules\Settings\Settings;
 
 /**
  * Governing Data class.

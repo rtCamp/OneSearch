@@ -7,10 +7,10 @@
 
 declare( strict_types = 1 );
 
-namespace Onesearch\Modules\Rest;
+namespace OneSearch\Modules\Rest;
 
-use Onesearch\Contracts\Interfaces\Registrable;
-use Onesearch\Inc\REST\Basic_Options;
+use OneSearch\Contracts\Interfaces\Registrable;
+use OneSearch\Inc\REST\Basic_Options;
 
 /**
  * Class REST

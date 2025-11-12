@@ -2,15 +2,15 @@
 /**
  * Registers the plugin's settings and options
  *
- * @package Onesearch
+ * @package OneSearch
  */
 
 declare(strict_types = 1);
 
-namespace Onesearch\Modules\Settings;
+namespace OneSearch\Modules\Settings;
 
-use Onesearch\Contracts\Interfaces\Registrable;
-use Onesearch\Utils;
+use OneSearch\Contracts\Interfaces\Registrable;
+use OneSearch\Utils;
 
 /**
  * Class - Settings

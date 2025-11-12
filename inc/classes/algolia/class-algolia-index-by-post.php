@@ -7,13 +7,13 @@
  * @package onesearch
  */
 
-namespace Onesearch\Inc\Algolia;
+namespace OneSearch\Inc\Algolia;
 
-use Onesearch\Contracts\Interfaces\Registrable;
-use Onesearch\Contracts\Traits\Singleton;
-use Onesearch\Modules\Rest\Abstract_REST_Controller;
-use Onesearch\Modules\Settings\Settings;
-use Onesearch\Utils;
+use OneSearch\Contracts\Interfaces\Registrable;
+use OneSearch\Contracts\Traits\Singleton;
+use OneSearch\Modules\Rest\Abstract_REST_Controller;
+use OneSearch\Modules\Settings\Settings;
+use OneSearch\Utils;
 
 /**
  * Class Algolia_Index_By_Post

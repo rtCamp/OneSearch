@@ -7,11 +7,11 @@
 
 declare( strict_types = 1 );
 
-namespace Onesearch\Modules\Core;
+namespace OneSearch\Modules\Core;
 
-use Onesearch\Contracts\Interfaces\Registrable;
-use Onesearch\Modules\Rest\Abstract_REST_Controller;
-use Onesearch\Modules\Settings\Settings;
+use OneSearch\Contracts\Interfaces\Registrable;
+use OneSearch\Modules\Rest\Abstract_REST_Controller;
+use OneSearch\Modules\Settings\Settings;
 
 /**
  * Class Assets

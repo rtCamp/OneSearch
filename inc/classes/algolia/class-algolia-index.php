@@ -7,10 +7,10 @@
  * @package onesearch
  */
 
-namespace Onesearch\Inc\Algolia;
+namespace OneSearch\Inc\Algolia;
 
-use Onesearch\Contracts\Traits\Singleton;
-use Onesearch\Utils;
+use OneSearch\Contracts\Traits\Singleton;
+use OneSearch\Utils;
 use WP_Post;
 
 /**

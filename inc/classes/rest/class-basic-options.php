@@ -8,16 +8,16 @@
  * @package OneSearch
  */
 
-namespace Onesearch\Inc\REST;
+namespace OneSearch\Inc\REST;
 
 use Algolia\AlgoliaSearch\SearchClient;
-use Onesearch\Contracts\Traits\Singleton;
-use Onesearch\Inc\Algolia\Algolia;
-use Onesearch\Inc\Algolia\Algolia_Index;
-use Onesearch\Inc\Algolia\Algolia_Index_By_Post;
-use Onesearch\Modules\Rest\Governing_Data;
-use Onesearch\Modules\Settings\Settings;
-use Onesearch\Utils;
+use OneSearch\Contracts\Traits\Singleton;
+use OneSearch\Inc\Algolia\Algolia;
+use OneSearch\Inc\Algolia\Algolia_Index;
+use OneSearch\Inc\Algolia\Algolia_Index_By_Post;
+use OneSearch\Modules\Rest\Governing_Data;
+use OneSearch\Modules\Settings\Settings;
+use OneSearch\Utils;
 use WP_REST_Server;
 
 /**

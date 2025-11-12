@@ -4,12 +4,12 @@
  *
  * Wraps the Composer autoloader to provide graceful failure if it is missing.
  *
- * @package Onesearch
+ * @package OneSearch
  */
 
 declare(strict_types = 1);
 
-namespace Onesearch;
+namespace OneSearch;
 
 /**
  * Class - Autoloader

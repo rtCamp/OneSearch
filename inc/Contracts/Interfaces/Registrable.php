@@ -9,7 +9,7 @@
 
 declare( strict_types = 1 );
 
-namespace Onesearch\Contracts\Interfaces;
+namespace OneSearch\Contracts\Interfaces;
 
 /**
  * Interface - Registrable
