@@ -10,6 +10,7 @@ declare(strict_types = 1);
 namespace Onesearch\Modules\Settings;
 
 use Onesearch\Contracts\Interfaces\Registrable;
+use Onesearch\Modules\Core\Assets;
 
 /**
  * Class - Admin
@@ -41,6 +42,7 @@ final class Admin implements Registrable {
 	public function register_hooks(): void {
 		add_action( 'admin_menu', [ $this, 'add_admin_menu' ] );
 		add_action( 'admin_menu', [ $this, 'remove_default_submenu' ], 999 );
+		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
 		add_action( 'admin_footer', [ $this, 'inject_site_selection_modal' ] );
 
 		add_filter( 'plugin_action_links_' . ONESEARCH_PLUGIN_BASENAME, [ $this, 'add_action_links' ], 2 );
@@ -181,6 +183,44 @@ final class Admin implements Registrable {
 		$classes = $this->add_body_class_for_missing_sites( (string) $classes, $current_screen );
 
 		return $classes;
+	}
+
+	/**
+	 * Enqueue admin scripts.
+	 *
+	 * @param string $hook Current admin page hook.
+	 */
+	public function enqueue_scripts( string $hook ): void {
+		if ( 'plugins.php' === $hook || str_contains( $hook, 'plugins' ) || str_contains( $hook, 'onesearch' ) ) {
+
+			// Enqueue the onboarding modal.
+			$this->enqueue_onboarding_scripts();
+		}
+
+		// @todo Move other scripts from Assets to here.
+	}
+
+	/**
+	 * Enqueue scripts and styles for the onboarding screen.
+	 */
+	private function enqueue_onboarding_scripts(): void {
+		// Bail if the site type is already set.
+		if ( ! empty( Settings::get_site_type() ) ) {
+			return;
+		}
+
+		wp_localize_script(
+			Assets::ONBOARDING_SCRIPT_HANDLE,
+			'OneSearchPluginGlobal',
+			[
+				'nonce'     => wp_create_nonce( 'wp_rest' ),
+				'setup_url' => admin_url( sprintf( 'admin.php?page=%s', self::SCREEN_ID ) ),
+				'site_type' => Settings::get_site_type(), // @todo We can probably remove this.
+			]
+		);
+
+		wp_enqueue_script( Assets::ONBOARDING_SCRIPT_HANDLE );
+		wp_enqueue_style( Assets::ONBOARDING_SCRIPT_HANDLE );
 	}
 
 	/**

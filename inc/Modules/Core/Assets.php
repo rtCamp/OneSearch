@@ -30,11 +30,10 @@ final class Assets implements Registrable {
 	/**
 	 * Asset handles
 	 */
-	public const ADMIN_STYLES_HANDLE    = self::PREFIX . 'admin';
-	public const MAIN_SCRIPT_HANDLE     = self::PREFIX . 'main';
-	public const PLUGIN_SCRIPT_HANDLE   = self::PREFIX . 'plugin';
-	public const SETTINGS_SCRIPT_HANDLE = self::PREFIX . 'settings';
-	public const SETUP_SCRIPT_HANDLE    = self::PREFIX . 'setup';
+	public const ADMIN_STYLES_HANDLE      = self::PREFIX . 'admin';
+	public const ONBOARDING_SCRIPT_HANDLE = self::PREFIX . 'onboarding';
+	public const SETTINGS_SCRIPT_HANDLE   = self::PREFIX . 'settings';
+	public const SETUP_SCRIPT_HANDLE      = self::PREFIX . 'setup';
 
 	/**
 	 * Plugin directory path.
@@ -73,7 +72,6 @@ final class Assets implements Registrable {
 
 		// Enqueue the assets
 		// @todo colocate these.
-		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_enqueue_scripts' ] );
 	}
 
@@ -81,15 +79,6 @@ final class Assets implements Registrable {
 	 * Register all scripts and styles.
 	 */
 	public function register_assets(): void {
-		$this->register_script(
-			self::MAIN_SCRIPT_HANDLE,
-			'main',
-		);
-		$this->register_style(
-			self::MAIN_SCRIPT_HANDLE,
-			'main',
-		);
-
 		$this->register_script(
 			self::SETUP_SCRIPT_HANDLE,
 			'setup',
@@ -101,8 +90,13 @@ final class Assets implements Registrable {
 		);
 
 		$this->register_script(
-			self::PLUGIN_SCRIPT_HANDLE,
-			'plugin',
+			self::ONBOARDING_SCRIPT_HANDLE,
+			'onboarding',
+		);
+		$this->register_style(
+			self::ONBOARDING_SCRIPT_HANDLE,
+			'onboarding',
+			[ 'wp-components' ],
 		);
 
 		$this->register_style(
@@ -123,7 +117,7 @@ final class Assets implements Registrable {
 		$defer_handles = [
 			self::SETTINGS_SCRIPT_HANDLE,
 			self::SETUP_SCRIPT_HANDLE,
-			self::PLUGIN_SCRIPT_HANDLE,
+			self::ONBOARDING_SCRIPT_HANDLE,
 		];
 
 		// Bail if we don't need to defer.
@@ -132,17 +126,6 @@ final class Assets implements Registrable {
 		}
 
 		return str_replace( ' src', ' defer src', $tag );
-	}
-
-	/**
-	 * Enqueue frontend assets.
-	 *
-	 * @todo colocate with the module that uses it and only enqueue where needed.
-	 */
-	public function enqueue_scripts(): void {
-
-		wp_enqueue_script( self::MAIN_SCRIPT_HANDLE );
-		wp_enqueue_style( self::MAIN_SCRIPT_HANDLE );
 	}
 
 	/**
@@ -162,12 +145,6 @@ final class Assets implements Registrable {
 			$this->localize_script( self::SETTINGS_SCRIPT_HANDLE, 'OneSearchSettings' );
 
 			wp_enqueue_script( self::SETTINGS_SCRIPT_HANDLE );
-		}
-
-		if ( strpos( $hook_suffix, 'plugins' ) !== false ) {
-			$this->localize_script( self::PLUGIN_SCRIPT_HANDLE, 'OneSearchSettings' );
-
-			wp_enqueue_script( self::PLUGIN_SCRIPT_HANDLE );
 		}
 
 		// @todo Only enqueue on OneSearch admin pages.

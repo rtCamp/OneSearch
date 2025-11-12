@@ -72,7 +72,7 @@ final class Settings implements Registrable {
 						self::SITE_TYPE_GOVERNING => true,
 					];
 
-					return is_string( $value ) && isset( $valid_values[ $value ] ) ? $value : null;
+					return is_string( $value ) && isset( $valid_values[ $value ] ) ? $value : '';
 				},
 				'show_in_rest'      => [
 					'schema' => [
