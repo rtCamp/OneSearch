@@ -34,9 +34,16 @@ class Algolia_Index {
 			return $index;
 		}
 
-		// If nothing to index, clear the remote index and exit.
+		// Clear existing records for this site.
+		$site_url = Utils::normalize_url( get_site_url() );
+		$index->deleteBy(
+			[
+				'filters' => sprintf( 'site_url:"%s"', $site_url ),
+			]
+		)->wait();
+
+		// Bail if no entities to index.
 		if ( empty( $site_indexable_entities ) ) {
-			$index->clearObjects()->wait();
 			return true;
 		}
 
@@ -45,26 +52,15 @@ class Algolia_Index {
 		$index->setSettings( $settings );
 
 		// Batched indexing across pages.
-		$batch_size  = 100;
-		$first_batch = true;
+		$batch_size = 100;
 
 		// Use generator pattern for memory-efficient batch processing.
 		foreach ( $this->fetch_post_batches( $site_indexable_entities, $batch_size ) as $records ) {
+			// If there's no records in this batch, we're done.
 			if ( empty( $records ) ) {
-				// If it's the first batch, that means the site has no posts and should be reset.
-				if ( true === $first_batch ) {
-					$index->replaceAllObjects( [] )->wait();
-				}
 				break;
 			}
-
-			// The first batch replaces all objects and subsequent batches add to the index.
-			if ( $first_batch ) {
-				$index->replaceAllObjects( $records )->wait();
-				$first_batch = false;
-			} else {
-				$index->saveObjects( $records )->wait();
-			}
+			$index->saveObjects( $records )->wait();
 
 			// Free memory after processing batch.
 			unset( $records );
