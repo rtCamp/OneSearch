@@ -39,16 +39,15 @@ class Governing_Data {
 				'admin_key' => $cached['admin_key'] ?? null,
 			];
 		}
-		// If no parent is configured, use local credentials.
-		$parent_url = Settings::get_parent_site_url();
-		if ( empty( $parent_url ) ) {
-			return Settings::get_algolia_credentials();
-		}
 
-		// Child authenticating to the governing site.
+		// If no parent is configured, return an error.
+		$parent_url     = Settings::get_parent_site_url();
 		$our_public_key = Settings::get_api_key();
-		if ( empty( $our_public_key ) ) {
-			return Settings::get_algolia_credentials();
+		if ( empty( $parent_url ) || empty( $our_public_key ) ) {
+			return new \WP_Error(
+				'algolia_credentials_unavailable',
+				__( 'Algolia credentials are unavailable because no governing site is configured.', 'onesearch' )
+			);
 		}
 
 		$endpoint = sprintf(
