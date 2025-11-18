@@ -1445,7 +1445,15 @@ class Basic_Options {
 				$indexed = Algolia_Index::instance()->index( $my_entities );
 
 				if ( is_wp_error( $indexed ) ) {
-					return new \WP_Error( 'reindex_failed', __( 'Re-indexing failed.', 'onesearch' ), [ 'status' => 500 ] );
+					return new \WP_Error(
+						'reindex_failed',
+						sprintf(
+							// translators: %s: error message
+							__( 'Re-indexing failed: %s.', 'onesearch' ),
+							$indexed->get_error_message()
+						),
+						[ 'status' => 500 ]
+					);
 				}
 			} catch ( \Throwable $e ) {
 				return new \WP_Error( 'reindex_failed', $e->getMessage(), [ 'status' => 500 ] );
@@ -1494,8 +1502,6 @@ class Basic_Options {
 			return new \WP_Error( 'no_parent_url', __( 'Parent site URL not configured.', 'onesearch' ), [ 'status' => 400 ] );
 		}
 
-		$current_site_url = Utils::normalize_url( get_site_url() );
-
 		$endpoint = trailingslashit( $parent_url ) . 'wp-json/' . self::NAMESPACE . '/indexable-entities';
 
 		$response = wp_remote_get(
@@ -1530,7 +1536,8 @@ class Basic_Options {
 			return new \WP_Error( 'invalid_parent_data', __( 'Invalid data from parent site.', 'onesearch' ), [ 'status' => 500 ] );
 		}
 
-		$entities_map = $data['indexableEntities']['entities'];
+		$entities_map     = $data['indexableEntities']['entities'];
+		$current_site_url = Utils::normalize_url( get_site_url() );
 
 		$my_entities = isset( $entities_map[ $current_site_url ] ) ? $entities_map[ $current_site_url ] : [];
 
@@ -1816,18 +1823,11 @@ class Basic_Options {
 		if ( current_user_can( 'manage_options' ) ) {
 			return true;
 		}
+
 		$incoming_key = (string) $request->get_header( 'X-OneSearch-Plugins-Token' );
 		$expected_key = Settings::get_api_key();
 
-		if ( empty( $incoming_key ) || ! hash_equals( $incoming_key, $expected_key ) ) {
-			return new \WP_Error(
-				'invalid_api_key',
-				__( 'Invalid or missing API key.', 'onesearch' ),
-				[ 'status' => 403 ]
-			);
-		}
-
-		return true;
+		return ! empty( $incoming_key ) && ! empty( $expected_key ) && hash_equals( $expected_key, $incoming_key );
 	}
 
 	/**
@@ -1845,7 +1845,7 @@ class Basic_Options {
 		if ( ! empty( $_SERVER['HTTP_X_ONESEARCH_PLUGINS_TOKEN'] ) ) {
 			$token = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_ONESEARCH_PLUGINS_TOKEN'] ) );
 
-			if ( ! empty( $token ) && hash_equals( $token, Settings::get_api_key() ) ) {
+			if ( ! empty( $token ) && hash_equals( Settings::get_api_key(), $token ) ) {
 				return true;
 			}
 		}

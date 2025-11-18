@@ -20,38 +20,6 @@ class Algolia {
 	use Singleton;
 
 	/**
-	 * Resolve Algolia credentials.
-	 *
-	 * When site type is "brand-site", credentials are fetched from the
-	 * governing site, otherwise from local options.
-	 *
-	 * @return array{
-	 *   app_id: string,
-	 *   write_key: string,
-	 *   admin_key: string
-	 * }
-	 */
-	private function get_creds(): array {
-		$creds = Settings::is_consumer_site()
-			? Governing_Data::get_algolia_credentials()
-			: Settings::get_algolia_credentials();
-
-		if ( is_wp_error( $creds ) ) {
-			return [
-				'app_id'    => '',
-				'write_key' => '',
-				'admin_key' => '',
-			];
-		}
-
-		return [
-			'app_id'    => (string) ( $creds['app_id'] ?? '' ),
-			'write_key' => (string) ( $creds['write_key'] ?? '' ),
-			'admin_key' => (string) ( $creds['admin_key'] ?? '' ),
-		];
-	}
-
-	/**
 	 * Get the index object for the current site.
 	 */
 	public function get_index(): \Algolia\AlgoliaSearch\SearchIndex|\WP_Error {
@@ -77,7 +45,13 @@ class Algolia {
 	 * Create an Algolia client using stored credentials.
 	 */
 	public function get_client(): \Algolia\AlgoliaSearch\SearchClient|\WP_Error {
-		$creds = $this->get_creds();
+		$creds = Settings::is_consumer_site()
+			? Governing_Data::get_algolia_credentials()
+			: Settings::get_algolia_credentials();
+
+		if ( is_wp_error( $creds ) ) {
+			return $creds;
+		}
 
 		if ( empty( $creds['app_id'] ) || empty( $creds['write_key'] ) ) {
 			return new \WP_Error(
