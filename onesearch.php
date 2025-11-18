@@ -76,3 +76,20 @@ register_activation_hook(
 		add_option( 'onesearch_show_onboarding', '1', '', false );
 	}
 );
+
+// Deactivation Hooks.
+register_deactivation_hook(
+	__FILE__,
+	static function (): void {
+		defined( 'WP_UNINSTALL_PLUGIN' ) || define( 'WP_UNINSTALL_PLUGIN', false );
+		try {
+			/**
+			 * Runs the uninstaller script on deactivation.
+			 * @todo remove this before release. For testing purposes only.
+			*/
+			require_once __DIR__ . '/uninstall.php';
+		} catch ( \Throwable $e ) {
+			// Do nothing.
+		}
+	}
+);
