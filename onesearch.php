@@ -85,11 +85,11 @@ register_deactivation_hook(
 		try {
 			/**
 			 * Runs the uninstaller script on deactivation.
+			 *
 			 * @todo remove this before release. For testing purposes only.
 			*/
 			require_once __DIR__ . '/uninstall.php';
-		} catch ( \Throwable $e ) {
-			// Do nothing.
+		} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
 		}
 	}
 );
