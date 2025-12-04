@@ -179,9 +179,9 @@ class Algolia_Index_By_Post implements Registrable {
 			trailingslashit( $parent_url ) . 'wp-json/' . self::NAMESPACE . '/reindex-post',
 			[
 				'headers' => [
-					'Accept'                    => 'application/json',
-					'Content-Type'              => 'application/json',
-					'X-OneSearch-Plugins-Token' => $public_key,
+					'Accept'            => 'application/json',
+					'Content-Type'      => 'application/json',
+					'X-OneSearch-Token' => $public_key,
 				],
 				'body'    => wp_json_encode( $payload ) ?: '',
 				'timeout' => 999, // phpcs:ignore WordPressVIPMinimum.Performance.RemoteRequestTimeout.timeout_timeout
@@ -225,7 +225,7 @@ class Algolia_Index_By_Post implements Registrable {
 		$child_sites = Settings::get_shared_sites();
 
 		foreach ( $child_sites as $child ) {
-			$key = isset( $child['publicKey'] ) ? (string) $child['publicKey'] : '';
+			$key = isset( $child['api_key'] ) ? (string) $child['api_key'] : '';
 			if ( $key && hash_equals( $key, $incoming ) ) {
 				return true;
 			}

@@ -21,7 +21,6 @@ parameters:
 				- onesearch.php
 		paths:
 				- onesearch.php
-				- custom-functions.php
 				- uninstall.php
 				- inc/
 		excludePaths:

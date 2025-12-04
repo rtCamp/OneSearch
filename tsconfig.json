@@ -39,7 +39,7 @@
 
 		// Language and Environment
 		"jsx": "react-jsx",
-		"lib": [ "ES2022","DOM.Iterable", "DOM" ],
+		"lib": [ "ES2022", "DOM.Iterable", "DOM" ],
 		"moduleDetection": "force",
 		"target": "ES2022",
 
@@ -50,10 +50,14 @@
 
 		// Completeness
 		"skipLibCheck": true,
+		"typeRoots": [ "./node_modules/@types" ],
 
 		// File config
 		"baseUrl": "./assets/src",
 		"outDir": "./build",
+		"paths": {
+			"@/*": ["./*"],
+		}
 	},
 	"include": [
 		"**/*.mjs",

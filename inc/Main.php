@@ -25,9 +25,10 @@ final class Main {
 	 */
 	private const REGISTRABLE_CLASSES = [
 		Modules\Core\Assets::class,
+		Modules\Core\Rest::class,
 		Modules\Settings\Admin::class,
 		Modules\Settings\Settings::class,
-		Modules\Rest\Rest::class,
+		Modules\Search\Admin::class,
 	];
 
 	/**

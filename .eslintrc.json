@@ -18,25 +18,14 @@
 		}
 	},
 	"globals": {
-		"_": true,
-		"patternSyncData": true
+		"_": true
 	},
 	"rules": {
+		"eslint-comments/no-unlimited-disable": "error",
 		"jsdoc/check-indentation": "error",
 		"no-shadow": "warn",
 		/* WordPress surfaces snake_case keys and globals; allow them */
-		"camelcase": "off",
-		"import/no-unresolved": "off",
-		"import/extensions": "off",
-		"import/no-extraneous-dependencies": "off",
-		"import/default": "off",
-		"import/namespace": "off",
-		"import/no-named-as-default": "off",
-		"import/no-named-as-default-member": "off",
-		"eslint-comments/disable-enable-pair": "off",
-		"eslint-comments/no-unlimited-disable": "error",
-		"jsx-a11y/label-has-associated-control": "off",
-		"no-unused-vars": "off" // TODO: Fix this for flagging the types from functions.
+		"camelcase": "off"
 	},
 	"overrides": [
 		{
@@ -44,10 +33,19 @@
 			"parser": "@typescript-eslint/parser",
 			"parserOptions": {
 				"ecmaFeatures": { "jsx": true },
-				"sourceType": "module"
+				"sourceType": "module",
+				"project": "./tsconfig.json"
 			},
+			"plugins": ["@typescript-eslint"],
 			"rules": {
-				"no-undef": "off"
+				"no-undef": "off",
+				"no-unused-vars": "off",
+				"no-shadow": "off",
+				"@typescript-eslint/consistent-type-imports": "error",
+				"@typescript-eslint/no-explicit-any": "error",
+				"@typescript-eslint/no-shadow": "warn",
+				"@typescript-eslint/no-unnecessary-type-assertion": "warn",
+				"@typescript-eslint/no-unused-vars": "error"
 			}
 		},
 		{

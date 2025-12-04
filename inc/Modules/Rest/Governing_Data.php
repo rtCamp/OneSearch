@@ -60,9 +60,9 @@ class Governing_Data {
 			$endpoint,
 			[
 				'headers'    => [
-					'Accept'                    => 'application/json',
-					'Content-Type'              => 'application/json',
-					'X-OneSearch-Plugins-Token' => $our_public_key,
+					'Accept'            => 'application/json',
+					'Content-Type'      => 'application/json',
+					'X-OneSearch-Token' => $our_public_key,
 				],
 				'user-agent' => sprintf( 'OneSearch/%s', ONESEARCH_VERSION ),
 			]
@@ -129,7 +129,7 @@ class Governing_Data {
 			$all_sites = Settings::get_shared_sites();
 
 			$site_urls = array_map(
-				static fn( $site ) => esc_url_raw( $site['siteUrl'] ) ?: null,
+				static fn( $site ) => esc_url_raw( $site['url'] ) ?: null,
 				$all_sites
 			);
 
@@ -146,9 +146,9 @@ class Governing_Data {
 			$endpoint,
 			[
 				'headers'    => [
-					'Accept'                    => 'application/json',
-					'Content-Type'              => 'application/json',
-					'X-OneSearch-Plugins-Token' => $our_public_key,
+					'Accept'            => 'application/json',
+					'Content-Type'      => 'application/json',
+					'X-OneSearch-Token' => $our_public_key,
 				],
 				'user-agent' => sprintf( 'OneSearch/%s', ONESEARCH_VERSION ),
 			]
@@ -244,9 +244,9 @@ class Governing_Data {
 			$endpoint,
 			[
 				'headers'    => [
-					'Accept'                    => 'application/json',
-					'Content-Type'              => 'application/json',
-					'X-OneSearch-Plugins-Token' => $our_public_key,
+					'Accept'            => 'application/json',
+					'Content-Type'      => 'application/json',
+					'X-OneSearch-Token' => $our_public_key,
 				],
 				'user-agent' => sprintf( 'OneSearch/%s', ONESEARCH_VERSION ),
 			]

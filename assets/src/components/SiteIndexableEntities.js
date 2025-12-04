@@ -90,13 +90,13 @@ const SiteIndexableEntities = ( {
 		getIndexableEntities();
 	}, [ getIndexableEntities ] );
 
-	const handleSelectedEntitiesChange = ( selected, siteUrl ) => {
+	const handleSelectedEntitiesChange = ( selected, url ) => {
 		if ( controlsDisabled ) {
 			return;
 		}
 		setSelectedEntities( ( prev ) => ( {
 			...prev,
-			[ siteUrl ]: selected,
+			[ url ]: selected,
 		} ) );
 	};
 
@@ -246,14 +246,14 @@ const SiteIndexableEntities = ( {
 					<div key={ index } className="onesearch-entity-site onesearch-entity-brand">
 						<div className="onesearch-entity-site-header">
 							<h3 className="onesearch-entity-site-name">
-								{ site.siteName }
+								{ site.name }
 							</h3>
 							<p className="onesearch-entity-site-url">
-								{ site.siteUrl }
+								{ site.url }
 							</p>
 						</div>
 						{
-							! allPostTypes?.[ site?.siteUrl ] ? (
+							! allPostTypes?.[ site?.url ] ? (
 								<Text variant="muted">
 									{ __( 'No entities to select. Please check site configuration', 'onesearch' ) }
 								</Text>
@@ -261,9 +261,9 @@ const SiteIndexableEntities = ( {
 								<div className="onesearch-entity-selector">
 									<MultiSelectChips
 										placeholder={ __( 'Select entities…', 'onesearch' ) }
-										options={ allPostTypes?.[ site?.siteUrl ] || [] }
-										value={ selectedEntities?.[ site?.siteUrl ] || [] }
-										onChange={ ( next ) => handleSelectedEntitiesChange( next, site?.siteUrl ) }
+										options={ allPostTypes?.[ site?.url ] || [] }
+										value={ selectedEntities?.[ site?.url ] || [] }
+										onChange={ ( next ) => handleSelectedEntitiesChange( next, site?.url ) }
 										valueField="slug"
 										labelField="label"
 										disabled={ controlsDisabled }

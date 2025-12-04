@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import OnboardingScreen, { type SiteType } from './page';
 
-interface OneSearchPluginGlobal {
+interface OneSearchSettings {
 	nonce: string;
 	site_type: SiteType | '';
 	setup_url: string;
@@ -9,7 +9,7 @@ interface OneSearchPluginGlobal {
 
 declare global {
 	interface Window {
-		OneSearchPluginGlobal: OneSearchPluginGlobal;
+		OneSearchSettings: OneSearchSettings;
 	}
 }
 

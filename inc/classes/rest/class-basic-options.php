@@ -412,7 +412,7 @@ class Basic_Options {
 			return new \WP_Error( 'forbidden', __( 'Only governing site can reindex posts.', 'onesearch' ), [ 'status' => 403 ] );
 		}
 
-		$incoming_key = (string) ( $request->get_header( 'X-OneSearch-Plugins-Token' ) ?? '' );
+		$incoming_key = (string) ( $request->get_header( 'X-OneSearch-Token' ) ?? '' );
 
 		if ( empty( $incoming_key ) || ! Algolia_Index_By_Post::instance()->is_valid_child_token( $incoming_key ) ) {
 			return new \WP_Error( 'invalid_api_key', __( 'Invalid or missing API key.', 'onesearch' ), [ 'status' => 403 ] );
@@ -472,8 +472,8 @@ class Basic_Options {
 		}
 
 		$site_to_delete = $sites_data[ $site_index ];
-		$site_url       = empty( $site_to_delete['siteUrl'] ) ? '' : trailingslashit( $site_to_delete['siteUrl'] );
-		$site_key       = $site_to_delete['publicKey'] ?? '';
+		$site_url       = empty( $site_to_delete['url'] ) ? '' : trailingslashit( $site_to_delete['url'] );
+		$site_key       = $site_to_delete['api_key'] ?? '';
 
 		if ( empty( $site_url ) || empty( $site_key ) ) {
 			return new \WP_Error(
@@ -560,9 +560,9 @@ class Basic_Options {
 			[
 				'method'  => 'DELETE',
 				'headers' => [
-					'Accept'                    => 'application/json',
-					'Content-Type'              => 'application/json',
-					'X-OneSearch-Plugins-Token' => $site_key,
+					'Accept'            => 'application/json',
+					'Content-Type'      => 'application/json',
+					'X-OneSearch-Token' => $site_key,
 				],
 			]
 		);
@@ -614,9 +614,9 @@ class Basic_Options {
 				$bust_endpoint,
 				[
 					'headers' => [
-						'Accept'                    => 'application/json',
-						'Content-Type'              => 'application/json',
-						'X-OneSearch-Plugins-Token' => $site_key,
+						'Accept'            => 'application/json',
+						'Content-Type'      => 'application/json',
+						'X-OneSearch-Token' => $site_key,
 					],
 					'body'    => wp_json_encode( [] ) ?: '',
 				]
@@ -705,7 +705,7 @@ class Basic_Options {
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_search_settings_for_brand( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
-		$incoming_key = (string) ( $request->get_header( 'X-OneSearch-Plugins-Token' ) ?? '' );
+		$incoming_key = (string) ( $request->get_header( 'X-OneSearch-Token' ) ?? '' );
 		$is_admin     = current_user_can( 'manage_options' );
 
 		// Allow either admin or a valid child-site token.
@@ -747,17 +747,17 @@ class Basic_Options {
 		$shared_sites = Settings::get_shared_sites();
 
 		foreach ( $shared_sites as $site ) {
-			if ( empty( $site['siteUrl'] ) || empty( $site['publicKey'] ) ) {
+			if ( empty( $site['url'] ) || empty( $site['api_key'] ) ) {
 				continue;
 			}
 
-			$endpoint = trailingslashit( $site['siteUrl'] ) . 'wp-json/' . self::NAMESPACE . '/bust-search-settings-cache';
+			$endpoint = trailingslashit( $site['url'] ) . 'wp-json/' . self::NAMESPACE . '/bust-search-settings-cache';
 
 			wp_remote_post(
 				$endpoint,
 				[
 					'headers' => [
-						'X-OneSearch-Plugins-Token' => $site['publicKey'],
+						'X-OneSearch-Token' => $site['api_key'],
 					],
 				]
 			);
@@ -775,8 +775,8 @@ class Basic_Options {
 		$shared_sites = Settings::get_shared_sites();
 
 		foreach ( $shared_sites as $site ) {
-			if ( isset( $site['publicKey'] ) && $site['publicKey'] === $public_key ) {
-				return trailingslashit( $site['siteUrl'] );
+			if ( isset( $site['api_key'] ) && $site['api_key'] === $public_key ) {
+				return trailingslashit( $site['url'] );
 			}
 		}
 
@@ -871,7 +871,7 @@ class Basic_Options {
 	 */
 	public function get_searchable_sites_for_child( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
 
-		$incoming_key = (string) ( $request->get_header( 'X-OneSearch-Plugins-Token' ) ?? '' );
+		$incoming_key = (string) ( $request->get_header( 'X-OneSearch-Token' ) ?? '' );
 		$is_admin     = current_user_can( 'manage_options' );
 
 		if ( ! $is_admin ) {
@@ -888,11 +888,11 @@ class Basic_Options {
 		$searchable_urls = [];
 
 		foreach ( $shared_sites as $site ) {
-			if ( ! isset( $site['siteUrl'] ) ) {
+			if ( ! isset( $site['url'] ) ) {
 				continue;
 			}
 
-			$searchable_urls[] = (string) $site['siteUrl'];
+			$searchable_urls[] = (string) $site['url'];
 		}
 
 		$searchable_urls[] = trailingslashit( get_site_url() );
@@ -913,7 +913,7 @@ class Basic_Options {
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_algolia_credentials( \WP_REST_Request $request ) {
-		$incoming_key = (string) ( $request->get_header( 'X-OneSearch-Plugins-Token' ) ?? '' );
+		$incoming_key = (string) ( $request->get_header( 'X-OneSearch-Token' ) ?? '' );
 		$is_admin     = current_user_can( 'manage_options' );
 
 		if ( ! $is_admin ) {
@@ -949,7 +949,7 @@ class Basic_Options {
 		$shared_sites = Settings::get_shared_sites();
 
 		foreach ( $shared_sites as $site ) {
-			$site_key = isset( $site['publicKey'] ) ? (string) $site['publicKey'] : '';
+			$site_key = isset( $site['api_key'] ) ? (string) $site['api_key'] : '';
 			if ( ! empty( $site_key ) && $site_key === $key ) {
 				return true;
 			}
@@ -1007,9 +1007,9 @@ class Basic_Options {
 
 			if ( ! empty( $child_sites ) ) {
 				foreach ( $child_sites as $child ) {
-					$raw_url = isset( $child['siteUrl'] ) ? (string) $child['siteUrl'] : '';
+					$raw_url = isset( $child['url'] ) ? (string) $child['url'] : '';
 					$url     = rtrim( $raw_url, '/' );
-					$key     = isset( $child['publicKey'] ) ? (string) $child['publicKey'] : '';
+					$key     = isset( $child['api_key'] ) ? (string) $child['api_key'] : '';
 
 					if ( empty( $url ) || empty( $key ) ) {
 						$bust_results[ $url ?: '(missing)' ] = __( 'Missing URL or key.', 'onesearch' );
@@ -1022,9 +1022,9 @@ class Basic_Options {
 						$bust_endpoint,
 						[
 							'headers' => [
-								'Accept'       => 'application/json',
-								'Content-Type' => 'application/json',
-								'X-OneSearch-Plugins-Token' => $key,
+								'Accept'            => 'application/json',
+								'Content-Type'      => 'application/json',
+								'X-OneSearch-Token' => $key,
 							],
 							'body'    => wp_json_encode( [] ) ?: '',
 						]
@@ -1221,13 +1221,13 @@ class Basic_Options {
 			$child_sites = Settings::get_shared_sites();
 
 			foreach ( $child_sites as $child ) {
-				$child_site_url = isset( $child['siteUrl'] ) ? rtrim( (string) $child['siteUrl'], '/' ) : '';
-				$child_site_key = isset( $child['publicKey'] ) ? (string) $child['publicKey'] : '';
+				$child_site_url = isset( $child['url'] ) ? rtrim( (string) $child['url'], '/' ) : '';
+				$child_site_key = isset( $child['api_key'] ) ? (string) $child['api_key'] : '';
 
 				if ( empty( $child_site_url ) || empty( $child_site_key ) ) {
 					$errors[] = [
 						'site_url' => $child_site_url ?: '(missing)',
-						'message'  => __( 'Missing siteUrl or publicKey.', 'onesearch' ),
+						'message'  => __( 'Missing url or api_key.', 'onesearch' ),
 					];
 					continue;
 				}
@@ -1238,8 +1238,8 @@ class Basic_Options {
 					$endpoint,
 					[
 						'headers' => [
-							'Accept'                    => 'application/json',
-							'X-OneSearch-Plugins-Token' => $child_site_key,
+							'Accept'            => 'application/json',
+							'X-OneSearch-Token' => $child_site_key,
 						],
 					]
 				);
@@ -1361,14 +1361,14 @@ class Basic_Options {
 
 			if ( ! empty( $child_sites ) ) {
 				foreach ( $child_sites as $child ) {
-					$raw_url = isset( $child['siteUrl'] ) ? (string) $child['siteUrl'] : '';
+					$raw_url = isset( $child['url'] ) ? (string) $child['url'] : '';
 					$url     = Utils::normalize_url( $raw_url );
-					$key     = isset( $child['publicKey'] ) ? (string) $child['publicKey'] : '';
+					$key     = isset( $child['api_key'] ) ? (string) $child['api_key'] : '';
 
 					if ( empty( $url ) || empty( $key ) ) {
 						$results[ $url ?: '(missing)' ] = [
 							'status'  => 'error',
-							'message' => __( 'Missing siteUrl or publicKey for child.', 'onesearch' ),
+							'message' => __( 'Missing url or api_key for child.', 'onesearch' ),
 						];
 						continue;
 					}
@@ -1379,9 +1379,9 @@ class Basic_Options {
 						$endpoint,
 						[
 							'headers' => [
-								'Accept'       => 'application/json',
-								'Content-Type' => 'application/json',
-								'X-OneSearch-Plugins-Token' => $key,
+								'Accept'            => 'application/json',
+								'Content-Type'      => 'application/json',
+								'X-OneSearch-Token' => $key,
 							],
 							'body'    => wp_json_encode( [] ) ?: '',
 							'timeout' => 999, // phpcs:ignore WordPressVIPMinimum.Performance.RemoteRequestTimeout.timeout_timeout
@@ -1708,10 +1708,10 @@ class Basic_Options {
 		$urls = [];
 
 		foreach ( $sites_data as $site ) {
-			if ( isset( $site['siteUrl'] ) && in_array( $site['siteUrl'], $urls, true ) ) {
+			if ( isset( $site['url'] ) && in_array( $site['url'], $urls, true ) ) {
 				return new \WP_Error( 'duplicate_site_url', __( 'Brand Site already exists.', 'onesearch' ), [ 'status' => 400 ] );
 			}
-			$urls[] = $site['siteUrl'] ?? '';
+			$urls[] = $site['url'] ?? '';
 		}
 
 		$response = Settings::set_shared_sites( $sites_data );
@@ -1725,8 +1725,8 @@ class Basic_Options {
 
 		// Notify each child: set parent URL and bust searchable-sites cache.
 		foreach ( $sites_data as $child ) {
-			$raw_url = isset( $child['siteUrl'] ) ? (string) $child['siteUrl'] : '';
-			$raw_key = isset( $child['publicKey'] ) ? (string) $child['publicKey'] : '';
+			$raw_url = isset( $child['url'] ) ? (string) $child['url'] : '';
+			$raw_key = isset( $child['api_key'] ) ? (string) $child['api_key'] : '';
 
 			$url = trailingslashit( esc_url_raw( $raw_url ) );
 			$key = sanitize_text_field( $raw_key );
@@ -1743,9 +1743,9 @@ class Basic_Options {
 				$parent_url_endpoint,
 				[
 					'headers' => [
-						'Accept'                    => 'application/json',
-						'Content-Type'              => 'application/json',
-						'X-OneSearch-Plugins-Token' => $key,
+						'Accept'            => 'application/json',
+						'Content-Type'      => 'application/json',
+						'X-OneSearch-Token' => $key,
 					],
 					'body'    => wp_json_encode(
 						[
@@ -1762,9 +1762,9 @@ class Basic_Options {
 				$bust_endpoint,
 				[
 					'headers' => [
-						'Accept'                    => 'application/json',
-						'Content-Type'              => 'application/json',
-						'X-OneSearch-Plugins-Token' => $key,
+						'Accept'            => 'application/json',
+						'Content-Type'      => 'application/json',
+						'X-OneSearch-Token' => $key,
 					],
 					'body'    => wp_json_encode( [] ) ?: '',
 				]
@@ -1822,7 +1822,7 @@ class Basic_Options {
 			return true;
 		}
 
-		$incoming_key = (string) $request->get_header( 'X-OneSearch-Plugins-Token' );
+		$incoming_key = (string) $request->get_header( 'X-OneSearch-Token' );
 		$expected_key = Settings::get_api_key();
 
 		return ! empty( $incoming_key ) && ! empty( $expected_key ) && hash_equals( $expected_key, $incoming_key );

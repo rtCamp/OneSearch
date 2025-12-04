@@ -1,7 +1,7 @@
 /**
  * WordPress dependencies
  */
-import { useState, useRef } from '@wordpress/element';
+import { useState } from '@wordpress/element';
 import {
 	Modal,
 	TextControl,
@@ -10,51 +10,57 @@ import {
 	Notice,
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+
 /**
  * Internal dependencies
  */
-import { isValidUrl, REST_NAMESPACE, withTrailingSlash } from '../js/utils';
+import { CURRENT_SITE_URL, isValidUrl, withTrailingSlash } from '../js/utils';
+import { useMemo } from 'react';
 
-const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, currentSiteUrl = '' } ) => {
+/**
+ * Site Modal component for adding/editing a site.
+ *
+ * @param {Object}   props              - Component properties.
+ * @param {Object}   props.formData     - Current form data.
+ * @param {Function} props.setFormData  - Function to update form data.
+ * @param {Function} props.onSubmit     - Function to call on form submission.
+ * @param {Function} props.onClose      - Function to call on modal close.
+ * @param {boolean}  props.editing      - Whether the modal is in editing mode.
+ * @param {Object}   props.originalData - Original data for comparison when editing.
+ * @return {JSX.Element} Rendered component.
+ */
+const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, originalData = {} } ) => {
 	const [ errors, setErrors ] = useState( {
-		siteName: '',
-		siteUrl: '',
-		publicKey: '',
+		name: '',
+		url: '',
+		api_key: '',
 		message: '',
 	} );
 	const [ showNotice, setShowNotice ] = useState( false );
-	const [ isProcessing, setIsProcessing ] = useState( false ); // New state for processing
-
-	// Snapshot initial values once (when modal mounts)
-	const initialRef = useRef( formData );
-
-	const isDirty = ! editing ||
-		formData.siteName !== initialRef.current.siteName ||
-		formData.siteUrl !== initialRef.current.siteUrl ||
-		formData.publicKey !== initialRef.current.publicKey;
+	const [ isProcessing, setIsProcessing ] = useState( false );
 
 	const handleSubmit = async () => {
 		// Validate inputs
 		let siteUrlError = '';
-		if ( ! formData.siteUrl.trim() ) {
+		if ( ! formData.url.trim() ) {
 			siteUrlError = __( 'Site URL is required.', 'onesearch' );
-		} else if ( ! isValidUrl( formData.siteUrl ) ) {
+		} else if ( ! isValidUrl( formData.url ) ) {
 			siteUrlError = __( 'Enter a valid URL (must start with http or https).', 'onesearch' );
 		}
 
 		// Guarantee a trailing slash in the payload
-		formData.siteUrl = withTrailingSlash( formData.siteUrl );
+		formData.url = withTrailingSlash( formData.url );
 
 		const newErrors = {
-			siteName: ! formData.siteName.trim() ? __( 'Site Name is required.', 'onesearch' ) : '',
-			siteUrl: siteUrlError,
-			publicKey: ! formData.publicKey.trim() ? __( 'API Key is required.', 'onesearch' ) : '',
+			name: ! formData.name.trim() ? __( 'Site Name is required.', 'onesearch' ) : '',
+			url: siteUrlError,
+			api_key: ! formData.api_key.trim() ? __( 'API Key is required.', 'onesearch' ) : '',
 			message: '',
 		};
 
 		// Make sure site name is under 20 characters.
-		if ( formData.siteName.length > 20 ) {
-			newErrors.siteName = __( 'Site Name must be under 20 characters.', 'onesearch' );
+		if ( formData.name.length > 20 ) {
+			newErrors.name = __( 'Site Name must be under 20 characters.', 'onesearch' );
 		}
 
 		setErrors( newErrors );
@@ -72,13 +78,13 @@ const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, current
 		try {
 			// Perform health-check
 			const healthCheck = await fetch(
-				`${ withTrailingSlash( formData.siteUrl ) }wp-json/${ REST_NAMESPACE }/health-check`,
+				`${ formData.url }/wp-json/onesearch/v1/health-check`,
 				{
 					method: 'GET',
 					headers: {
 						'Content-Type': 'application/json',
-						'X-OneSearch-Plugins-Token': formData.publicKey,
-						'X-OneSearch-Requesting-Origin': currentSiteUrl,
+						'X-OneSearch-Token': formData.api_key,
+						'X-OneSearch-Requesting-Origin': CURRENT_SITE_URL,
 					},
 				},
 			);
@@ -138,6 +144,29 @@ const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, current
 		setIsProcessing( false );
 	};
 
+	const hasChanges = useMemo( () => {
+		if ( ! editing ) {
+			return true;
+		} // Always allow submission for new sites
+
+		return (
+			formData?.name !== originalData?.name ||
+			formData?.url !== originalData?.url ||
+			formData?.api_key !== originalData?.api_key ||
+			formData?.logo !== originalData?.logo
+		);
+	}, [ editing, formData, originalData ] );
+
+	// Button should be disabled if:
+	// 1. Currently processing, OR
+	// 2. Required fields are empty, OR
+	// 3. In editing mode and no changes have been made
+	const isButtonDisabled = isProcessing ||
+		! formData.name ||
+		! formData.url ||
+		! formData.api_key ||
+		( editing && ! hasChanges );
+
 	return (
 		<Modal
 			title={ editing ? __( 'Edit Brand Site', 'onesearch' ) : __( 'Add Brand Site', 'onesearch' ) }
@@ -150,15 +179,15 @@ const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, current
 					isDismissible={ true }
 					onRemove={ () => setShowNotice( false ) }
 				>
-					{ errors.message || errors.siteName || errors.siteUrl || errors.publicKey }
+					{ errors.message || errors.name || errors.url || errors.api_key }
 				</Notice>
 			) }
 
 			<TextControl
 				label={ __( 'Site Name*', 'onesearch' ) }
-				value={ formData.siteName }
-				onChange={ ( value ) => setFormData( { ...formData, siteName: value } ) }
-				error={ errors.siteName }
+				value={ formData.name }
+				onChange={ ( value ) => setFormData( { ...formData, name: value } ) }
+				error={ errors.name }
 				help={ __( 'This is the name of the site that will be registered.', 'onesearch' ) }
 				className="onesearch-site-modal-text"
 				__nextHasNoMarginBottom
@@ -166,9 +195,9 @@ const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, current
 			/>
 			<TextControl
 				label={ __( 'Site URL*', 'onesearch' ) }
-				value={ formData.siteUrl }
-				onChange={ ( value ) => setFormData( { ...formData, siteUrl: value } ) }
-				error={ errors.siteUrl }
+				value={ formData.url }
+				onChange={ ( value ) => setFormData( { ...formData, url: value } ) }
+				error={ errors.url }
 				help={ __( 'It must start with http or https, like: https://rtcamp.com/', 'onesearch' ) }
 				className="onesearch-site-modal-text"
 				__next40pxDefaultSize
@@ -176,19 +205,20 @@ const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, current
 			/>
 			<TextareaControl
 				label={ __( 'API Key*', 'onesearch' ) }
-				value={ formData.publicKey }
-				onChange={ ( value ) => setFormData( { ...formData, publicKey: value } ) }
-				error={ errors.publicKey }
+				value={ formData.api_key }
+				onChange={ ( value ) => setFormData( { ...formData, api_key: value } ) }
+				error={ errors.api_key }
 				help={ __( 'This is the API key that will be used to authenticate the site for onesearch.', 'onesearch' ) }
 				className="onesearch-site-modal-text"
 				__nextHasNoMarginBottom
 			/>
 
 			<Button
-				isPrimary
+				variant="primary"
 				onClick={ handleSubmit }
 				className={ isProcessing ? 'is-busy' : '' }
-				disabled={ isProcessing || ! formData.siteName || ! formData.siteUrl || ! formData.publicKey || ! isDirty }
+				disabled={ isButtonDisabled }
+				style={ { marginTop: '12px' } }
 			>
 				{ (
 					editing ? __( 'Update Site', 'onesearch' ) : __( 'Add Site', 'onesearch' )

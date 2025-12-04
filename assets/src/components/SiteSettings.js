@@ -2,20 +2,37 @@
  * WordPress dependencies
  */
 import { useEffect, useState, useCallback } from '@wordpress/element';
-import { TextareaControl, Button, Card, Notice, Spinner } from '@wordpress/components';
-import { __, sprintf } from '@wordpress/i18n';
+import {
+	TextareaControl,
+	Button,
+	Card,
+	Notice,
+	Spinner,
+	CardHeader,
+	CardBody,
+	TextControl,
+	Modal,
+} from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 
 /**
  * Internal dependencies
  */
-import { API_NAMESPACE, NONCE } from '../js/utils';
+import { API_NAMESPACE, NONCE, API_KEY } from '../js/utils';
 
+/**
+ * SiteSettings component for managing API key and governing site connection.
+ *
+ * @return {JSX.Element} Rendered component.
+ */
 const SiteSettings = () => {
-	const [ publicKey, setPublicKey ] = useState( '' );
+	const [ apiKey, setApiKey ] = useState( '' );
 	const [ isLoading, setIsLoading ] = useState( false );
 	const [ notice, setNotice ] = useState( null );
+	const [ governingSite, setGoverningSite ] = useState( '' );
+	const [ showDisconectionModal, setShowDisconectionModal ] = useState( false );
 
-	const fetchPublicKey = useCallback( async () => {
+	const fetchApiKey = useCallback( async () => {
 		try {
 			setIsLoading( true );
 			const response = await fetch( API_NAMESPACE + '/secret-key', {
@@ -23,13 +40,14 @@ const SiteSettings = () => {
 				headers: {
 					'Content-Type': 'application/json',
 					'X-WP-Nonce': NONCE,
+					'X-OneSearch-Token': API_KEY,
 				},
 			} );
 			if ( ! response.ok ) {
 				throw new Error( 'Network response was not ok' );
 			}
 			const data = await response.json();
-			setPublicKey( data?.secret_key || '' );
+			setApiKey( data?.secret_key || '' );
 		} catch ( error ) {
 			setNotice( {
 				type: 'error',
@@ -40,13 +58,14 @@ const SiteSettings = () => {
 		}
 	}, [] );
 
-	// Regenerate Public Key.
-	const regeneratePublicKey = useCallback( async () => {
+	// regenerate api key using REST endpoint.
+	const regenerateApiKey = useCallback( async () => {
 		try {
 			const response = await fetch( API_NAMESPACE + '/secret-key', {
 				method: 'POST',
 				headers: {
 					'X-WP-Nonce': NONCE,
+					'X-OneSearch-Token': API_KEY,
 				},
 			} );
 			if ( ! response.ok ) {
@@ -54,7 +73,7 @@ const SiteSettings = () => {
 			}
 			const data = await response.json();
 			if ( data?.secret_key ) {
-				setPublicKey( data.secret_key );
+				setApiKey( data.secret_key );
 				setNotice( {
 					type: 'warning',
 					message: __( 'API key regenerated successfully. Please update your old key with this newly generated key to make sure plugin works properly.', 'onesearch' ),
@@ -73,16 +92,82 @@ const SiteSettings = () => {
 		}
 	}, [] );
 
+	const fetchCurrentGoverningSite = useCallback( async () => {
+		setIsLoading( true );
+		try {
+			const response = await fetch(
+				`${ API_NAMESPACE }/governing-site?${ new Date().getTime() }`,
+				{
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-WP-Nonce': NONCE,
+						'X-OneSearch-Token': apiKey,
+					},
+				},
+			);
+			if ( ! response.ok ) {
+				throw new Error( 'Network response was not ok' );
+			}
+			const data = await response.json();
+			setGoverningSite( data?.governing_site_url || '' );
+		} catch ( error ) {
+			setNotice( {
+				type: 'error',
+				message: __( 'Failed to fetch governing site. Please try again later.', 'onesearch' ),
+			},
+			);
+		} finally {
+			setIsLoading( false );
+		}
+	}, [ apiKey ] );
+
+	const deleteGoverningSiteConnection = useCallback( async () => {
+		try {
+			const response = await fetch(
+				`${ API_NAMESPACE }/governing-site`,
+				{
+					method: 'DELETE',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-WP-Nonce': NONCE,
+						'X-OneSearch-Token': apiKey,
+					},
+				},
+			);
+			if ( ! response.ok ) {
+				throw new Error( 'Network response was not ok' );
+			}
+			setGoverningSite( '' );
+			setNotice( {
+				type: 'success',
+				message: __( 'Governing site disconnected successfully.', 'onesearch' ),
+			} );
+		} catch ( error ) {
+			setNotice( {
+				type: 'error',
+				message: __( 'Failed to disconnect governing site. Please try again later.', 'onesearch' ),
+			} );
+		} finally {
+			setShowDisconectionModal( false );
+		}
+	}, [ apiKey ] );
+
+	const handleDisconnectGoverningSite = useCallback( async () => {
+		setShowDisconectionModal( true );
+	}, [] );
+
 	useEffect( () => {
-		fetchPublicKey();
-	}, [ fetchPublicKey ] );
+		fetchApiKey();
+		fetchCurrentGoverningSite();
+	}, [ fetchApiKey, fetchCurrentGoverningSite ] );
 
 	if ( isLoading ) {
 		return <Spinner />;
 	}
 
 	return (
-		<Card className="onesearch-brand-site-settings">
+		<>
 			{ notice && (
 				<Notice
 					status={ notice.type }
@@ -92,49 +177,102 @@ const SiteSettings = () => {
 					{ notice.message }
 				</Notice>
 			) }
-			<div className="onesearch-public-key-card">
-				<TextareaControl
-					label={ __( 'API Key', 'onesearch' ) }
-					value={ publicKey }
-					disabled={ true }
-					help={ __( 'This key is used for secure communication with the Governing site.', 'onesearch' ) }
-					__nextHasNoMarginBottom
-				/>
-			</div>
-			{ /* Copy to clipboard button */ }
-			<Button
-				isPrimary
-				onClick={ () => {
-					navigator?.clipboard?.writeText( publicKey )
-						.then( () => {
-							setNotice( {
-								type: 'success',
-								message: __( 'API key copied to clipboard.', 'onesearch' ),
-							} );
-						} )
-						.catch( ( error ) => {
-							setNotice( {
-								type: 'error',
-								message: sprintf(
-									/** translators: %s is error message */
-									__( 'Failed to copy API key. Please try again. %s', 'onesearch' ),
-									error,
-								),
-							} );
-						} );
-				} }
+
+			<Card className="onesearch-brand-site-settings" style={ { marginTop: '30px' } } >
+				<CardHeader>
+					<h2>{ __( 'API Key', 'onesearch' ) }</h2>
+					<div>
+						{ /* Copy to clipboard button */ }
+						<Button
+							variant="primary"
+							onClick={ () => {
+								navigator?.clipboard?.writeText( apiKey )
+									.then( () => {
+										setNotice( {
+											type: 'success',
+											message: __( 'API key copied to clipboard.', 'onesearch' ),
+										} );
+									} )
+									.catch( ( error ) => {
+										setNotice( {
+											type: 'error',
+											message: __( 'Failed to copy api key. Please try again.', 'onesearch' ) + ' ' + error,
+										} );
+									} );
+							} }
+						>
+							{ __( 'Copy API Key', 'onesearch' ) }
+						</Button>
+						{ /* Regenerate key button */ }
+						<Button
+							variant="secondary"
+							onClick={ regenerateApiKey }
+							style={ { marginLeft: '10px' } }
+						>
+							{ __( 'Regenerate API Key', 'onesearch' ) }
+						</Button>
+					</div>
+				</CardHeader>
+				<CardBody>
+					<div>
+						<TextareaControl
+							value={ apiKey }
+							disabled={ true }
+							help={ __( 'This key is used for secure communication with the Governing site.', 'onesearch' ) }
+						/>
+					</div>
+				</CardBody>
+			</Card>
+
+			<Card className="governing-site-connection"
+				style={ { marginTop: '30px' } }
 			>
-				{ __( 'Copy API Key', 'onesearch' ) }
-			</Button>
-			{ /* Regenerate key button */ }
-			<Button
-				isSecondary
-				onClick={ regeneratePublicKey }
-				className="onesearch-regenerate-key-button"
-			>
-				{ __( 'Regenerate API Key', 'onesearch' ) }
-			</Button>
-		</Card>
+				<CardHeader>
+					<h2>{ __( 'Governing Site Connection', 'onesearch' ) }</h2>
+					<Button
+						variant="secondary"
+						isDestructive
+						onClick={ handleDisconnectGoverningSite }
+						disabled={ governingSite?.trim().length === 0 || isLoading }
+					>
+						{ __( 'Disconnect Governing Site', 'onesearch' ) }
+					</Button>
+				</CardHeader>
+				<CardBody>
+					<TextControl
+						label={ __( 'Governing Site URL', 'onesearch' ) }
+						value={ governingSite }
+						disabled={ true }
+						help={ __( 'This is the URL of the Governing site this Brand site is connected to.', 'onesearch' ) }
+					/>
+				</CardBody>
+			</Card>
+
+			{ showDisconectionModal && (
+				<Modal
+					title={ __( 'Disconnect Governing Site', 'onesearch' ) }
+					onRequestClose={ () => setShowDisconectionModal( false ) }
+					shouldCloseOnClickOutside={ true }
+				>
+					<p>{ __( 'Are you sure you want to disconnect from the governing site? This action cannot be undone.', 'onesearch' ) }</p>
+					<div style={ { display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '16px' } }>
+						<Button
+							variant="secondary"
+							onClick={ () => setShowDisconectionModal( false ) }
+						>
+							{ __( 'Cancel', 'onesearch' ) }
+						</Button>
+						<Button
+							variant="primary"
+							isDestructive
+							onClick={ deleteGoverningSiteConnection }
+						>
+							{ __( 'Disconnect', 'onesearch' ) }
+						</Button>
+					</div>
+				</Modal>
+			) }
+		</>
 	);
 };
 

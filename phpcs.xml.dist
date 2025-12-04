@@ -6,11 +6,9 @@
 >
 	<description>Sniffs for OneSearch plugin</description>
 
-	<!--
-		What to scan: include any root-level PHP files, and the /inc folder -->
+	<!-- What to scan: include any root-level PHP files, and the /inc folder -->
 	<file>./inc/</file>
 	<file>./onesearch.php</file>
-	<file>./custom-functions.php</file>
 	<file>./uninstall.php</file>
 
 	<!-- These are excluded from the above paths.-->
@@ -42,13 +40,13 @@
 
 	<!--
 		Tests for PHP version compatibility.
-	https://github.com/WordPress-Coding-Standards/WordPress-Coding-Standards#Recomended-additional-rulesets
+		https://github.com/WordPress-Coding-Standards/WordPress-Coding-Standards#Recomended-additional-rulesets
 	-->
 	<config name="testVersion" value="8.0-" />
 
 	<!--
 		Tests for WordPress version compatibility.
-	https://github.com/WordPress-Coding-Standards/WordPress-Coding-Standards/wiki/Customizable-sniff-properties
+		https://github.com/WordPress-Coding-Standards/WordPress-Coding-Standards/wiki/Customizable-sniff-properties
 	-->
 	<config name="minimum_wp_version" value="6.8" />
 
