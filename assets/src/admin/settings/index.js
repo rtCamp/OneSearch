@@ -4,6 +4,7 @@
 import { useState, useEffect, createRoot } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { Snackbar } from '@wordpress/components';
+
 /**
  * Internal dependencies
  */
@@ -11,7 +12,7 @@ import SiteTable from '../../components/SiteTable';
 import SiteModal from '../../components/SiteModal';
 import SiteSettings from '../../components/SiteSettings';
 import AlgoliaSettings from '../../components/AlgoliaSettings';
-import GoverningSiteConnection from '../../components/GoverningSiteConnection';
+
 import { API_NAMESPACE, NONCE } from '../../js/utils';
 
 /**
@@ -19,7 +20,6 @@ import { API_NAMESPACE, NONCE } from '../../js/utils';
  *
  * @return {JSX.Element} Rendered component.
  */
-
 const OneSearchSettingsPage = () => {
 	const [ siteType, setSiteType ] = useState( '' );
 	const [ showModal, setShowModal ] = useState( false );
@@ -75,12 +75,6 @@ const OneSearchSettingsPage = () => {
 		fetchData();
 	}, [] );
 
-	useEffect( () => {
-		if ( siteType === 'governing-site' && sites.length > 0 ) {
-			document.body.classList.remove( 'onesearch-missing-brand-sites' );
-		}
-	}, [ sites, siteType ] );
-
 	const handleFormSubmit = async () => {
 		const updated =
 			editingIndex !== null
@@ -127,16 +121,17 @@ const OneSearchSettingsPage = () => {
 	};
 
 	const handleDelete = async ( index ) => {
+		const updated = sites.filter( ( _, i ) => i !== index );
 		const token = NONCE;
 
 		try {
-			const response = await fetch( `${ API_NAMESPACE }/delete-site`, {
+			const response = await fetch( `${ API_NAMESPACE }/shared-sites`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 					'X-WP-NONCE': token,
 				},
-				body: JSON.stringify( { site_index: index } ),
+				body: JSON.stringify( { sites_data: updated } ),
 			} );
 
 			const data = await response.json();
@@ -151,8 +146,6 @@ const OneSearchSettingsPage = () => {
 				return;
 			}
 
-			// Update UI
-			const updated = sites.filter( ( _, i ) => i !== index );
 			setSites( updated );
 			setNotice( {
 				type: 'success',
@@ -203,17 +196,12 @@ const OneSearchSettingsPage = () => {
 					onDelete={ handleDelete }
 					setFormData={ setFormData }
 					setShowModal={ setShowModal }
+					setSites={ setSites }
 				/>
 			) }
 
 			{ siteType === 'governing-site' && (
 				<AlgoliaSettings setNotice={ setNotice } />
-			) }
-
-			{ siteType === 'brand-site' && (
-				<GoverningSiteConnection
-					setNotice={ setNotice }
-				/>
 			) }
 
 			{ showModal && (
@@ -227,6 +215,7 @@ const OneSearchSettingsPage = () => {
 						setFormData( { name: '', url: '', api_key: '' } );
 					} }
 					editing={ editingIndex !== null }
+					originalData={ sites[ editingIndex ] }
 				/>
 			) }
 		</>

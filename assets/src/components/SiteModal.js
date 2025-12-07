@@ -1,7 +1,3 @@
-/**
- * WordPress dependencies
- */
-import { useState } from '@wordpress/element';
 import {
 	Modal,
 	TextControl,
@@ -10,12 +6,8 @@ import {
 	Notice,
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
-
-/**
- * Internal dependencies
- */
-import { CURRENT_SITE_URL, isValidUrl, withTrailingSlash } from '../js/utils';
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { isValidUrl, withTrailingSlash, CURRENT_SITE_URL } from '../js/utils';
 
 /**
  * Site Modal component for adding/editing a site.

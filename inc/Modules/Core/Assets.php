@@ -11,6 +11,7 @@ namespace OneSearch\Modules\Core;
 
 use OneSearch\Contracts\Interfaces\Registrable;
 use OneSearch\Modules\Rest\Abstract_REST_Controller;
+use OneSearch\Modules\Search\Settings as Search_Settings;
 use OneSearch\Modules\Settings\Settings;
 
 /**
@@ -66,7 +67,7 @@ final class Assets implements Registrable {
 		if ( empty( self::$localized_data ) ) {
 			self::$localized_data = [
 				'currentSiteUrl'    => esc_url( home_url( '/' ) ),
-				'indexableEntities' => Settings::get_indexable_entities(),
+				'indexableEntities' => Search_Settings::get_indexable_entities(),
 				'nonce'             => wp_create_nonce( 'wp_rest' ),
 				'api_key'           => Settings::get_api_key(),
 				'restNamespace'     => Abstract_REST_Controller::NAMESPACE,

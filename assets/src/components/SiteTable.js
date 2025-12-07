@@ -11,6 +11,18 @@ import {
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
+/**
+ * SiteTable component to display and manage brand sites.
+ *
+ * @param {Object}   props              - Component properties.
+ * @param {Array}    props.sites        - List of brand sites.
+ * @param {Function} props.onEdit       - Function to handle editing a site.
+ * @param {Function} props.onDelete     - Function to handle deleting a site.
+ * @param {Function} props.setFormData  - Function to set form data for editing.
+ * @param {Function} props.setShowModal - Function to show/hide the modal for adding/editing a site.
+ *
+ * @return {JSX.Element} Rendered component.
+ */
 const SiteTable = ( {
 	sites,
 	onEdit,
@@ -95,8 +107,7 @@ const SiteTable = ( {
 								<tr key={ index }>
 									<td>{ site.name }</td>
 									<td>{ site.url }</td>
-									<td><code>{ site.api_key.slice( 0, 10 ) }…</code></td>
-
+									<td><code>{ site?.api_key.substring( 0, 10 ) }...</code></td>
 									<td>
 										<Button
 											variant="secondary"

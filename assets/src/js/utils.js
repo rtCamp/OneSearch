@@ -55,6 +55,11 @@ export const withTrailingSlash = ( url ) => {
 export const API_NAMESPACE = OneSearchSettings.restUrl + OneSearchSettings.restNamespace;
 
 /**
+ * The API key used for authenticating requests to the OneSearch REST API.
+ */
+export const API_KEY = OneSearchSettings.api_key;
+
+/**
  * WordPress REST API nonce for authenticated requests.
  *
  * @constant

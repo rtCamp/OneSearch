@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import {
@@ -9,6 +8,7 @@ import {
 	Button,
 	SelectControl,
 } from '@wordpress/components';
+import { useState, useEffect } from 'react';
 
 const BRAND_SITE = 'brand-site';
 const GOVERNING_SITE = 'governing-site';

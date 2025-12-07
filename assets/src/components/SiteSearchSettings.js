@@ -316,7 +316,7 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 	}
 
 	return (
-		<Card className="onesearch-card">
+		<Card className="onesearch-card" style={ { marginTop: '30px' } }>
 			<CardHeader>
 				<h2 className="onesearch-title">
 					{ __( 'Site Search Configuration', 'onesearch' ) }

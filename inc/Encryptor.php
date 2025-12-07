@@ -68,6 +68,10 @@ final class Encryptor {
 	 * @throws \RuntimeException When dependencies are missing or the payload is invalid.
 	 */
 	public static function decrypt( string $value ): string {
+		if ( empty( $value ) ) {
+			return '';
+		}
+
 		$decoded = base64_decode( $value, true );
 		if ( false === $decoded || strlen( $decoded ) < self::IV_LENGTH + self::TAG_LENGTH ) {
 			throw new \RuntimeException( 'Encrypted payload is invalid.' );

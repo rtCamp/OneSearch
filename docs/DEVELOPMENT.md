@@ -174,7 +174,6 @@ npm run test:php
 
 You should see the html coverage report in the `tests/_output/html` directory and the clover XML report in `tests/_output/php-coverage.xml`.
 
-
 ### Building the plugin for distribution
 
 To build the plugin for distribution, you can use the following commands`:

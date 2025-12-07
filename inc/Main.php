@@ -29,6 +29,12 @@ final class Main {
 		Modules\Settings\Admin::class,
 		Modules\Settings\Settings::class,
 		Modules\Search\Admin::class,
+		Modules\Search\Settings::class,
+		Modules\Rest\Basic_Options_Controller::class,
+
+		// @todo finish migrating legacy endpoints.
+		Inc\REST\Basic_Options::class,
+		Inc\Algolia\Algolia_Search::class,
 	];
 
 	/**
@@ -37,7 +43,6 @@ final class Main {
 	private const SINGLETON_CLASSES = [
 		Inc\Algolia\Algolia_Index::class,
 		Inc\Algolia\Algolia_Index_By_Post::class,
-		Inc\Algolia\Algolia_Search::class,
 	];
 
 	/**

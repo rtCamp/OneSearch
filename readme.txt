@@ -32,7 +32,6 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 = 1.0 =
 @todo
 
-
 == Support ==
 
 For support, feature requests, and bug reports, please visit our [GitHub repository](https://github.com/rtCamp/OneSearch).

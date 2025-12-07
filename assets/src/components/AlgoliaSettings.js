@@ -98,7 +98,7 @@ const AlgoliaSettings = ( { setNotice } ) => {
 	};
 
 	return (
-		<Card className="onesearch-card">
+		<Card className="onesearch-card" style={ { marginTop: '30px' } }>
 			<CardHeader>
 				<h2>{ __( 'Algolia Credentials', 'onesearch' ) }</h2>
 				<Button

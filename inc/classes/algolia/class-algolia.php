@@ -10,6 +10,7 @@ namespace OneSearch\Inc\Algolia;
 use Algolia\AlgoliaSearch\SearchClient;
 use OneSearch\Contracts\Traits\Singleton;
 use OneSearch\Modules\Rest\Governing_Data;
+use OneSearch\Modules\Search\Settings as Search_Settings;
 use OneSearch\Modules\Settings\Settings;
 
 /**
@@ -47,7 +48,7 @@ class Algolia {
 	public function get_client(): \Algolia\AlgoliaSearch\SearchClient|\WP_Error {
 		$creds = Settings::is_consumer_site()
 			? Governing_Data::get_algolia_credentials()
-			: Settings::get_algolia_credentials();
+			: Search_Settings::get_algolia_credentials();
 
 		if ( is_wp_error( $creds ) ) {
 			return $creds;

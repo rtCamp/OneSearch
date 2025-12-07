@@ -30,3 +30,5 @@ parameters:
 			analyseAndScan:
 				- node_modules (?)
 		ignoreErrors:
+			- # Too noisy for now.
+				identifier: missingType.generics

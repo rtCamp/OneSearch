@@ -10,6 +10,7 @@
 
 namespace OneSearch\Modules\Rest;
 
+use OneSearch\Modules\Search\Settings as Search_Settings;
 use OneSearch\Modules\Settings\Settings;
 
 /**
@@ -31,7 +32,7 @@ class Governing_Data {
 	 */
 	public static function get_algolia_credentials(): array|\WP_Error {
 		// Return cached value when available.
-		$cached = get_transient( Settings::OPTION_GOVERNING_ALGOLIA_CREDENTIALS . '_cache' );
+		$cached = get_transient( Search_Settings::OPTION_GOVERNING_ALGOLIA_CREDENTIALS . '_cache' );
 		if ( false !== $cached && is_array( $cached ) ) {
 			return [
 				'app_id'    => $cached['app_id'] ?? null,
@@ -101,7 +102,7 @@ class Governing_Data {
 			'admin_key' => isset( $response_data['admin_key'] ) ? sanitize_text_field( $response_data['admin_key'] ) : null,
 		];
 
-		set_transient( Settings::OPTION_GOVERNING_ALGOLIA_CREDENTIALS . '_cache', $sanitized, WEEK_IN_SECONDS );
+		set_transient( Search_Settings::OPTION_GOVERNING_ALGOLIA_CREDENTIALS . '_cache', $sanitized, WEEK_IN_SECONDS );
 
 		return $sanitized;
 	}
@@ -208,7 +209,7 @@ class Governing_Data {
 	 */
 	public static function get_search_settings(): array|\WP_Error {
 		// Return cached value when available.
-		$cached = get_transient( Settings::OPTION_GOVERNING_SEARCH_SETTINGS . '_cache' );
+		$cached = get_transient( Search_Settings::OPTION_GOVERNING_SEARCH_SETTINGS . '_cache' );
 		if ( false !== $cached && is_array( $cached ) ) {
 			return [
 				'algolia_enabled'  => $cached['algolia_enabled'] ?? false,
@@ -296,7 +297,7 @@ class Governing_Data {
 				: [],
 		];
 
-		set_transient( Settings::OPTION_GOVERNING_SEARCH_SETTINGS . '_cache', $sanitized, HOUR_IN_SECONDS );
+		set_transient( Search_Settings::OPTION_GOVERNING_SEARCH_SETTINGS . '_cache', $sanitized, HOUR_IN_SECONDS );
 
 		return $sanitized;
 	}
@@ -305,14 +306,14 @@ class Governing_Data {
 	 * Clear the cached brand-site search settings.
 	 */
 	public static function clear_search_settings_cache(): void {
-		delete_transient( Settings::OPTION_GOVERNING_SEARCH_SETTINGS . '_cache' );
+		delete_transient( Search_Settings::OPTION_GOVERNING_SEARCH_SETTINGS . '_cache' );
 	}
 
 	/**
 	 * Clear the cached Algolia credentials.
 	 */
 	public static function clear_credentials_cache(): void {
-		delete_transient( Settings::OPTION_GOVERNING_ALGOLIA_CREDENTIALS . '_cache' );
+		delete_transient( Search_Settings::OPTION_GOVERNING_ALGOLIA_CREDENTIALS . '_cache' );
 	}
 
 	/**
