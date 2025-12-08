@@ -247,18 +247,14 @@ final class Settings implements Registrable {
 
 		$brands_to_return = [];
 		foreach ( $brands as $brand ) {
-			if ( ! is_array( $brand ) ) {
+			if ( empty( $brand['url'] ) ) {
 				continue;
 			}
 
 			$decrypted_api_key = ! empty( $brand['api_key'] ) ? Encryptor::decrypt( $brand['api_key'] ) : '';
 
-			if ( is_wp_error( $decrypted_api_key ) ) {
-				$decrypted_api_key = '';
-			}
-
 			$brands_to_return[ $brand['url'] ] = [
-				'api_key' => $decrypted_api_key,
+				'api_key' => $decrypted_api_key ?: '',
 				'id'      => $brand['id'] ?? '',
 				'logo'    => $brand['logo'] ?? '',
 				'logo_id' => $brand['logo_id'] ?? 0,
@@ -317,7 +313,7 @@ final class Settings implements Registrable {
 			$api_key = Encryptor::encrypt( $site['api_key'] );
 
 			// Bail if encryption fails.
-			if ( is_wp_error( $api_key ) ) {
+			if ( false === $api_key ) {
 				return false;
 			}
 		}
@@ -358,11 +354,7 @@ final class Settings implements Registrable {
 
 		$api_key = ! empty( $api_key ) ? Encryptor::decrypt( $api_key ) : '';
 
-		if ( is_wp_error( $api_key ) || empty( $api_key ) ) {
-			$api_key = '';
-		}
-
-		return $api_key;
+		return $api_key ?: '';
 	}
 
 	/**
@@ -375,11 +367,11 @@ final class Settings implements Registrable {
 
 		$encrypted_key = Encryptor::encrypt( $api_key );
 
-		if ( is_wp_error( $encrypted_key ) ) {
+		if ( ! $encrypted_key ) {
 			return '';
 		}
 
-		update_option( self::OPTION_CONSUMER_API_KEY, Encryptor::encrypt( $encrypted_key ) );
+		update_option( self::OPTION_CONSUMER_API_KEY, $encrypted_key, false );
 
 		return $api_key;
 	}
