@@ -41,18 +41,20 @@ final class Encryptor {
 	 *
 	 * @param string $value The value to encrypt.
 	 *
-	 * @return string The encrypted value.
-	 *
-	 * @throws \RuntimeException When dependencies are missing or encryption fails.
+	 * @return string|\WP_Error
 	 */
-	public static function encrypt( string $value ): string {
+	public static function encrypt( string $value ): string|\WP_Error {
+		if ( empty( $value ) ) {
+			return '';
+		}
+
 		$key = self::derive_key();
 		$iv  = random_bytes( self::IV_LENGTH );
 
 		$tag        = '';
 		$ciphertext = openssl_encrypt( $value, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag );
 		if ( false === $ciphertext ) {
-			throw new \RuntimeException( 'Failed to encrypt value.' );
+			return new \WP_Error( 'onesearch_encryption_failed', __( 'Failed to encrypt value.', 'onesearch' ) );
 		}
 
 		return base64_encode( $iv . $tag . $ciphertext );
@@ -63,18 +65,16 @@ final class Encryptor {
 	 *
 	 * @param string $value The value to decrypt.
 	 *
-	 * @return string The decrypted value.
-	 *
-	 * @throws \RuntimeException When dependencies are missing or the payload is invalid.
+	 * @return string|\WP_Error
 	 */
-	public static function decrypt( string $value ): string {
+	public static function decrypt( string $value ): string|\WP_Error {
 		if ( empty( $value ) ) {
 			return '';
 		}
 
 		$decoded = base64_decode( $value, true );
 		if ( false === $decoded || strlen( $decoded ) < self::IV_LENGTH + self::TAG_LENGTH ) {
-			throw new \RuntimeException( 'Encrypted payload is invalid.' );
+			return new \WP_Error( 'onesearch_decryption_failed', __( 'Invalid encryption', 'onesearch' ) );
 		}
 
 		$key        = self::derive_key();
@@ -84,7 +84,7 @@ final class Encryptor {
 
 		$plaintext = openssl_decrypt( $ciphertext, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag );
 		if ( false === $plaintext ) {
-			throw new \RuntimeException( 'Failed to decrypt value.' );
+			return new \WP_Error( 'onesearch_decryption_failed', __( 'Failed to decrypt value.', 'onesearch' ) );
 		}
 
 		return $plaintext;

@@ -251,9 +251,9 @@ final class Settings implements Registrable {
 				continue;
 			}
 
-			try {
-				$decrypted_api_key = ! empty( $brand['api_key'] ) ? Encryptor::decrypt( $brand['api_key'] ) : '';
-			} catch ( \RuntimeException $e ) {
+			$decrypted_api_key = ! empty( $brand['api_key'] ) ? Encryptor::decrypt( $brand['api_key'] ) : '';
+
+			if ( is_wp_error( $decrypted_api_key ) ) {
 				$decrypted_api_key = '';
 			}
 
@@ -314,7 +314,12 @@ final class Settings implements Registrable {
 				continue;
 			}
 
-			$site['api_key'] = Encryptor::encrypt( $site['api_key'] );
+			$api_key = Encryptor::encrypt( $site['api_key'] );
+
+			// Bail if encryption fails.
+			if ( is_wp_error( $api_key ) ) {
+				return false;
+			}
 		}
 
 		return update_option( self::OPTION_GOVERNING_SHARED_SITES, array_values( $sites ), false );
@@ -345,13 +350,15 @@ final class Settings implements Registrable {
 
 	/**
 	 * Gets the API key, generating a new one if it doesn't exist.
+	 *
+	 * Returns an empty string on failure.
 	 */
 	public static function get_api_key(): string {
 		$api_key = get_option( self::OPTION_CONSUMER_API_KEY, '' );
 
-		try {
-			$api_key = ! empty( $api_key ) ? Encryptor::decrypt( $api_key ) : '';
-		} catch ( \RuntimeException $e ) {
+		$api_key = ! empty( $api_key ) ? Encryptor::decrypt( $api_key ) : '';
+
+		if ( is_wp_error( $api_key ) || empty( $api_key ) ) {
 			$api_key = '';
 		}
 
@@ -360,10 +367,19 @@ final class Settings implements Registrable {
 
 	/**
 	 * Regenerates the API key.
+	 *
+	 * @return string The new (unencrypted) API key.
 	 */
 	public static function regenerate_api_key(): string {
 		$api_key = self::generate_api_key();
-		update_option( self::OPTION_CONSUMER_API_KEY, Encryptor::encrypt( $api_key ) );
+
+		$encrypted_key = Encryptor::encrypt( $api_key );
+
+		if ( is_wp_error( $encrypted_key ) ) {
+			return '';
+		}
+
+		update_option( self::OPTION_CONSUMER_API_KEY, Encryptor::encrypt( $encrypted_key ) );
 
 		return $api_key;
 	}

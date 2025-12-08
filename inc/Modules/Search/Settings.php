@@ -10,6 +10,7 @@ declare(strict_types = 1);
 namespace OneSearch\Modules\Search;
 
 use OneSearch\Contracts\Interfaces\Registrable;
+use OneSearch\Encryptor;
 use OneSearch\Inc\Algolia\Algolia;
 use OneSearch\Modules\Settings\Settings as Admin_Settings;
 use OneSearch\Utils;
@@ -268,10 +269,16 @@ final class Settings implements Registrable {
 			return false;
 		}
 
+		$write_key = isset( $value['write_key'] ) ? sanitize_text_field( $value['write_key'] ) : null;
+		$write_key = ! empty( $write_key ) ? Encryptor::encrypt( $write_key ) : null;
+
+		$admin_key = isset( $value['admin_key'] ) ? sanitize_text_field( $value['admin_key'] ) : null;
+		$admin_key = ! empty( $admin_key ) ? Encryptor::encrypt( $admin_key ) : null;
+
 		$sanitized = [
 			'app_id'    => isset( $value['app_id'] ) ? sanitize_text_field( $value['app_id'] ) : null,
-			'write_key' => isset( $value['write_key'] ) ? sanitize_text_field( $value['write_key'] ) : null,
-			'admin_key' => isset( $value['admin_key'] ) ? sanitize_text_field( $value['admin_key'] ) : null,
+			'write_key' => ! empty( $write_key ) && ! is_wp_error( $write_key ) ? $write_key : null,
+			'admin_key' => ! empty( $admin_key ) && ! is_wp_error( $admin_key ) ? $admin_key : null,
 		];
 
 		return update_option( self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS, $sanitized );
