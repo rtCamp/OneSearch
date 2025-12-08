@@ -7,7 +7,7 @@ import {
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { useState, useMemo } from 'react';
-import { isValidUrl, withTrailingSlash, CURRENT_SITE_URL } from '../js/utils';
+import { isValidUrl, withTrailingSlash } from '../js/utils';
 
 /**
  * Site Modal component for adding/editing a site.
@@ -76,24 +76,11 @@ const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, origina
 					headers: {
 						'Content-Type': 'application/json',
 						'X-OneSearch-Token': formData.api_key,
-						'X-OneSearch-Requesting-Origin': CURRENT_SITE_URL,
 					},
 				},
 			);
 
 			const healthCheckData = await healthCheck.json();
-
-			if ( healthCheckData?.code === 'already_connected' ) {
-				setErrors( {
-					...newErrors,
-					message:
-						healthCheckData?.message ||
-						__( 'This site is already connected to a governing site.', 'onesearch' ),
-				} );
-				setShowNotice( true );
-				setIsProcessing( false );
-				return;
-			}
 
 			if ( ! healthCheckData.success ) {
 				setErrors( {

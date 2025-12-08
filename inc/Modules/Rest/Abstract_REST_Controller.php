@@ -66,8 +66,8 @@ abstract class Abstract_REST_Controller extends WP_REST_Controller implements Re
 			return current_user_can( 'manage_options' );
 		}
 
-		// See if the `X_ONESEARCH_TOKEN` header is present.
-		$token = $request->get_header( 'X_ONESEARCH_TOKEN' );
+		// See if the `X-OneSearch-Token` header is present.
+		$token = $request->get_header( 'X-OneSearch-Token' );
 		$token = ! empty( $token ) ? sanitize_text_field( wp_unslash( $token ) ) : '';
 
 		// Bail if the token is missing or invalid.

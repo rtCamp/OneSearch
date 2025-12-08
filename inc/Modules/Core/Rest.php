@@ -39,8 +39,7 @@ final class Rest implements Registrable {
 		return array_merge(
 			$headers,
 			[
-				'',
-				'X-OneSearch-Requesting-Origin',
+				'X-OneSearch-Token',
 			]
 		);
 	}

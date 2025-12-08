@@ -84,21 +84,7 @@ class Basic_Options_Controller extends Abstract_REST_Controller {
 			[
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => [ $this, 'health_check' ],
-				'permission_callback' => static function (): bool {
-					// Check if the request is from the governing site.
-					if ( Settings::is_governing_site() ) {
-						return (bool) current_user_can( 'manage_options' );
-					}
-
-					if ( empty( $_SERVER['HTTP_X_ONESEARCH_TOKEN'] ) ) {
-						return false;
-					}
-
-					// Check X-OneSearch-Token header.
-					$token = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_ONESEARCH_TOKEN'] ) );
-
-					return ! empty( $token ) && hash_equals( Settings::get_api_key(), $token );
-				},
+				'permission_callback' => [ $this, 'check_api_permissions' ],
 			]
 		);
 
@@ -254,31 +240,6 @@ class Basic_Options_Controller extends Abstract_REST_Controller {
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function health_check(): WP_REST_Response|\WP_Error {
-		$requesting_origin = '';
-		if ( isset( $_SERVER['HTTP_X_ONESEARCH_REQUESTING_ORIGIN'] ) && ! empty( $_SERVER['HTTP_X_ONESEARCH_REQUESTING_ORIGIN'] ) ) {
-			$requesting_origin = trailingslashit( esc_url_raw( wp_unslash( $_SERVER['HTTP_X_ONESEARCH_REQUESTING_ORIGIN'] ) ) );
-		}
-
-		$existing_parent_url = Settings::get_parent_site_url();
-		if ( ! empty( $existing_parent_url ) ) {
-			$governing_site_url = trailingslashit( esc_url_raw( $existing_parent_url ) );
-
-			if ( ! empty( $requesting_origin ) && $governing_site_url !== $requesting_origin ) {
-				return rest_ensure_response(
-					[
-						'success'         => false,
-						'code'            => 'already_connected',
-						'message'         => sprintf(
-							/* translators: %s: governing site url */
-							__( 'This site is already connected to a governing site at: %s', 'onesearch' ),
-							$governing_site_url
-						),
-						'parent_site_url' => $governing_site_url,
-					]
-				);
-			}
-		}
-
 		return rest_ensure_response(
 			[
 				'success' => true,
