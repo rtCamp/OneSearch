@@ -8,8 +8,8 @@
 namespace OneSearch\Inc\Algolia;
 
 use OneSearch\Contracts\Interfaces\Registrable;
-use OneSearch\Contracts\Traits\Singleton;
 use OneSearch\Modules\Rest\Governing_Data;
+use OneSearch\Modules\Search\Settings as Search_Settings;
 use OneSearch\Modules\Settings\Settings;
 use OneSearch\Utils;
 use WP_Post;
@@ -20,8 +20,6 @@ use stdClass;
  */
 class Algolia_Search implements Registrable {
 
-	use Singleton;
-
 	/**
 	 * {@inheritDoc}
 	 */
@@ -30,7 +28,7 @@ class Algolia_Search implements Registrable {
 		if ( Settings::is_consumer_site() ) {
 			$search_config = Governing_Data::get_search_settings();
 		} else {
-			$all_settings  = Settings::get_search_settings();
+			$all_settings  = Search_Settings::get_search_settings();
 			$search_config = $all_settings[ Utils::normalize_url( (string) get_site_url() ) ] ?? null;
 		}
 
@@ -770,7 +768,7 @@ class Algolia_Search implements Registrable {
 	private function get_searchable_site_urls(): array {
 		// Parent: use local data.
 		if ( Settings::is_governing_site() ) {
-			$search_config  = Settings::get_search_settings();
+			$search_config  = Search_Settings::get_search_settings();
 			$selected_sites = $search_config[ trailingslashit( get_site_url() ) ] ?? [];
 			return $selected_sites['searchable_sites'] ?? [];
 		}

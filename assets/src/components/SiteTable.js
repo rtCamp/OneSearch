@@ -11,6 +11,18 @@ import {
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
+/**
+ * SiteTable component to display and manage brand sites.
+ *
+ * @param {Object}   props              - Component properties.
+ * @param {Array}    props.sites        - List of brand sites.
+ * @param {Function} props.onEdit       - Function to handle editing a site.
+ * @param {Function} props.onDelete     - Function to handle deleting a site.
+ * @param {Function} props.setFormData  - Function to set form data for editing.
+ * @param {Function} props.setShowModal - Function to show/hide the modal for adding/editing a site.
+ *
+ * @return {JSX.Element} Rendered component.
+ */
 const SiteTable = ( {
 	sites,
 	onEdit,
@@ -44,11 +56,13 @@ const SiteTable = ( {
 	};
 
 	return (
-		<Card className="onesearch-entities-card">
+		<Card style={ { marginTop: '30px' } }>
 			<CardHeader>
 				<h3>{ __( 'Brand Sites', 'onesearch' ) }</h3>
+
 				<Button
-					isPrimary
+					style={ { width: 'fit-content' } }
+					variant="primary"
 					onClick={ () => setShowModal( true ) }
 					disabled={ busyIndex !== null }
 				>
@@ -76,7 +90,7 @@ const SiteTable = ( {
 							</tr>
 						) }
 
-						{ sites.map( ( site, index ) => {
+						{ sites?.map( ( site, index ) => {
 							const isBusy = busyIndex === index;
 
 							const handleEdit = () => {
@@ -91,16 +105,15 @@ const SiteTable = ( {
 
 							return (
 								<tr key={ index }>
-									<td>{ site.siteName }</td>
-									<td>{ site.siteUrl }</td>
-									<td><code>{ site.publicKey.slice( 0, 10 ) }…</code></td>
-
+									<td>{ site.name }</td>
+									<td>{ site.url }</td>
+									<td><code>{ site?.api_key.substring( 0, 10 ) }...</code></td>
 									<td>
 										<Button
 											variant="secondary"
-											disabled={ isBusy }
 											onClick={ handleEdit }
 											className="onesearch-button-group"
+											disabled={ site?.is_editable === false || isBusy }
 										>
 											{ __( 'Edit', 'onesearch' ) }
 										</Button>
@@ -124,36 +137,47 @@ const SiteTable = ( {
 				</table>
 			</CardBody>
 
-			{ /* Confirmation modal */ }
 			{ showDeleteModal && (
-				<Modal
-					title={ __( 'Delete Brand Site', 'onesearch' ) }
-					onRequestClose={ cancelDelete }
-					isDismissible
-				>
-					<p>
-						{ __( 'Are you sure you want to delete this Brand Site? This action cannot be undone.', 'onesearch' ) }
-					</p>
-
-					<Button
-						variant="secondary"
-						isDestructive
-						onClick={ confirmDelete }
-					>
-						{ __( 'Delete', 'onesearch' ) }
-					</Button>
-
-					<Button
-						variant="secondary"
-						onClick={ cancelDelete }
-						className="onesearch-regenerate-key-button"
-					>
-						{ __( 'Cancel', 'onesearch' ) }
-					</Button>
-				</Modal>
+				<DeleteConfirmationModal
+					onConfirm={ confirmDelete }
+					onCancel={ cancelDelete }
+				/>
 			) }
 		</Card>
 	);
 };
+
+/**
+ * DeleteConfirmationModal component for confirming site deletion.
+ *
+ * @param {Object}   props           - Component properties.
+ * @param {Function} props.onConfirm - Function to call on confirmation.
+ * @param {Function} props.onCancel  - Function to call on cancellation.
+ * @return {JSX.Element} Rendered component.
+ */
+const DeleteConfirmationModal = ( { onConfirm, onCancel } ) => (
+	<Modal
+		title={ __( 'Delete Brand Site', 'onesearch' ) }
+		onRequestClose={ onCancel }
+		isDismissible={ true }
+	>
+		<p>{ __( 'Are you sure you want to delete this Brand Site? This action cannot be undone.', 'onesearch' ) }</p>
+		<div style={ { display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '16px' } }>
+			<Button
+				variant="secondary"
+				onClick={ onCancel }
+			>
+				{ __( 'Cancel', 'onesearch' ) }
+			</Button>
+			<Button
+				variant="primary"
+				isDestructive
+				onClick={ onConfirm }
+			>
+				{ __( 'Delete', 'onesearch' ) }
+			</Button>
+		</div>
+	</Modal>
+);
 
 export default SiteTable;

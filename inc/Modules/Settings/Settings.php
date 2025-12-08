@@ -10,7 +10,7 @@ declare(strict_types = 1);
 namespace OneSearch\Modules\Settings;
 
 use OneSearch\Contracts\Interfaces\Registrable;
-use OneSearch\Utils;
+use OneSearch\Encryptor;
 
 /**
  * Class - Settings
@@ -35,10 +35,7 @@ final class Settings implements Registrable {
 	public const OPTION_CONSUMER_API_KEY         = self::SETTING_PREFIX . 'consumer_api_key';
 	public const OPTION_CONSUMER_PARENT_SITE_URL = self::SETTING_PREFIX . 'parent_site_url';
 	// Governing settings.
-	public const OPTION_GOVERNING_ALGOLIA_CREDENTIALS = self::SETTING_PREFIX . 'algolia_credentials';
-	public const OPTION_GOVERNING_INDEXABLE_SITES     = self::SETTING_PREFIX . 'indexable_entities';
-	public const OPTION_GOVERNING_SHARED_SITES        = self::SETTING_PREFIX . 'shared_sites';
-	public const OPTION_GOVERNING_SEARCH_SETTINGS     = self::SETTING_PREFIX . 'sites_search_settings';
+	public const OPTION_GOVERNING_SHARED_SITES = self::SETTING_PREFIX . 'shared_sites';
 
 	/**
 	 * Site type keys.
@@ -111,7 +108,7 @@ final class Settings implements Registrable {
 		];
 
 		$governing_settings = [
-			self::OPTION_GOVERNING_SHARED_SITES        => [
+			self::OPTION_GOVERNING_SHARED_SITES => [
 				'type'              => 'array',
 				'label'             => __( 'Brand Sites', 'onesearch' ),
 				'description'       => __( 'An array of brand sites connected to this governing site.', 'onesearch' ),
@@ -122,89 +119,30 @@ final class Settings implements Registrable {
 						'items' => [
 							'type'       => 'object',
 							'properties' => [
-								'id'        => [
+								'id'      => [
 									'type' => 'string',
 								],
-								'siteName'  => [
+								'name'    => [
 									'type' => 'string',
 								],
-								'siteUrl'   => [
+								'url'     => [
 									'type'   => 'string',
 									'format' => 'uri',
 								],
-								'logo'      => [
+								'logo'    => [
 									'type'   => 'string',
 									'format' => 'uri',
 								],
-								'publicKey' => [
+								'logo_id' => [
+									'type' => 'integer',
+								],
+								'api_key' => [
 									'type' => 'string',
 								],
 							],
 						],
 					],
 				],
-			],
-			self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS => [
-				'type'              => 'object',
-				'label'             => __( 'Algolia Credentials', 'onesearch' ),
-				'description'       => __( 'Credentials used to connect to the Algolia service.', 'onesearch' ),
-				'sanitize_callback' => static function ( $value ) {
-					if ( ! is_array( $value ) ) {
-						return null;
-					}
-
-					return [
-						'app_id'    => isset( $value['app_id'] ) ? sanitize_text_field( $value['app_id'] ) : null,
-						'write_key' => isset( $value['write_key'] ) ? sanitize_text_field( $value['write_key'] ) : null,
-						'admin_key' => isset( $value['admin_key'] ) ? sanitize_text_field( $value['admin_key'] ) : null,
-					];
-				},
-				'show_in_rest'      => false,
-			],
-			self::OPTION_GOVERNING_INDEXABLE_SITES     => [
-				// It's an object with a string key and string[] values.
-				'type'              => 'object',
-				'label'             => __( 'Indexable Entities', 'onesearch' ),
-				'description'       => __( 'List of content types that can be indexed by brand sites.', 'onesearch' ),
-				'sanitize_callback' => static function ( $value ) {
-					if ( ! is_array( $value ) ) {
-						return [];
-					}
-
-					// @todo what is this array shape?
-					return $value;
-				},
-				'show_in_rest'      => true,
-			],
-			self::OPTION_GOVERNING_SEARCH_SETTINGS     => [
-				'type'              => 'object',
-				'label'             => __( 'Sites Search Settings', 'onesearch' ),
-				'description'       => __( 'Search settings for brand sites.', 'onesearch' ),
-				'sanitize_callback' => static function ( $value ) {
-					if ( ! is_array( $value ) ) {
-						return [];
-					}
-
-					$sanitized = [];
-					foreach ( $value as $site_url => $settings ) {
-						$normalized_url = Utils::normalize_url( $site_url );
-						if ( ! is_array( $settings ) ) {
-							$sanitized[ $normalized_url ] = [
-								'algolia_enabled'  => false,
-								'searchable_sites' => [],
-							];
-							continue;
-						}
-
-						$sanitized[ $normalized_url ] = [
-							'algolia_enabled'  => isset( $settings['algolia_enabled'] ) ? (bool) $settings['algolia_enabled'] : false,
-							'searchable_sites' => isset( $settings['searchable_sites'] ) && is_array( $settings['searchable_sites'] ) ? array_map( 'sanitize_text_field', $settings['searchable_sites'] ) : [],
-						];
-					}
-
-					return $sanitized;
-				},
-				'show_in_rest'      => true,
 			],
 		];
 
@@ -244,10 +182,11 @@ final class Settings implements Registrable {
 	 *
 	 * @return array{
 	 * id: string,
-	 * siteName: string,
-	 * siteUrl: string,
+	 * name: string,
+	 * url: string,
 	 * logo: string,
-	 * publicKey: string
+	 * logo_id: int,
+	 * api_key: string
 	 * }[]
 	 */
 	public static function sanitize_shared_sites( $input ): array {
@@ -263,10 +202,11 @@ final class Settings implements Registrable {
 			}
 
 			$site_id      = isset( $site_data['id'] ) ? sanitize_text_field( $site_data['id'] ) : '';
-			$site_name    = isset( $site_data['siteName'] ) ? sanitize_text_field( $site_data['siteName'] ) : '';
-			$site_url     = isset( $site_data['siteUrl'] ) ? esc_url_raw( $site_data['siteUrl'] ) : '';
+			$site_name    = isset( $site_data['name'] ) ? sanitize_text_field( $site_data['name'] ) : '';
+			$site_url     = isset( $site_data['url'] ) ? esc_url_raw( $site_data['url'] ) : '';
 			$site_logo    = isset( $site_data['logo'] ) ? esc_url_raw( $site_data['logo'] ) : '';
-			$site_api_key = isset( $site_data['publicKey'] ) ? sanitize_text_field( $site_data['publicKey'] ) : '';
+			$site_logo_id = isset( $site_data['logo_id'] ) ? absint( $site_data['logo_id'] ) : 0;
+			$site_api_key = isset( $site_data['api_key'] ) ? sanitize_text_field( $site_data['api_key'] ) : '';
 
 			// Only save if required fields are filled.
 			if ( empty( $site_name ) || empty( $site_url ) ) {
@@ -274,11 +214,12 @@ final class Settings implements Registrable {
 			}
 
 			$sanitized[] = [
-				'id'        => $site_id ?: wp_generate_uuid4(),
-				'siteName'  => $site_name,
-				'siteUrl'   => Utils::normalize_url( $site_url ),
-				'logo'      => $site_logo,
-				'publicKey' => $site_api_key,
+				'id'      => $site_id ?: wp_generate_uuid4(),
+				'name'    => $site_name,
+				'url'     => untrailingslashit( $site_url ),
+				'logo'    => $site_logo,
+				'logo_id' => $site_logo_id,
+				'api_key' => $site_api_key,
 			];
 		}
 
@@ -293,11 +234,12 @@ final class Settings implements Registrable {
 	 * Get brand sites configured for this governing site.
 	 *
 	 * @return array<string,array{
-	 *  publicKey: string,
+	 *  api_key: string,
 	 *  id: string,
 	 *  logo: string,
-	 *  siteName: string,
-	 *  siteUrl: string,
+	 *  logo_id: int,
+	 *  name: string,
+	 *  url: string,
 	 * }>
 	 */
 	public static function get_shared_sites(): array {
@@ -309,12 +251,19 @@ final class Settings implements Registrable {
 				continue;
 			}
 
-			$brands_to_return[ $brand['siteUrl'] ] = [
-				'publicKey' => $brand['publicKey'] ?? '',
-				'id'        => $brand['id'] ?? '',
-				'logo'      => $brand['logo'] ?? '',
-				'siteName'  => $brand['siteName'] ?? '',
-				'siteUrl'   => $brand['siteUrl'] ?? '',
+			$decrypted_api_key = ! empty( $brand['api_key'] ) ? Encryptor::decrypt( $brand['api_key'] ) : '';
+
+			if ( is_wp_error( $decrypted_api_key ) ) {
+				$decrypted_api_key = '';
+			}
+
+			$brands_to_return[ $brand['url'] ] = [
+				'api_key' => $decrypted_api_key,
+				'id'      => $brand['id'] ?? '',
+				'logo'    => $brand['logo'] ?? '',
+				'logo_id' => $brand['logo_id'] ?? 0,
+				'name'    => $brand['name'] ?? '',
+				'url'     => $brand['url'] ?? '',
 			];
 		}
 
@@ -327,17 +276,18 @@ final class Settings implements Registrable {
 	 * @param string $site_url The site URL.
 	 *
 	 * @return ?array{
-	 *   publicKey: string,
+	 *   api_key: string,
 	 *   id: string,
 	 *   logo: string,
-	 *   siteName: string,
-	 *   siteUrl: string,
+	 *   logo_id: int,
+	 *   name: string,
+	 *   url: string,
 	 * }
 	 */
 	public static function get_shared_site_by_url( string $site_url ): ?array {
 		$brand_sites = self::get_shared_sites();
 
-		$normalized_url = Utils::normalize_url( $site_url );
+		$normalized_url = trailingslashit( $site_url );
 
 		return $brand_sites[ $normalized_url ] ?? null;
 	}
@@ -348,15 +298,31 @@ final class Settings implements Registrable {
 	 * @param array<string,array<string,mixed>> $sites The sites to set.
 	 *
 	 * @phpstan-param array<string,array{
-	 *   publicKey?: string,
+	 *   api_key?: string,
 	 *   id?: string,
 	 *   logo?: string,
-	 *   siteName?: string,
-	 *   siteUrl?: string,
+	 *   logo_id?: int,
+	 *   name?: string,
+	 *   url?: string,
+	 *   is_editable?: bool
 	 * }> $sites The sites to set.
 	 */
 	public static function set_shared_sites( array $sites ): bool {
-		return update_option( self::OPTION_GOVERNING_SHARED_SITES, array_values( $sites ) );
+		// Encrypt API keys before saving.
+		foreach ( $sites as &$site ) {
+			if ( empty( $site['api_key'] ) ) {
+				continue;
+			}
+
+			$api_key = Encryptor::encrypt( $site['api_key'] );
+
+			// Bail if encryption fails.
+			if ( is_wp_error( $api_key ) ) {
+				return false;
+			}
+		}
+
+		return update_option( self::OPTION_GOVERNING_SHARED_SITES, array_values( $sites ), false );
 	}
 
 	/**
@@ -384,13 +350,16 @@ final class Settings implements Registrable {
 
 	/**
 	 * Gets the API key, generating a new one if it doesn't exist.
+	 *
+	 * Returns an empty string on failure.
 	 */
 	public static function get_api_key(): string {
 		$api_key = get_option( self::OPTION_CONSUMER_API_KEY, '' );
 
-		if ( empty( $api_key ) ) {
-			$api_key = self::generate_api_key();
-			update_option( self::OPTION_CONSUMER_API_KEY, $api_key );
+		$api_key = ! empty( $api_key ) ? Encryptor::decrypt( $api_key ) : '';
+
+		if ( is_wp_error( $api_key ) || empty( $api_key ) ) {
+			$api_key = '';
 		}
 
 		return $api_key;
@@ -398,55 +367,21 @@ final class Settings implements Registrable {
 
 	/**
 	 * Regenerates the API key.
+	 *
+	 * @return string The new (unencrypted) API key.
 	 */
 	public static function regenerate_api_key(): string {
 		$api_key = self::generate_api_key();
-		update_option( self::OPTION_CONSUMER_API_KEY, $api_key );
 
-		return $api_key;
-	}
+		$encrypted_key = Encryptor::encrypt( $api_key );
 
-	/**
-	 * Get algolia credentials.
-	 *
-	 * @return array{
-	 *   app_id: ?string,
-	 *   write_key: ?string,
-	 *   admin_key: ?string
-	 * }
-	 */
-	public static function get_algolia_credentials(): array {
-		$creds = get_option( self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS, [] );
-
-		return [
-			'app_id'    => $creds['app_id'] ?? null,
-			'write_key' => $creds['write_key'] ?? null,
-			'admin_key' => $creds['admin_key'] ?? null,
-		];
-	}
-
-	/**
-	 * Sets the algolia credentials
-	 *
-	 * @param array<string,mixed> $value The credentials.
-	 * @phpstan-param array{
-	 *   app_id: string,
-	 *   write_key: string,
-	 *   admin_key: string
-	 * } $value
-	 */
-	public static function set_algolia_credentials( $value ): bool {
-		if ( ! is_array( $value ) ) {
-			return false;
+		if ( is_wp_error( $encrypted_key ) ) {
+			return '';
 		}
 
-		$sanitized = [
-			'app_id'    => isset( $value['app_id'] ) ? sanitize_text_field( $value['app_id'] ) : null,
-			'write_key' => isset( $value['write_key'] ) ? sanitize_text_field( $value['write_key'] ) : null,
-			'admin_key' => isset( $value['admin_key'] ) ? sanitize_text_field( $value['admin_key'] ) : null,
-		];
+		update_option( self::OPTION_CONSUMER_API_KEY, Encryptor::encrypt( $encrypted_key ) );
 
-		return update_option( self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS, $sanitized );
+		return $api_key;
 	}
 
 	/**
@@ -463,30 +398,7 @@ final class Settings implements Registrable {
 	 * @param string $url The parent site URL.
 	 */
 	public static function set_parent_site_url( string $url ): bool {
-		return update_option( self::OPTION_CONSUMER_PARENT_SITE_URL, untrailingslashit( esc_url_raw( $url ) ) );
-	}
-
-	/**
-	 * Get the indexable entities.
-	 *
-	 * @return array<string, mixed> The indexable entities.
-	 */
-	public static function get_indexable_entities(): array {
-		$value = get_option( self::OPTION_GOVERNING_INDEXABLE_SITES, [] );
-		return is_array( $value ) ? $value : [];
-	}
-
-	/**
-	 * Get search settings for all sites.
-	 *
-	 * @return array<string, array{
-	 *   algolia_enabled: bool,
-	 *   searchable_sites: string[]
-	 * }>
-	 */
-	public static function get_search_settings(): array {
-		$value = get_option( self::OPTION_GOVERNING_SEARCH_SETTINGS, [] );
-		return is_array( $value ) ? $value : [];
+		return update_option( self::OPTION_CONSUMER_PARENT_SITE_URL, untrailingslashit( esc_url_raw( $url ) ), false );
 	}
 
 	/**

@@ -4,114 +4,39 @@
 import { useState, useEffect, createRoot } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { Snackbar } from '@wordpress/components';
+
 /**
  * Internal dependencies
  */
+import SiteTable from '../../components/SiteTable';
 import SiteModal from '../../components/SiteModal';
-import SiteIndexableEntities from '../../components/SiteIndexableEntities';
-import SiteSearchSettings from '../../components/SiteSearchSettings';
+import SiteSettings from '../../components/SiteSettings';
+import AlgoliaSettings from '../../components/AlgoliaSettings';
+
+import { API_NAMESPACE, NONCE } from '../../js/utils';
 
 /**
- * Internal dependencies
+ * Settings page component for OneSearch plugin.
+ *
+ * @return {JSX.Element} Rendered component.
  */
-import { API_NAMESPACE, NONCE, CURRENT_SITE_URL } from '../../js/utils';
-
 const OneSearchSettingsPage = () => {
 	const [ siteType, setSiteType ] = useState( '' );
 	const [ showModal, setShowModal ] = useState( false );
 	const [ editingIndex, setEditingIndex ] = useState( null );
 	const [ sites, setSites ] = useState( [] );
 	const [ formData, setFormData ] = useState( {
-		siteName: '',
-		siteUrl: '',
-		publicKey: '',
+		name: '',
+		url: '',
+		api_key: '',
 	} );
 	const [ notice, setNotice ] = useState( {
 		type: 'success',
 		message: '',
 	} );
-	const [ allPostTypes, setAllPostTypes ] = useState( {} );
-	const [ indexableEntities, setIndexableEntities ] = useState( {} );
-
-	const fetchEntities = async () => {
-		const res = await fetch( `${ API_NAMESPACE }/indexable-entities`, {
-			headers: { 'X-WP-Nonce': NONCE },
-		} );
-		const data = await res.json();
-		setIndexableEntities( data.indexableEntities?.entities || {} );
-	};
 
 	useEffect( () => {
-		fetchEntities();
-	}, [] );
-
-	const handleEntitiesSaved = () => {
-		fetchEntities();
-	};
-
-	// Fetch all post types.
-	useEffect( () => {
-		const token = NONCE;
-
-		const ensureSlash = ( url ) =>
-			typeof url === 'string' && url.endsWith( '/' ) ? url : `${ url }/`;
-
-		const toEntitiesMap = ( data ) => {
-			const results = {};
-			if ( data && data.sites && typeof data.sites === 'object' ) {
-				Object.keys( data.sites ).forEach( ( siteUrl ) => {
-					const payload = data.sites[ siteUrl ] || {};
-
-					// Get the list of the post types.
-					const list = Array.isArray( payload.post_types )
-						? payload.post_types
-						: [];
-
-					// Map out post types for each site.
-					results[ ensureSlash( siteUrl ) ] = ( list || [] ).map(
-						( { slug = '', label, restBase } = {} ) => {
-							const s = String( slug );
-							return {
-								slug: s,
-								label: String( label || s ),
-								restBase: String( restBase || s ),
-							};
-						},
-					);
-				} );
-			}
-
-			// Returning the final results.
-			return results;
-		};
-
-		const fetchAllPostTypes = async () => {
-			try {
-				const res = await fetch( `${ API_NAMESPACE }/all-post-types`, {
-					headers: {
-						Accept: 'application/json',
-						'X-WP-NONCE': token,
-					},
-				} );
-				if ( ! res.ok ) {
-					throw new Error( `HTTP ${ res.status }` );
-				}
-				const data = await res.json();
-				const mapped = toEntitiesMap( data );
-				setAllPostTypes( mapped );
-			} catch ( e ) {
-				setNotice( {
-					type: 'error',
-					message: __( 'Error fetching post types from sites.', 'onesearch' ),
-				} );
-			}
-		};
-
-		fetchAllPostTypes();
-	}, [] );
-
-	useEffect( () => {
-		const token = NONCE;
+		const token = ( NONCE );
 
 		const fetchData = async () => {
 			try {
@@ -149,12 +74,6 @@ const OneSearchSettingsPage = () => {
 
 		fetchData();
 	}, [] );
-
-	useEffect( () => {
-		if ( siteType === 'governing-site' && sites.length > 0 ) {
-			document.body.classList.remove( 'onesearch-missing-brand-sites' );
-		}
-	}, [ sites, siteType ] );
 
 	const handleFormSubmit = async () => {
 		const updated =
@@ -196,10 +115,57 @@ const OneSearchSettingsPage = () => {
 			} );
 		}
 
-		setFormData( { siteName: '', siteUrl: '', publicKey: '' } );
+		setFormData( { name: '', url: '', api_key: '' } );
 		setShowModal( false );
 		setEditingIndex( null );
-		window.location.reload();
+	};
+
+	const handleDelete = async ( index ) => {
+		const updated = sites.filter( ( _, i ) => i !== index );
+		const token = NONCE;
+
+		try {
+			const response = await fetch( `${ API_NAMESPACE }/shared-sites`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-WP-NONCE': token,
+				},
+				body: JSON.stringify( { sites_data: updated } ),
+			} );
+
+			const data = await response.json();
+
+			if ( ! response.ok || ! data.success ) {
+				setNotice( {
+					type: 'error',
+					message:
+						data.message ||
+						__( 'Failed to delete Brand site. Please try again.', 'onesearch' ),
+				} );
+				return;
+			}
+
+			setSites( updated );
+			setNotice( {
+				type: 'success',
+				message: __( 'Brand Site deleted successfully.', 'onesearch' ),
+			} );
+
+			if ( updated.length === 0 ) {
+				window.location.reload();
+			} else {
+				document.body.classList.remove( 'onesearch-missing-brand-sites' );
+			}
+		} catch ( error ) {
+			setNotice( {
+				type: 'error',
+				message: __(
+					'Error deleting Brand site. Please try again later.',
+					'onesearch',
+				),
+			} );
+		}
 	};
 
 	return (
@@ -221,22 +187,21 @@ const OneSearchSettingsPage = () => {
 				) }
 			</>
 
+			{ siteType === 'brand-site' && <SiteSettings /> }
+
 			{ siteType === 'governing-site' && (
-				<SiteIndexableEntities
+				<SiteTable
 					sites={ sites }
-					allPostTypes={ allPostTypes }
-					currentSiteUrl={ CURRENT_SITE_URL }
-					setNotice={ setNotice }
-					onEntitiesSaved={ handleEntitiesSaved }
+					onEdit={ setEditingIndex }
+					onDelete={ handleDelete }
+					setFormData={ setFormData }
+					setShowModal={ setShowModal }
+					setSites={ setSites }
 				/>
 			) }
 
 			{ siteType === 'governing-site' && (
-				<SiteSearchSettings
-					setNotice={ setNotice }
-					indexableEntities={ indexableEntities }
-					allPostTypes={ allPostTypes }
-				/>
+				<AlgoliaSettings setNotice={ setNotice } />
 			) }
 
 			{ showModal && (
@@ -247,17 +212,18 @@ const OneSearchSettingsPage = () => {
 					onClose={ () => {
 						setShowModal( false );
 						setEditingIndex( null );
-						setFormData( { siteName: '', siteUrl: '', publicKey: '' } );
+						setFormData( { name: '', url: '', api_key: '' } );
 					} }
 					editing={ editingIndex !== null }
+					originalData={ sites[ editingIndex ] }
 				/>
 			) }
 		</>
 	);
 };
 
-// Render to Gutenberg admin page with ID: onesearch-config
-const target = document.getElementById( 'onesearch-config' );
+// Render to Gutenberg admin page with ID: onesearch-settings
+const target = document.getElementById( 'onesearch-settings' );
 if ( target ) {
 	const root = createRoot( target );
 	root.render( <OneSearchSettingsPage /> );

@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import {
@@ -9,6 +8,7 @@ import {
 	Button,
 	SelectControl,
 } from '@wordpress/components';
+import { useState, useEffect } from 'react';
 
 const BRAND_SITE = 'brand-site';
 const GOVERNING_SITE = 'governing-site';
@@ -31,7 +31,7 @@ const SiteTypeSelector = ( { value, setSiteType }: {
 			"Choose your site's primary purpose. This setting cannot be changed later and affects available features and configurations.",
 			'onesearch',
 		) }
-		onChange={ ( v ) => {
+		onChange={ ( v: SiteType | '' ) => {
 			setSiteType( v );
 		} }
 		options={ [
@@ -43,8 +43,9 @@ const SiteTypeSelector = ( { value, setSiteType }: {
 );
 
 const OnboardingScreen = () => {
-	// WordPress provides snake_case keys here. Using them intentionally. eslint-disable-next-line camelcase
-	const { nonce, setup_url, site_type } = window.OneSearchPluginGlobal;
+	// WordPress provides snake_case keys here. Using them intentionally.
+	// eslint-disable-next-line camelcase
+	const { nonce, setup_url, site_type } = window.OneSearchSettings;
 
 	const [ siteType, setSiteType ] = useState<SiteType | ''>( site_type || '' );
 	const [ notice, setNotice ] = useState<NoticeState | null>( null );
@@ -64,7 +65,7 @@ const OnboardingScreen = () => {
 					message: __( 'Error fetching site type.', 'onesearch' ),
 				} );
 			} );
-	}, [ nonce ] );
+	} );
 
 	const handleSiteTypeChange = async ( value: SiteType | '' ) => {
 		// Optimistically set site type.

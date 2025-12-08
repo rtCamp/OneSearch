@@ -41,13 +41,13 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 
 	const brandSites = sharedSites
 		.filter( ( site ) => {
-			const url = trailingslashit( site.siteUrl );
+			const url = trailingslashit( site.url );
 			const types = allPostTypes?.[ url ];
 			return Array.isArray( types ) ? types.length > 0 : false;
 		} )
 		.map( ( site ) => ( {
-			siteName: site.siteName,
-			siteUrl: site.siteUrl,
+			name: site.name,
+			url: site.url,
 			isGoverning: false,
 		} ) );
 
@@ -55,8 +55,8 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 	const allSites = [
 		// Governing site
 		{
-			siteName: __( 'Governing Site', 'onesearch' ),
-			siteUrl: currentSiteUrl,
+			name: __( 'Governing Site', 'onesearch' ),
+			url: currentSiteUrl,
 			isGoverning: true,
 		},
 		// Brand sites from shared sites
@@ -64,8 +64,8 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 	];
 
 	//  Check if site has indexable entities.
-	const siteHasEntities = ( siteUrl ) => {
-		const normalizedUrl = trailingslashit( siteUrl );
+	const siteHasEntities = ( url ) => {
+		const normalizedUrl = trailingslashit( url );
 		const entities = indexableEntities[ normalizedUrl ] || [];
 		return Array.isArray( entities ) && entities.length > 0;
 	};
@@ -79,12 +79,12 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 		let hasChanges = false;
 		const updatedSettings = { ...searchSettings };
 
-		Object.keys( searchSettings ).forEach( ( siteUrl ) => {
-			const currentSetting = searchSettings[ siteUrl ];
-			const hasEntities = siteHasEntities( siteUrl );
+		Object.keys( searchSettings ).forEach( ( url ) => {
+			const currentSetting = searchSettings[ url ];
+			const hasEntities = siteHasEntities( url );
 
 			if ( currentSetting?.algolia_enabled && ! hasEntities ) {
-				updatedSettings[ siteUrl ] = {
+				updatedSettings[ url ] = {
 					...currentSetting,
 					algolia_enabled: false,
 					searchable_sites: [],
@@ -161,8 +161,8 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 	}, [ reloadKey ] );
 
 	// Toggle Algolia for a site
-	const handleSiteToggle = ( siteUrl, enabled ) => {
-		if ( enabled && ! siteHasEntities( siteUrl ) ) {
+	const handleSiteToggle = ( url, enabled ) => {
+		if ( enabled && ! siteHasEntities( url ) ) {
 			setLocalNotice( {
 				type: 'warning',
 				message: __(
@@ -175,10 +175,10 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 
 		setSearchSettings( ( prev ) => ( {
 			...prev,
-			[ siteUrl ]: {
-				...( prev[ siteUrl ] || {} ),
+			[ url ]: {
+				...( prev[ url ] || {} ),
 				algolia_enabled: enabled,
-				searchable_sites: enabled ? [ siteUrl ] : [],
+				searchable_sites: enabled ? [ url ] : [],
 			},
 		} ) );
 	};
@@ -225,17 +225,17 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 		let skippedCount = 0;
 
 		allSites.forEach( ( site ) => {
-			const siteUrl = trailingslashit( site.siteUrl );
+			const url = trailingslashit( site.url );
 
 			// Only enable sites that have entities.
-			const canEnable = enable ? siteHasEntities( siteUrl ) : true;
+			const canEnable = enable ? siteHasEntities( url ) : true;
 
 			if ( enable && ! canEnable ) {
 				skippedCount++;
 			}
 
 			// Preserve previous searchable_sites when enabling.
-			const prev = searchSettings[ siteUrl ] || {};
+			const prev = searchSettings[ url ] || {};
 			const prevSites = Array.isArray( prev?.searchable_sites )
 			// Keep only targets that still have entities.
 				? prev.searchable_sites.filter( ( targetUrl ) =>
@@ -246,10 +246,10 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 			let sitesToReturn = [];
 
 			if ( enable && canEnable ) {
-				sitesToReturn = prevSites.length > 0 ? prevSites : [ siteUrl ];
+				sitesToReturn = prevSites.length > 0 ? prevSites : [ url ];
 			}
 
-			newSettings[ siteUrl ] = {
+			newSettings[ url ] = {
 				algolia_enabled: canEnable ? enable : false,
 				searchable_sites: sitesToReturn,
 			};
@@ -316,7 +316,7 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 	}
 
 	return (
-		<Card className="onesearch-card">
+		<Card className="onesearch-card" style={ { marginTop: '30px' } }>
 			<CardHeader>
 				<h2 className="onesearch-title">
 					{ __( 'Site Search Configuration', 'onesearch' ) }
@@ -370,17 +370,17 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 					</p>
 				) : (
 					allSites.map( ( site ) => {
-						const siteUrl = trailingslashit( site.siteUrl );
-						const siteSettings = searchSettings[ siteUrl ] || {
+						const url = trailingslashit( site.url );
+						const siteSettings = searchSettings[ url ] || {
 							algolia_enabled: false,
 							searchable_sites: [],
 						};
 
-						const hasEntities = siteHasEntities( siteUrl );
+						const hasEntities = siteHasEntities( url );
 
 						return (
 							<div
-								key={ siteUrl }
+								key={ url }
 								className={ `onesearch-site-card ${
 									site.isGoverning ? 'onesearch-site-governing' : ''
 								} ${ ! hasEntities ? 'onesearch-site-no-entities' : '' }` }
@@ -388,8 +388,8 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 								{ /* Site Header */ }
 								<div className="onesearch-site-header">
 									<div className="onesearch-site-info">
-										<h3 className="onesearch-site-name">{ site.siteName }</h3>
-										<p className="onesearch-entity-site-url">{ siteUrl }</p>
+										<h3 className="onesearch-site-name">{ site.name }</h3>
+										<p className="onesearch-entity-site-url">{ url }</p>
 										<p className="onesearch-site-status">
 											{ siteSettings.algolia_enabled
 												? __( 'Algolia search enabled', 'onesearch' )
@@ -409,7 +409,7 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 										<ToggleControl
 											checked={ siteSettings.algolia_enabled }
 											disabled={ ! hasEntities }
-											onChange={ ( enabled ) => handleSiteToggle( siteUrl, enabled ) }
+											onChange={ ( enabled ) => handleSiteToggle( url, enabled ) }
 											__nextHasNoMarginBottom
 										/>
 									</div>
@@ -426,14 +426,14 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 										{ allSites
 											.slice()
 											.filter( ( singleSite ) => {
-												const siteURL = trailingslashit( singleSite.siteUrl );
+												const siteURL = trailingslashit( singleSite.url );
 												const ents = indexableEntities[ siteURL ] || [];
 												return Array.isArray( ents ) && ents.length > 0;
 											} )
 											.sort( ( a, b ) => {
-												const aUrl = trailingslashit( a.siteUrl );
-												const bUrl = trailingslashit( b.siteUrl );
-												const currentUrl = trailingslashit( siteUrl );
+												const aUrl = trailingslashit( a.url );
+												const bUrl = trailingslashit( b.url );
+												const currentUrl = trailingslashit( url );
 
 												// Put current site first.
 												if ( aUrl === currentUrl && bUrl !== currentUrl ) {
@@ -444,15 +444,15 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 												}
 
 												// Sort others alphabetically.
-												return a.siteName.localeCompare( b.siteName );
+												return a.name.localeCompare( b.name );
 											} )
 											.map( ( targetSite ) => {
 												const targetSiteUrl = trailingslashit(
-													targetSite.siteUrl,
+													targetSite.url,
 												);
 												const isChecked =
 													siteSettings.searchable_sites.includes( targetSiteUrl );
-												const isSelf = targetSiteUrl === siteUrl;
+												const isSelf = targetSiteUrl === url;
 
 												return (
 													<div
@@ -465,7 +465,7 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 															label={
 																<div className="onesearch-searchable-label">
 																	<div className="onesearch-searchable-name">
-																		{ targetSite.siteName }
+																		{ targetSite.name }
 																	</div>
 																	<div className="onesearch-searchable-url">
 																		{ targetSiteUrl }
@@ -484,7 +484,7 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 															disabled={ isSelf }
 															onChange={ ( checked ) =>
 																handleSearchableSiteToggle(
-																	siteUrl,
+																	url,
 																	targetSiteUrl,
 																	checked,
 																)

@@ -35,9 +35,6 @@
 		},
 		"classmap": [
 			"inc/classes"
-		],
-		"files": [
-			"custom-functions.php"
 		]
 	},
 	"repositories": [
@@ -57,8 +54,8 @@
 	"require-dev": {
 		"automattic/vipwpcs": "^3.0",
 		"dealerdirect/phpcodesniffer-composer-installer": "^1.0",
-		"phpcompatibility/php-compatibility": "10.x-dev as 9.99.99",
-		"phpcompatibility/phpcompatibility-wp": "^2.1",
+		"phpcompatibility/php-compatibility": "^10.0.0-alpha",
+		"phpcompatibility/phpcompatibility-wp": "^3.0.0-alpha",
 		"phpstan/extension-installer": "^1.3",
 		"phpstan/phpstan-deprecation-rules": "^2.0.3",
 		"phpstan/phpstan-phpunit": "^2.0.3",
@@ -73,10 +70,10 @@
 		"yoast/phpunit-polyfills": "^4.0"
 	},
 	"scripts": {
-		"lint:php:fix": "phpcbf",
-		"lint:php:stan": "phpstan analyse --memory-limit=1G",
-		"lint:php": "phpcs",
-		"test:php": "vendor/bin/phpunit -c phpunit.xml.dist",
-		"test:php:multisite": "WP_MULTISITE=1 phpunit --exclude-group=ms-excluded"
+		"format": "phpcbf",
+		"lint": "phpcs",
+		"phpstan": "phpstan analyse --memory-limit=1G",
+		"test": "vendor/bin/phpunit -c phpunit.xml.dist",
+		"test-multisite": "WP_MULTISITE=1 phpunit --exclude-group=ms-excluded"
 	}
 }

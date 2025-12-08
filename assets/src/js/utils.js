@@ -7,7 +7,7 @@
  * @param {string} str - The string to validate.
  * @return {boolean} True if the string is a correct URL, false otherwise.
  */
-export const isURL = ( str ) => {
+const isURL = ( str ) => {
 	try {
 		const url = new URL( str );
 		return [ 'http:', 'https:' ].includes( url.protocol );
@@ -55,6 +55,11 @@ export const withTrailingSlash = ( url ) => {
 export const API_NAMESPACE = OneSearchSettings.restUrl + OneSearchSettings.restNamespace;
 
 /**
+ * The API key used for authenticating requests to the OneSearch REST API.
+ */
+export const API_KEY = OneSearchSettings.api_key;
+
+/**
  * WordPress REST API nonce for authenticated requests.
  *
  * @constant
@@ -78,10 +83,3 @@ export const REST_NAMESPACE = OneSearchSettings.restNamespace;
  */
 export const CURRENT_SITE_URL = OneSearchSettings.currentSiteUrl;
 
-/**
- * Setup URL for the OneSearch plugin configuration page.
- *
- * @constant
- * @type {string}
- */
-export const SETUP_URL = OneSearchSettings.setupUrl;

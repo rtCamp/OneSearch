@@ -12,6 +12,7 @@ namespace OneSearch\Inc\Algolia;
 use OneSearch\Contracts\Interfaces\Registrable;
 use OneSearch\Contracts\Traits\Singleton;
 use OneSearch\Modules\Rest\Abstract_REST_Controller;
+use OneSearch\Modules\Search\Settings as Search_Settings;
 use OneSearch\Modules\Settings\Settings;
 use OneSearch\Utils;
 
@@ -152,10 +153,10 @@ class Algolia_Index_By_Post implements Registrable {
 	 */
 	public function brand_send_to_governing( int $post_id, string $post_type, string $status, bool $force_delete = false ): void {
 		$site_url   = Utils::normalize_url( get_site_url() );
-		$public_key = Settings::get_api_key();
+		$api_key    = Settings::get_api_key();
 		$parent_url = Settings::get_parent_site_url();
 
-		if ( empty( $public_key ) || empty( $parent_url ) ) {
+		if ( empty( $api_key ) || empty( $parent_url ) ) {
 			return;
 		}
 
@@ -179,9 +180,9 @@ class Algolia_Index_By_Post implements Registrable {
 			trailingslashit( $parent_url ) . 'wp-json/' . self::NAMESPACE . '/reindex-post',
 			[
 				'headers' => [
-					'Accept'                    => 'application/json',
-					'Content-Type'              => 'application/json',
-					'X-OneSearch-Plugins-Token' => $public_key,
+					'Accept'            => 'application/json',
+					'Content-Type'      => 'application/json',
+					'X-OneSearch-Token' => $api_key,
 				],
 				'body'    => wp_json_encode( $payload ) ?: '',
 				'timeout' => 999, // phpcs:ignore WordPressVIPMinimum.Performance.RemoteRequestTimeout.timeout_timeout
@@ -197,7 +198,7 @@ class Algolia_Index_By_Post implements Registrable {
 	 * @return string[] List of selected entity types.
 	 */
 	private function get_selected_entities_for_site( string $site_url ): array {
-		$indexable_entities = Settings::get_indexable_entities();
+		$indexable_entities = Search_Settings::get_indexable_entities();
 
 		$map = $indexable_entities['entities'] ?? [];
 
@@ -212,25 +213,5 @@ class Algolia_Index_By_Post implements Registrable {
 		}
 
 		return [];
-	}
-
-	/**
-	 * Checks if the token sent by the child site is valid.
-	 *
-	 * @param string $incoming The token sent by the child site.
-	 *
-	 * @return bool True if the token is valid, false otherwise.
-	 */
-	public function is_valid_child_token( string $incoming ): bool {
-		$child_sites = Settings::get_shared_sites();
-
-		foreach ( $child_sites as $child ) {
-			$key = isset( $child['publicKey'] ) ? (string) $child['publicKey'] : '';
-			if ( $key && hash_equals( $key, $incoming ) ) {
-				return true;
-			}
-		}
-
-		return false;
 	}
 }

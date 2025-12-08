@@ -32,7 +32,11 @@ function multisite_uninstall(): void {
 	) ?: [];
 
 	foreach ( $site_ids as $site_id ) {
-		switch_to_blog( (int) $site_id ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.switch_to_blog_switch_to_blog
+		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.switch_to_blog_switch_to_blog
+		if ( ! switch_to_blog( (int) $site_id ) ) {
+			continue;
+		}
+
 		uninstall();
 		restore_current_blog();
 	}

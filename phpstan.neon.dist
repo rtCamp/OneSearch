@@ -21,7 +21,6 @@ parameters:
 				- onesearch.php
 		paths:
 				- onesearch.php
-				- custom-functions.php
 				- uninstall.php
 				- inc/
 		excludePaths:
@@ -31,3 +30,5 @@ parameters:
 			analyseAndScan:
 				- node_modules (?)
 		ignoreErrors:
+			- # Too noisy for now.
+				identifier: missingType.generics

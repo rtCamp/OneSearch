@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 /**
  * External dependencies
  */
@@ -17,7 +15,7 @@ const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 const sharedConfig = {
 	...defaultConfig,
 	output: {
-		path: path.resolve( process.cwd(), 'build', 'js' ),
+		path: path.resolve( process.cwd(), 'build' ),
 		filename: '[name].js',
 		chunkFilename: '[name].js',
 	},
@@ -30,9 +28,7 @@ const sharedConfig = {
 		splitChunks: {
 			...defaultConfig.optimization.splitChunks,
 		},
-		minimizer: defaultConfig.optimization.minimizer.concat( [
-			new CssMinimizerPlugin(),
-		] ),
+		minimizer: defaultConfig.optimization.minimizer.concat( [ new CssMinimizerPlugin() ] ),
 	},
 };
 
@@ -41,7 +37,7 @@ const sharedConfig = {
 const styles = {
 	...sharedConfig,
 	output: {
-		path: path.resolve( process.cwd(), 'build', 'css' ),
+		path: path.resolve( process.cwd(), 'build' ),
 		filename: '[name].js',
 		chunkFilename: '[name].js',
 	},
@@ -71,9 +67,9 @@ const styles = {
 const scripts = {
 	...sharedConfig,
 	entry: {
-		settings: path.resolve( process.cwd(), 'assets', 'src', 'admin/settings', 'index.js' ),
+		search: path.resolve( process.cwd(), 'assets', 'src', 'admin/search', 'index.js' ),
 		onboarding: path.resolve( process.cwd(), 'assets', 'src', 'admin/onboarding', 'index.tsx' ),
-		setup: path.resolve( process.cwd(), 'assets', 'src', 'admin/setup', 'index.js' ),
+		settings: path.resolve( process.cwd(), 'assets', 'src', 'admin/settings', 'index.js' ),
 	},
 	module: {
 		rules:
