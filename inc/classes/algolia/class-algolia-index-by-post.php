@@ -153,10 +153,10 @@ class Algolia_Index_By_Post implements Registrable {
 	 */
 	public function brand_send_to_governing( int $post_id, string $post_type, string $status, bool $force_delete = false ): void {
 		$site_url   = Utils::normalize_url( get_site_url() );
-		$public_key = Settings::get_api_key();
+		$api_key    = Settings::get_api_key();
 		$parent_url = Settings::get_parent_site_url();
 
-		if ( empty( $public_key ) || empty( $parent_url ) ) {
+		if ( empty( $api_key ) || empty( $parent_url ) ) {
 			return;
 		}
 
@@ -182,7 +182,7 @@ class Algolia_Index_By_Post implements Registrable {
 				'headers' => [
 					'Accept'            => 'application/json',
 					'Content-Type'      => 'application/json',
-					'X-OneSearch-Token' => $public_key,
+					'X-OneSearch-Token' => $api_key,
 				],
 				'body'    => wp_json_encode( $payload ) ?: '',
 				'timeout' => 999, // phpcs:ignore WordPressVIPMinimum.Performance.RemoteRequestTimeout.timeout_timeout
