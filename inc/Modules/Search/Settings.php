@@ -277,8 +277,8 @@ final class Settings implements Registrable {
 
 		$sanitized = [
 			'app_id'    => isset( $value['app_id'] ) ? sanitize_text_field( $value['app_id'] ) : null,
-			'write_key' => ! empty( $write_key ) && ! is_wp_error( $write_key ) ? $write_key : null,
-			'admin_key' => ! empty( $admin_key ) && ! is_wp_error( $admin_key ) ? $admin_key : null,
+			'write_key' => $write_key ?: null,
+			'admin_key' => $admin_key ?: null,
 		];
 
 		return update_option( self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS, $sanitized );
