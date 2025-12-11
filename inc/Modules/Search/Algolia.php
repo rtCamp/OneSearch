@@ -26,7 +26,7 @@ final class Algolia {
 	 *
 	 * @var ?\Algolia\AlgoliaSearch\SearchIndex
 	 */
-	private ?\Algolia\AlgoliaSearch\SearchIndex $index;
+	private ?\Algolia\AlgoliaSearch\SearchIndex $index = null;
 
 	/**
 	 * Get the index object for the current site.
