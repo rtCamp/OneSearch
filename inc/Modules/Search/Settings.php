@@ -50,6 +50,8 @@ final class Settings implements Registrable {
 
 		// Before getting algolia credentials decrypt them.
 		add_filter( 'rest_pre_get_setting', [ self::class, 'pre_get_algolia_credentials' ], 10, 3 );
+
+		// @todo add check if algolia creds are valid or not before saving them.
 	}
 
 	/**
@@ -66,7 +68,7 @@ final class Settings implements Registrable {
 					if ( ! is_array( $value ) ) {
 						return null;
 					}
-					// @todo add check if algolia creds are valid or not.
+
 					return [
 						'app_id'    => isset( $value['app_id'] ) ? sanitize_text_field( $value['app_id'] ) : null,
 						'write_key' => isset( $value['write_key'] ) ? Encryptor::encrypt( sanitize_text_field( $value['write_key'] ) ) : null,
@@ -156,6 +158,9 @@ final class Settings implements Registrable {
 		if ( Admin_Settings::SITE_TYPE_CONSUMER !== $new_value ) {
 			return;
 		}
+
+		// By getting the API key, it will be generated if it doesn't exist.
+		Admin_Settings::get_api_key();
 
 		try {
 			$index = Algolia::instance()->get_index();
@@ -267,9 +272,9 @@ final class Settings implements Registrable {
 
 		// @todo we are only taking 2 things from user so where does admin_key come from?
 		return [
-			'app_id'    => $creds['app_id'] ?: null,
-			'write_key' => Encryptor::decrypt( $creds['write_key'] ?? null ) ?: null,
-			'admin_key' => Encryptor::decrypt( $creds['admin_key'] ?? null ) ?: null,
+			'app_id'    => $creds['app_id'] ?? null,
+			'write_key' => Encryptor::decrypt( $creds['write_key'] ?? '' ) ?: null,
+			'admin_key' => Encryptor::decrypt( $creds['admin_key'] ?? '' ) ?: null,
 		];
 	}
 

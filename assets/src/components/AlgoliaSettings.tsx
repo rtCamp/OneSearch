@@ -16,7 +16,6 @@ import apiFetch from '@wordpress/api-fetch';
 /**
  * Internal dependencies
  */
-import { NONCE } from '../js/utils';
 import type { NoticeType } from '@/admin/settings/page';
 
 interface AlgoliaCredentials {
@@ -31,19 +30,19 @@ const EMPTY_CREDENTIALS: AlgoliaCredentials = {
 	admin_key: '',
 };
 
-const AlgoliaSettings = ( {
-	setNotice,
-}: {
-	setNotice: ( notice: NoticeType ) => void;
-} ) => {
+const AlgoliaSettings = (
+	{ setNotice } :
+	{
+		setNotice: ( notice: NoticeType ) => void;
+	},
+) => {
 	const [ algoliaCreds, setAlgoliaCreds ] = useState< AlgoliaCredentials >( EMPTY_CREDENTIALS );
 	const [ initial, setInitial ] = useState<AlgoliaCredentials | null>(
 		null,
 	);
-	const [ saving, setSaving ] = useState<boolean>( false );
+	const [ saving, setSaving ] = useState( false );
 
 	useEffect( () => {
-		apiFetch.use( apiFetch.createNonceMiddleware( NONCE ) );
 		apiFetch<{ onesearch_algolia_credentials: AlgoliaCredentials }>( {
 			path: '/wp/v2/settings',
 		} )

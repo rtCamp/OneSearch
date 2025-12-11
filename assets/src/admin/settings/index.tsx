@@ -17,10 +17,10 @@ interface OneSearchSettingsType {
 	settingsLink: string;
 	siteType: SiteType;
 
-    // @todo legacy - to be removed later
-    restNamespace?: string;
-    nonce?: string;
-    currentSiteUrl?: string;
+	// @todo legacy - to be removed later
+	restNamespace?: string;
+	nonce?: string;
+	currentSiteUrl?: string;
 }
 
 declare global {

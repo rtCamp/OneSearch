@@ -25,11 +25,11 @@ const NONCE = window.OneSearchSettings.nonce as string;
 const API_KEY = window.OneSearchSettings.api_key;
 
 const SiteSettings = () => {
-	const [ apiKey, setApiKey ] = useState< string >( '' );
-	const [ isLoading, setIsLoading ] = useState< boolean >( false );
+	const [ apiKey, setApiKey ] = useState( '' );
+	const [ isLoading, setIsLoading ] = useState( false );
 	const [ notice, setNotice ] = useState< NoticeType | null >( null );
-	const [ governingSite, setGoverningSite ] = useState< string >( '' );
-	const [ showDisconectionModal, setShowDisconectionModal ] = useState< boolean >( false );
+	const [ governingSite, setGoverningSite ] = useState( '' );
+	const [ showDisconnectionModal, setShowDisconnectionModal ] = useState( false );
 
 	const fetchApiKey = useCallback( async () => {
 		setIsLoading( true );
@@ -50,7 +50,7 @@ const SiteSettings = () => {
 		} catch ( error ) {
 			setNotice( {
 				type: 'error',
-				message: __( 'Failed to fetch api key. Please try again later.', 'onesearch' ),
+				message: __( 'Failed to fetch API key. Please try again later.', 'onesearch' ),
 			} );
 		} finally {
 			setIsLoading( false );
@@ -148,18 +148,18 @@ const SiteSettings = () => {
 				message: __( 'Failed to disconnect governing site. Please try again later.', 'onesearch' ),
 			} );
 		} finally {
-			setShowDisconectionModal( false );
+			setShowDisconnectionModal( false );
 		}
 	}, [ apiKey ] );
 
 	const handleDisconnectGoverningSite = useCallback( async () => {
-		setShowDisconectionModal( true );
+		setShowDisconnectionModal( true );
 	}, [] );
 
 	useEffect( () => {
 		fetchApiKey();
 		fetchCurrentGoverningSite();
-	}, [] ); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [ fetchApiKey, fetchCurrentGoverningSite ] );
 
 	if ( isLoading ) {
 		return <Spinner />;
@@ -178,7 +178,7 @@ const SiteSettings = () => {
 				</Notice>
 			) }
 
-			<Card className="brand-site-settings"
+			<Card
 				style={ { marginTop: '30px' } }
 			>
 				<CardHeader>
@@ -255,17 +255,17 @@ const SiteSettings = () => {
 				</CardBody>
 			</Card>
 
-			{ showDisconectionModal && (
+			{ showDisconnectionModal && (
 				<Modal
 					title={ __( 'Disconnect Governing Site', 'onesearch' ) }
-					onRequestClose={ () => setShowDisconectionModal( false ) }
+					onRequestClose={ () => setShowDisconnectionModal( false ) }
 					shouldCloseOnClickOutside={ true }
 				>
 					<p>{ __( 'Are you sure you want to disconnect from the governing site? This action cannot be undone.', 'onesearch' ) }</p>
 					<div style={ { display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '16px' } }>
 						<Button
 							variant="secondary"
-							onClick={ () => setShowDisconectionModal( false ) }
+							onClick={ () => setShowDisconnectionModal( false ) }
 						>
 							{ __( 'Cancel', 'onesearch' ) }
 						</Button>

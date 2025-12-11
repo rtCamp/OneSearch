@@ -16,17 +16,6 @@ import { __ } from '@wordpress/i18n';
  */
 import { isValidUrl } from '../js/utils';
 import type { defaultBrandSite } from '@/admin/settings/page';
-
-interface SiteModalProps {
-	formData: typeof defaultBrandSite;
-	setFormData: ( data: typeof defaultBrandSite ) => void;
-	onSubmit: () => Promise< Response | void >;
-	onClose: () => void;
-	editing: boolean;
-	sites: typeof defaultBrandSite[];
-	originalData: typeof defaultBrandSite | undefined;
-}
-
 interface ErrorsType {
 	name: string;
 	url: string;
@@ -35,8 +24,16 @@ interface ErrorsType {
 }
 
 const SiteModal = (
-	{ formData, setFormData, onSubmit, onClose, editing, sites, originalData }
-	: SiteModalProps,
+	{ formData, setFormData, onSubmit, onClose, editing, sites, originalData } :
+	{
+		formData: typeof defaultBrandSite;
+		setFormData: ( data: typeof defaultBrandSite ) => void;
+		onSubmit: () => Promise< boolean >;
+		onClose: () => void;
+		editing: boolean;
+		sites: typeof defaultBrandSite[];
+		originalData: typeof defaultBrandSite | undefined;
+	},
 ) => {
 	const [ errors, setErrors ] = useState< ErrorsType >( {
 		name: '',
@@ -44,8 +41,8 @@ const SiteModal = (
 		api_key: '',
 		message: '',
 	} );
-	const [ showNotice, setShowNotice ] = useState< boolean >( false );
-	const [ isProcessing, setIsProcessing ] = useState< boolean >( false );
+	const [ showNotice, setShowNotice ] = useState( false );
+	const [ isProcessing, setIsProcessing ] = useState( false );
 
 	// Check if form data has changed from original data (only for editing mode)
 	const hasChanges = useMemo( () => {
@@ -148,11 +145,10 @@ const SiteModal = (
 			setShowNotice( false );
 			const submitResponse = await onSubmit();
 
-			if ( ! submitResponse?.ok ) {
-				const errorData = await submitResponse?.json();
+			if ( ! submitResponse ) {
 				setErrors( {
 					...newErrors,
-					message: errorData.message || __( 'An error occurred while saving the site. Please try again.', 'onesearch' ),
+					message: __( 'An error occurred while saving the site. Please try again.', 'onesearch' ),
 				} );
 				setShowNotice( true );
 			}

@@ -6,18 +6,17 @@ import { Button, Card, CardHeader, CardBody, Modal } from '@wordpress/components
 import { __ } from '@wordpress/i18n';
 import type { BrandSite, EditingIndex } from '@/admin/settings/page';
 
-interface SiteTableProps {
-	sites: BrandSite[];
-	onEdit: ( index: number ) => void;
-	onDelete: ( index: number|null ) => void;
-	setFormData: ( data: BrandSite ) => void;
-	setShowModal: ( show: boolean ) => void;
-}
-
 const SiteTable = (
-	{ sites, onEdit, onDelete, setFormData, setShowModal } : SiteTableProps,
+	{ sites, onEdit, onDelete, setFormData, setShowModal } :
+	{
+		sites: BrandSite[];
+		onEdit: ( index: number ) => void;
+		onDelete: ( index: number|null ) => void;
+		setFormData: ( data: BrandSite ) => void;
+		setShowModal: ( show: boolean ) => void;
+	},
 ) => {
-	const [ showDeleteModal, setShowDeleteModal ] = useState< boolean >( false );
+	const [ showDeleteModal, setShowDeleteModal ] = useState( false );
 	const [ deleteIndex, setDeleteIndex ] = useState< EditingIndex >( null );
 
 	const handleDeleteClick = ( index:number ) => {

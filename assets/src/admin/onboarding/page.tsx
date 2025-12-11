@@ -23,6 +23,15 @@ interface NoticeState {
 	message: string;
 }
 
+// WordPress provides snake_case keys here. Using them intentionally.
+// eslint-disable-next-line camelcase
+const { nonce, setup_url, site_type } = window.OneSearchOnboarding;
+
+/**
+ * Create NONCE middleware for apiFetch
+ */
+apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
+
 const SiteTypeSelector = ( { value, setSiteType }: {
 	value: SiteType | '';
 	setSiteType: ( v: SiteType | '' ) => void;
@@ -46,16 +55,11 @@ const SiteTypeSelector = ( { value, setSiteType }: {
 );
 
 const OnboardingScreen = () => {
-	// WordPress provides snake_case keys here. Using them intentionally.
-	// eslint-disable-next-line camelcase
-	const { nonce, setup_url, site_type } = window.OneSearchOnboarding;
-
 	const [ siteType, setSiteType ] = useState<SiteType | ''>( site_type || '' );
 	const [ notice, setNotice ] = useState<NoticeState | null>( null );
-	const [ isSaving, setIsSaving ] = useState<boolean>( false );
+	const [ isSaving, setIsSaving ] = useState( false );
 
 	useEffect( () => {
-		apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
 		apiFetch<{ onesearch_site_type?: SiteType }>( { path: '/wp/v2/settings' } )
 			.then( ( settings ) => {
 				if ( settings?.onesearch_site_type ) {

@@ -15,9 +15,6 @@ import SiteSettings from '@/components/SiteSettings';
 import AlgoliaSettings from '@/components/AlgoliaSettings';
 import type { SiteType } from '../onboarding/page';
 
-const NONCE = window.OneSearchSettings.restNonce;
-const siteType = ( window.OneSearchSettings.siteType as SiteType ) || '';
-
 export interface NoticeType {
 	type: 'success' | 'error' | 'warning' | 'info';
 	message: string;
@@ -38,15 +35,22 @@ export const defaultBrandSite: BrandSite = {
 
 export type EditingIndex = number | null;
 
+const NONCE = window.OneSearchSettings.restNonce;
+const siteType = window.OneSearchSettings.siteType as SiteType || '';
+
+/**
+ * Create NONCE middleware for apiFetch
+ */
+apiFetch.use( apiFetch.createNonceMiddleware( NONCE ) );
+
 const SettingsPage = () => {
-	const [ showModal, setShowModal ] = useState< boolean >( false );
+	const [ showModal, setShowModal ] = useState( false );
 	const [ editingIndex, setEditingIndex ] = useState< EditingIndex >( null );
 	const [ sites, setSites ] = useState< BrandSite[] >( [] );
 	const [ formData, setFormData ] = useState< BrandSite >( defaultBrandSite );
 	const [ notice, setNotice ] = useState< NoticeType | null >( null );
 
 	useEffect( () => {
-		apiFetch.use( apiFetch.createNonceMiddleware( NONCE ) );
 		apiFetch<{ onesearch_shared_sites?: BrandSite[] }>( {
 			path: '/wp/v2/settings',
 		} )
@@ -69,11 +73,11 @@ const SettingsPage = () => {
 		}
 	}, [ sites ] );
 
-	const handleFormSubmit = async () : Promise<void > => {
+	const handleFormSubmit = async () : Promise< boolean > => {
 		const updated : BrandSite[] = editingIndex !== null
 			? sites.map( ( item, i ) => ( i === editingIndex ? formData : item ) )
 			: [ ...sites, formData ];
-		apiFetch<{ onesearch_shared_sites?: BrandSite[] }>( {
+		return apiFetch<{ onesearch_shared_sites?: BrandSite[] }>( {
 			path: '/wp/v2/settings',
 			method: 'POST',
 			data: { onesearch_shared_sites: updated },
@@ -90,8 +94,13 @@ const SettingsPage = () => {
 				type: 'success',
 				message: __( 'Brand Site saved successfully.', 'onesearch' ),
 			} );
+			return true;
 		} ).catch( () => {
-			throw new Error( 'Failed to update shared sites' );
+			setNotice( {
+				type: 'error',
+				message: __( 'Failed to update shared sites', 'onesearch' ),
+			} );
+			return false;
 		} ).finally( () => {
 			setFormData( defaultBrandSite );
 			setShowModal( false );
@@ -134,11 +143,9 @@ const SettingsPage = () => {
 				</Snackbar>
 			}
 
-			{
-				siteType === 'brand-site' && (
-					<SiteSettings />
-				)
-			}
+			{ siteType === 'brand-site' && (
+				<SiteSettings />
+			) }
 
 			{ siteType === 'governing-site' && (
 				<SiteTable sites={ sites } onEdit={ setEditingIndex } onDelete={ handleDelete } setFormData={ setFormData } setShowModal={ setShowModal } />
