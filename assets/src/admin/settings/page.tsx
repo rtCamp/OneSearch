@@ -102,31 +102,24 @@ const SettingsPage = () => {
 	const handleDelete = async ( index : number|null ) : Promise<void> => {
 		const updated : BrandSite[] = sites.filter( ( _, i ) => i !== index );
 
-		try {
-			await apiFetch<{ onesearch_shared_sites?: BrandSite[] }>( {
-				path: '/wp/v2/settings',
-				method: 'POST',
-				data: { onesearch_shared_sites: updated },
-			} ).then( ( settings ) => {
-				if ( ! settings?.onesearch_shared_sites ) {
-					throw new Error( 'No shared sites in response' );
-				}
-				const previousLength = sites.length;
-				setSites( settings.onesearch_shared_sites );
-				if ( ( settings.onesearch_shared_sites.length === 1 && previousLength === 0 ) || ( previousLength === 1 && settings.onesearch_shared_sites.length === 0 ) ) {
-					window.location.reload();
-				} else {
-					document.body.classList.remove( 'onesearch-missing-brand-sites' );
-				}
-			} ).catch( () => {
-				throw new Error( 'Failed to update shared sites' );
-			} );
-		} catch {
-			setNotice( {
-				type: 'error',
-				message: __( 'Error deleting Brand site. Please try again later.', 'onesearch' ),
-			} );
-		}
+		apiFetch<{ onesearch_shared_sites?: BrandSite[] }>( {
+			path: '/wp/v2/settings',
+			method: 'POST',
+			data: { onesearch_shared_sites: updated },
+		} ).then( ( settings ) => {
+			if ( ! settings?.onesearch_shared_sites ) {
+				throw new Error( 'No shared sites in response' );
+			}
+			const previousLength = sites.length;
+			setSites( settings.onesearch_shared_sites );
+			if ( ( settings.onesearch_shared_sites.length === 1 && previousLength === 0 ) || ( previousLength === 1 && settings.onesearch_shared_sites.length === 0 ) ) {
+				window.location.reload();
+			} else {
+				document.body.classList.remove( 'onesearch-missing-brand-sites' );
+			}
+		} ).catch( () => {
+			throw new Error( 'Failed to update shared sites' );
+		} );
 	};
 
 	return (
