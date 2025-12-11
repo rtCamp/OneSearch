@@ -1,3 +1,7 @@
+/**
+ * WordPress dependencies
+ */
+import { useState, useEffect } from 'react';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import {
@@ -8,7 +12,6 @@ import {
 	Button,
 	SelectControl,
 } from '@wordpress/components';
-import { useState, useEffect } from 'react';
 
 const BRAND_SITE = 'brand-site';
 const GOVERNING_SITE = 'governing-site';
@@ -45,14 +48,15 @@ const SiteTypeSelector = ( { value, setSiteType }: {
 const OnboardingScreen = () => {
 	// WordPress provides snake_case keys here. Using them intentionally.
 	// eslint-disable-next-line camelcase
-	const { nonce, setup_url, site_type } = window.OneSearchSettings;
+	const { nonce, setup_url, site_type } = window.OneSearchOnboarding;
 
 	const [ siteType, setSiteType ] = useState<SiteType | ''>( site_type || '' );
 	const [ notice, setNotice ] = useState<NoticeState | null>( null );
 	const [ isSaving, setIsSaving ] = useState<boolean>( false );
 
+	apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
+
 	useEffect( () => {
-		apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
 		apiFetch<{ onesearch_site_type?: SiteType }>( { path: '/wp/v2/settings' } )
 			.then( ( settings ) => {
 				if ( settings?.onesearch_site_type ) {

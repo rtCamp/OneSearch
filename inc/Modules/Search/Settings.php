@@ -63,14 +63,29 @@ final class Settings implements Registrable {
 					if ( ! is_array( $value ) ) {
 						return null;
 					}
-
+					// @todo add check if algolia creds are valid or not.
 					return [
 						'app_id'    => isset( $value['app_id'] ) ? sanitize_text_field( $value['app_id'] ) : null,
 						'write_key' => isset( $value['write_key'] ) ? sanitize_text_field( $value['write_key'] ) : null,
 						'admin_key' => isset( $value['admin_key'] ) ? sanitize_text_field( $value['admin_key'] ) : null,
 					];
 				},
-				'show_in_rest'      => false,
+				'show_in_rest'      => [
+					'schema' => [
+						'type'       => 'object',
+						'properties' => [
+							'app_id'    => [
+								'type' => 'string',
+							],
+							'write_key' => [
+								'type' => 'string',
+							],
+							'admin_key' => [
+								'type' => 'string',
+							],
+						],
+					],
+				],
 			],
 			self::OPTION_GOVERNING_INDEXABLE_SITES     => [
 				// It's an object with a string key and string[] values.
@@ -247,10 +262,11 @@ final class Settings implements Registrable {
 	public static function get_algolia_credentials(): array {
 		$creds = get_option( self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS, [] );
 
+		// @todo we are only taking 2 thinking from user so where does admin_key come from?
 		return [
-			'app_id'    => $creds['app_id'] ?? null,
-			'write_key' => $creds['write_key'] ?? null,
-			'admin_key' => $creds['admin_key'] ?? null,
+			'app_id'    => $creds['app_id'] ?: null,
+			'write_key' => Encryptor::decrypt( $creds['write_key'] ) ?: null,
+			'admin_key' => Encryptor::decrypt( $creds['admin_key'] ) ?: null,
 		];
 	}
 
