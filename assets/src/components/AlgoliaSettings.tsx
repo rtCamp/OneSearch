@@ -42,9 +42,8 @@ const AlgoliaSettings = ( {
 	);
 	const [ saving, setSaving ] = useState<boolean>( false );
 
-	apiFetch.use( apiFetch.createNonceMiddleware( NONCE ) );
-
 	useEffect( () => {
+		apiFetch.use( apiFetch.createNonceMiddleware( NONCE ) );
 		apiFetch<{ onesearch_algolia_credentials: AlgoliaCredentials }>( {
 			path: '/wp/v2/settings',
 		} )

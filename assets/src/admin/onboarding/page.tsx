@@ -68,7 +68,7 @@ const OnboardingScreen = () => {
 					message: __( 'Error fetching site type.', 'onesearch' ),
 				} );
 			} );
-	} );
+	}, [] ); // for initial component mount
 
 	const handleSiteTypeChange = async ( value: SiteType | '' ) => {
 		// Optimistically set site type.
