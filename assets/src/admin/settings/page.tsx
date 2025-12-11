@@ -88,13 +88,12 @@ const SettingsPage = () => {
 				if ( ( settings.onesearch_shared_sites.length === 1 && previousLength === 0 ) || ( previousLength === 1 && settings.onesearch_shared_sites.length === 0 ) ) {
 					window.location.reload();
 				}
+				setNotice( {
+					type: 'success',
+					message: __( 'Brand Site saved successfully.', 'onesearch' ),
+				} );
 			} ).catch( () => {
 				throw new Error( 'Failed to update shared sites' );
-			} );
-
-			setNotice( {
-				type: 'success',
-				message: __( 'Brand Site saved successfully.', 'onesearch' ),
 			} );
 		} catch {
 			setNotice( {

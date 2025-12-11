@@ -47,6 +47,9 @@ final class Settings implements Registrable {
 		// Listen to updates.
 		add_action( 'update_option_' . Admin_Settings::OPTION_SITE_TYPE, [ $this, 'on_site_type_change' ], 10, 2 );
 		add_action( 'update_option_' . Admin_Settings::OPTION_GOVERNING_SHARED_SITES, [ $this, 'on_shared_sites_change' ], 10, 2 );
+
+		// Before getting algolia credentials decrypt them.
+		add_filter( 'rest_pre_get_setting', [ self::class, 'pre_get_algolia_credentials' ], 10, 3 );
 	}
 
 	/**
@@ -66,8 +69,8 @@ final class Settings implements Registrable {
 					// @todo add check if algolia creds are valid or not.
 					return [
 						'app_id'    => isset( $value['app_id'] ) ? sanitize_text_field( $value['app_id'] ) : null,
-						'write_key' => isset( $value['write_key'] ) ? sanitize_text_field( $value['write_key'] ) : null,
-						'admin_key' => isset( $value['admin_key'] ) ? sanitize_text_field( $value['admin_key'] ) : null,
+						'write_key' => isset( $value['write_key'] ) ? Encryptor::encrypt( sanitize_text_field( $value['write_key'] ) ) : null,
+						'admin_key' => isset( $value['admin_key'] ) ? Encryptor::encrypt( sanitize_text_field( $value['admin_key'] ) ) : null,
 					];
 				},
 				'show_in_rest'      => [
@@ -262,11 +265,11 @@ final class Settings implements Registrable {
 	public static function get_algolia_credentials(): array {
 		$creds = get_option( self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS, [] );
 
-		// @todo we are only taking 2 thinking from user so where does admin_key come from?
+		// @todo we are only taking 2 things from user so where does admin_key come from?
 		return [
 			'app_id'    => $creds['app_id'] ?: null,
-			'write_key' => Encryptor::decrypt( $creds['write_key'] ) ?: null,
-			'admin_key' => Encryptor::decrypt( $creds['admin_key'] ) ?: null,
+			'write_key' => Encryptor::decrypt( $creds['write_key'] ?? null ) ?: null,
+			'admin_key' => Encryptor::decrypt( $creds['admin_key'] ?? null ) ?: null,
 		];
 	}
 
@@ -321,5 +324,41 @@ final class Settings implements Registrable {
 	public static function get_search_settings(): array {
 		$value = get_option( self::OPTION_GOVERNING_SEARCH_SETTINGS, [] );
 		return is_array( $value ) ? $value : [];
+	}
+
+	/**
+	 * Decrypt algolia credentials before sending to REST.
+	 *
+	 * @param mixed  $result  The current value.
+	 * @param string $name    The setting name.
+	 * @param mixed  $args The default value.
+	 *
+	 * @return mixed
+	 */
+	public static function pre_get_algolia_credentials( $result, $name, $args ): mixed {
+		if ( self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS !== $name ) {
+			return $result;
+		}
+
+		$value = get_option( $name, $args );
+
+		if ( ! is_array( $value ) ) {
+			return [
+				'app_id'    => '',
+				'write_key' => '',
+				'admin_key' => '',
+			];
+		}
+
+		// Decrypt before sending to frontend.
+		return [
+			'app_id'    => $value['app_id'] ?? '',
+			'write_key' => ! empty( $value['write_key'] )
+				? Encryptor::decrypt( $value['write_key'] )
+				: '',
+			'admin_key' => ! empty( $value['admin_key'] )
+				? Encryptor::decrypt( $value['admin_key'] )
+				: '',
+		];
 	}
 }
