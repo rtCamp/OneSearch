@@ -9,6 +9,7 @@ namespace OneSearch\Inc\Algolia;
 
 use OneSearch\Contracts\Interfaces\Registrable;
 use OneSearch\Modules\Rest\Governing_Data;
+use OneSearch\Modules\Search\Algolia;
 use OneSearch\Modules\Search\Settings as Search_Settings;
 use OneSearch\Modules\Settings\Settings;
 use OneSearch\Utils;

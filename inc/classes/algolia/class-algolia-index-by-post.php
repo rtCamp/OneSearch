@@ -12,6 +12,7 @@ namespace OneSearch\Inc\Algolia;
 use OneSearch\Contracts\Interfaces\Registrable;
 use OneSearch\Contracts\Traits\Singleton;
 use OneSearch\Modules\Rest\Abstract_REST_Controller;
+use OneSearch\Modules\Search\Algolia;
 use OneSearch\Modules\Search\Settings as Search_Settings;
 use OneSearch\Modules\Settings\Settings;
 use OneSearch\Utils;

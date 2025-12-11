@@ -11,7 +11,6 @@ namespace OneSearch\Modules\Search;
 
 use OneSearch\Contracts\Interfaces\Registrable;
 use OneSearch\Encryptor;
-use OneSearch\Inc\Algolia\Algolia;
 use OneSearch\Modules\Settings\Settings as Admin_Settings;
 use OneSearch\Utils;
 
@@ -67,7 +66,6 @@ final class Settings implements Registrable {
 					return [
 						'app_id'    => isset( $value['app_id'] ) ? sanitize_text_field( $value['app_id'] ) : null,
 						'write_key' => isset( $value['write_key'] ) ? sanitize_text_field( $value['write_key'] ) : null,
-						'admin_key' => isset( $value['admin_key'] ) ? sanitize_text_field( $value['admin_key'] ) : null,
 					];
 				},
 				'show_in_rest'      => false,
@@ -241,7 +239,6 @@ final class Settings implements Registrable {
 	 * @return array{
 	 *   app_id: ?string,
 	 *   write_key: ?string,
-	 *   admin_key: ?string
 	 * }
 	 */
 	public static function get_algolia_credentials(): array {
@@ -250,7 +247,6 @@ final class Settings implements Registrable {
 		return [
 			'app_id'    => $creds['app_id'] ?? null,
 			'write_key' => $creds['write_key'] ?? null,
-			'admin_key' => $creds['admin_key'] ?? null,
 		];
 	}
 
@@ -261,7 +257,6 @@ final class Settings implements Registrable {
 	 * @phpstan-param array{
 	 *   app_id: string,
 	 *   write_key: string,
-	 *   admin_key: string
 	 * } $value
 	 */
 	public static function set_algolia_credentials( $value ): bool {
@@ -272,13 +267,9 @@ final class Settings implements Registrable {
 		$write_key = isset( $value['write_key'] ) ? sanitize_text_field( $value['write_key'] ) : null;
 		$write_key = ! empty( $write_key ) ? Encryptor::encrypt( $write_key ) : null;
 
-		$admin_key = isset( $value['admin_key'] ) ? sanitize_text_field( $value['admin_key'] ) : null;
-		$admin_key = ! empty( $admin_key ) ? Encryptor::encrypt( $admin_key ) : null;
-
 		$sanitized = [
 			'app_id'    => isset( $value['app_id'] ) ? sanitize_text_field( $value['app_id'] ) : null,
 			'write_key' => $write_key ?: null,
-			'admin_key' => $admin_key ?: null,
 		];
 
 		return update_option( self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS, $sanitized );
