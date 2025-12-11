@@ -244,9 +244,11 @@ final class Settings implements Registrable {
 	public static function get_algolia_credentials(): array {
 		$creds = get_option( self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS, [] );
 
+		$decrypted_write_key = ! empty( $creds['write_key'] ) ? Encryptor::decrypt( $creds['write_key'] ) : null;
+
 		return [
 			'app_id'    => $creds['app_id'] ?? null,
-			'write_key' => $creds['write_key'] ?? null,
+			'write_key' => $decrypted_write_key ?: null,
 		];
 	}
 
