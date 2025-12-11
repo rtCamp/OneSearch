@@ -17,7 +17,7 @@ interface OneSearchSettingsType {
 	settingsLink: string;
 	siteType: SiteType;
 
-    // @todo to avoid ts errors adding below.
+    // @todo legacy - to be removed later
     restNamespace?: string;
     nonce?: string;
     currentSiteUrl?: string;

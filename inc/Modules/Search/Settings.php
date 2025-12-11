@@ -331,7 +331,7 @@ final class Settings implements Registrable {
 	 *
 	 * @param mixed  $result  The current value.
 	 * @param string $name    The setting name.
-	 * @param mixed  $args The default value.
+	 * @param mixed  $args    $args The default value to return if the option does not exist.
 	 *
 	 * @return mixed
 	 */

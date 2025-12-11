@@ -76,7 +76,7 @@ const AlgoliaSettings = ( {
 					message: __( 'Error fetching Algolia credentials.', 'onesearch' ),
 				} );
 			} );
-	}, [] );
+	}, [ setNotice ] );
 
 	const hasChanges =
 		!! initial &&

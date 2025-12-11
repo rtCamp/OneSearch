@@ -45,9 +45,8 @@ const SettingsPage = () => {
 	const [ formData, setFormData ] = useState< BrandSite >( defaultBrandSite );
 	const [ notice, setNotice ] = useState< NoticeType | null >( null );
 
-	apiFetch.use( apiFetch.createNonceMiddleware( NONCE ) );
-
 	useEffect( () => {
+		apiFetch.use( apiFetch.createNonceMiddleware( NONCE ) );
 		apiFetch<{ onesearch_shared_sites?: BrandSite[] }>( {
 			path: '/wp/v2/settings',
 		} )
@@ -62,49 +61,42 @@ const SettingsPage = () => {
 					message: __( 'Error fetching settings data.', 'onesearch' ),
 				} );
 			} );
-	}, [] );
+	}, [] ); // Empty dependency array to run only once on mount
 
 	useEffect( () => {
 		if ( siteType === 'governing-site' && sites.length > 0 ) {
 			document.body.classList.remove( 'onesearch-missing-brand-sites' );
 		}
-	}, [ sites, siteType ] );
+	}, [ sites ] );
 
 	const handleFormSubmit = async () : Promise<void > => {
 		const updated : BrandSite[] = editingIndex !== null
 			? sites.map( ( item, i ) => ( i === editingIndex ? formData : item ) )
 			: [ ...sites, formData ];
-		try {
-			apiFetch<{ onesearch_shared_sites?: BrandSite[] }>( {
-				path: '/wp/v2/settings',
-				method: 'POST',
-				data: { onesearch_shared_sites: updated },
-			} ).then( ( settings ) => {
-				if ( ! settings?.onesearch_shared_sites ) {
-					throw new Error( 'No shared sites in response' );
-				}
-				const previousLength = sites.length;
-				setSites( settings.onesearch_shared_sites );
-				if ( ( settings.onesearch_shared_sites.length === 1 && previousLength === 0 ) || ( previousLength === 1 && settings.onesearch_shared_sites.length === 0 ) ) {
-					window.location.reload();
-				}
-				setNotice( {
-					type: 'success',
-					message: __( 'Brand Site saved successfully.', 'onesearch' ),
-				} );
-			} ).catch( () => {
-				throw new Error( 'Failed to update shared sites' );
-			} );
-		} catch {
+		apiFetch<{ onesearch_shared_sites?: BrandSite[] }>( {
+			path: '/wp/v2/settings',
+			method: 'POST',
+			data: { onesearch_shared_sites: updated },
+		} ).then( ( settings ) => {
+			if ( ! settings?.onesearch_shared_sites ) {
+				throw new Error( 'No shared sites in response' );
+			}
+			const previousLength = sites.length;
+			setSites( settings.onesearch_shared_sites );
+			if ( ( settings.onesearch_shared_sites.length === 1 && previousLength === 0 ) || ( previousLength === 1 && settings.onesearch_shared_sites.length === 0 ) ) {
+				window.location.reload();
+			}
 			setNotice( {
-				type: 'error',
-				message: __( 'Error saving Brand site. Please try again later.', 'onesearch' ),
+				type: 'success',
+				message: __( 'Brand Site saved successfully.', 'onesearch' ),
 			} );
-		} finally {
+		} ).catch( () => {
+			throw new Error( 'Failed to update shared sites' );
+		} ).finally( () => {
 			setFormData( defaultBrandSite );
 			setShowModal( false );
 			setEditingIndex( null );
-		}
+		} );
 	};
 
 	const handleDelete = async ( index : number|null ) : Promise<void> => {
@@ -139,8 +131,7 @@ const SettingsPage = () => {
 
 	return (
 		<>
-			<>
-				{ !! notice && notice?.message?.length > 0 &&
+			{ !! notice && notice?.message?.length > 0 &&
 				<Snackbar
 					explicitDismiss={ false }
 					onRemove={ () => setNotice( null ) }
@@ -148,8 +139,7 @@ const SettingsPage = () => {
 				>
 					{ notice?.message }
 				</Snackbar>
-				}
-			</>
+			}
 
 			{
 				siteType === 'brand-site' && (
