@@ -228,8 +228,8 @@ class Basic_Options_Controller extends Abstract_REST_Controller {
 
 		return rest_ensure_response(
 			[
-				'success'    => $success,
-				'sites_data' => array_values( $sites_data ),
+				'success'      => $success,
+				'shared_sites' => array_values( $sites_data ),
 			]
 		);
 	}

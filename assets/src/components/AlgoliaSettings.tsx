@@ -28,6 +28,8 @@ const EMPTY_CREDENTIALS: AlgoliaCredentials = {
 	write_key: '',
 };
 
+const CREDENTIALS_ENDPOINT = '/onesearch/v1/algolia-credentials';
+
 const AlgoliaSettings = (
 	{ setNotice } :
 	{
@@ -41,26 +43,23 @@ const AlgoliaSettings = (
 	const [ saving, setSaving ] = useState( false );
 
 	useEffect( () => {
-		apiFetch<{ onesearch_algolia_credentials: AlgoliaCredentials }>( {
-			path: '/wp/v2/settings',
+		apiFetch<AlgoliaCredentials>( {
+			path: CREDENTIALS_ENDPOINT,
+			method: 'GET',
 		} )
-			.then( ( settings ) => {
-				if ( settings?.onesearch_algolia_credentials ) {
-					const creds = settings.onesearch_algolia_credentials;
+			.then( ( data ) => {
+				if ( data?.app_id && data?.write_key ) {
 					setAlgoliaCreds( {
-						app_id: creds.app_id,
-						write_key: creds.write_key,
+						app_id: data.app_id,
+						write_key: data.write_key,
 					} );
 					setInitial( {
-						app_id: ( creds.app_id ).trim(),
-						write_key: ( creds.write_key ).trim(),
+						app_id: ( data.app_id ).trim(),
+						write_key: ( data.write_key ).trim(),
 					} );
 				} else {
 					// No credentials saved yet, set initial as empty
-					setInitial( {
-						app_id: '',
-						write_key: '',
-					} );
+					setInitial( EMPTY_CREDENTIALS );
 				}
 			} )
 			.catch( () => {
@@ -83,32 +82,32 @@ const AlgoliaSettings = (
 
 	const onSave = async () => {
 		setSaving( true );
-		apiFetch<{ onesearch_algolia_credentials: AlgoliaCredentials }>( {
-			path: '/wp/v2/settings',
+		apiFetch<AlgoliaCredentials>( {
+			path: CREDENTIALS_ENDPOINT,
 			method: 'POST',
 			data: {
-				onesearch_algolia_credentials: {
-					app_id: algoliaCreds.app_id.trim(),
-					write_key: algoliaCreds.write_key.trim(),
-				},
+				app_id: algoliaCreds.app_id.trim(),
+				write_key: algoliaCreds.write_key.trim(),
 			},
 		} )
-			.then( ( settings ) => {
-				if ( settings?.onesearch_algolia_credentials ) {
-					const creds = settings.onesearch_algolia_credentials;
-					setAlgoliaCreds( {
-						app_id: creds.app_id,
-						write_key: creds.write_key,
-					} );
-					setInitial( {
-						app_id: ( creds.app_id ).trim(),
-						write_key: ( creds.write_key ).trim(),
-					} );
-					setNotice( {
-						type: 'success',
-						message: __( 'Algolia credentials saved successfully.', 'onesearch' ),
-					} );
+			.then( ( data ) => {
+				if ( ! data?.app_id || ! data?.write_key ) {
+					// Will be handled by the catch block
+					throw new Error( 'Invalid response data' );
 				}
+
+				setAlgoliaCreds( {
+					app_id: data.app_id,
+					write_key: data.write_key,
+				} );
+				setInitial( {
+					app_id: data.app_id.trim(),
+					write_key: data.write_key.trim(),
+				} );
+				setNotice( {
+					type: 'success',
+					message: __( 'Algolia credentials saved successfully.', 'onesearch' ),
+				} );
 			} )
 			.catch( () => {
 				setNotice( {

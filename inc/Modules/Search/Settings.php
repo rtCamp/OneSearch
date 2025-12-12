@@ -46,11 +46,6 @@ final class Settings implements Registrable {
 		// Listen to updates.
 		add_action( 'update_option_' . Admin_Settings::OPTION_SITE_TYPE, [ $this, 'on_site_type_change' ], 10, 2 );
 		add_action( 'update_option_' . Admin_Settings::OPTION_GOVERNING_SHARED_SITES, [ $this, 'on_shared_sites_change' ], 10, 2 );
-
-		// Before getting algolia credentials decrypt them.
-		add_filter( 'rest_pre_get_setting', [ self::class, 'pre_get_algolia_credentials' ], 10, 3 );
-
-		// @todo add check if algolia creds are valid or not before saving them.
 	}
 
 	/**
@@ -315,22 +310,5 @@ final class Settings implements Registrable {
 	public static function get_search_settings(): array {
 		$value = get_option( self::OPTION_GOVERNING_SEARCH_SETTINGS, [] );
 		return is_array( $value ) ? $value : [];
-	}
-
-	/**
-	 * Decrypt algolia credentials before sending to REST.
-	 *
-	 * @param mixed  $result  The current value.
-	 * @param string $name    The setting name.
-	 * @param mixed  $args    $args The default value to return if the option does not exist.
-	 *
-	 * @return mixed
-	 */
-	public static function pre_get_algolia_credentials( $result, $name, $args ): mixed {
-		if ( self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS !== $name ) {
-			return $result;
-		}
-
-		return self::get_algolia_credentials();
 	}
 }

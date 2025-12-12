@@ -32,6 +32,18 @@ class Search_Controller extends Abstract_REST_Controller {
 				],
 				[
 					'methods'             => WP_REST_Server::CREATABLE,
+					'args'                => [
+						'app_id'    => [
+							'required'          => true,
+							'type'              => 'string',
+							'sanitize_callback' => 'rest_sanitize_request_arg',
+						],
+						'write_key' => [
+							'required'          => true,
+							'type'              => 'string',
+							'sanitize_callback' => 'rest_sanitize_request_arg',
+						],
+					],
 					'callback'            => [ $this, 'update_algolia_credentials' ],
 					'permission_callback' => [ $this, 'check_api_permissions' ],
 				],
