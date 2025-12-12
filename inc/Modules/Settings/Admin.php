@@ -234,7 +234,7 @@ final class Admin implements Registrable {
 	 */
 	private function should_display_site_selection_modal(): bool {
 		$current_screen = get_current_screen();
-		if ( ! $current_screen || 'plugins' !== $current_screen->base ) {
+		if ( ! $current_screen || ( 'plugins' !== $current_screen->base && ! str_contains( $current_screen->id, self::MENU_SLUG ) ) ) {
 			return false;
 		}
 

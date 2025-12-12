@@ -159,9 +159,6 @@ final class Settings implements Registrable {
 			return;
 		}
 
-		// By getting the API key, it will be generated if it doesn't exist.
-		Admin_Settings::get_api_key();
-
 		try {
 			$index = Algolia::instance()->get_index();
 
@@ -272,7 +269,7 @@ final class Settings implements Registrable {
 
 		// @todo we are only taking 2 things from user so where does admin_key come from?
 		return [
-			'app_id'    => $creds['app_id'] ?? null,
+			'app_id'    => $creds['app_id'] ?? '',
 			'write_key' => Encryptor::decrypt( $creds['write_key'] ?? '' ) ?: null,
 			'admin_key' => Encryptor::decrypt( $creds['admin_key'] ?? '' ) ?: null,
 		];
@@ -345,25 +342,6 @@ final class Settings implements Registrable {
 			return $result;
 		}
 
-		$value = get_option( $name, $args );
-
-		if ( ! is_array( $value ) ) {
-			return [
-				'app_id'    => '',
-				'write_key' => '',
-				'admin_key' => '',
-			];
-		}
-
-		// Decrypt before sending to frontend.
-		return [
-			'app_id'    => $value['app_id'] ?? '',
-			'write_key' => ! empty( $value['write_key'] )
-				? Encryptor::decrypt( $value['write_key'] )
-				: '',
-			'admin_key' => ! empty( $value['admin_key'] )
-				? Encryptor::decrypt( $value['admin_key'] )
-				: '',
-		];
+		return self::get_algolia_credentials();
 	}
 }

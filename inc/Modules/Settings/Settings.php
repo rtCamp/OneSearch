@@ -49,6 +49,9 @@ final class Settings implements Registrable {
 	public function register_hooks(): void {
 		add_action( 'admin_init', [ $this, 'register_settings' ] );
 		add_action( 'rest_api_init', [ $this, 'register_settings' ] );
+
+		// Listen to updates.
+		add_action( 'update_option_' . self::OPTION_SITE_TYPE, [ $this, 'on_site_type_change' ], 10, 2 );
 	}
 
 	/**
@@ -155,6 +158,21 @@ final class Settings implements Registrable {
 				$args
 			);
 		}
+	}
+
+	/**
+	 * Ensures the API key is generated when the site type changes to 'consumer'.
+	 *
+	 * @param mixed $old_value The old value.
+	 * @param mixed $new_value The new value.
+	 */
+	public function on_site_type_change( $old_value, $new_value ): void {
+		if ( self::SITE_TYPE_CONSUMER !== $new_value ) {
+			return;
+		}
+
+		// By getting the API key, it will be generated if it doesn't exist.
+		self::get_api_key();
 	}
 
 	/**
