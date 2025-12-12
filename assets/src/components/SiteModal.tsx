@@ -1,3 +1,7 @@
+/**
+ * WordPress dependencies
+ */
+import { useState, useMemo } from 'react';
 import {
 	Modal,
 	TextControl,
@@ -6,23 +10,32 @@ import {
 	Notice,
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
-import { useState, useMemo } from 'react';
-import { isValidUrl, withTrailingSlash } from '../js/utils';
 
 /**
- * Site Modal component for adding/editing a site.
- *
- * @param {Object}   props              - Component properties.
- * @param {Object}   props.formData     - Current form data.
- * @param {Function} props.setFormData  - Function to update form data.
- * @param {Function} props.onSubmit     - Function to call on form submission.
- * @param {Function} props.onClose      - Function to call on modal close.
- * @param {boolean}  props.editing      - Whether the modal is in editing mode.
- * @param {Object}   props.originalData - Original data for comparison when editing.
- * @return {JSX.Element} Rendered component.
+ * Internal dependencies
  */
-const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, originalData = {} } ) => {
-	const [ errors, setErrors ] = useState( {
+import { isValidUrl } from '../js/utils';
+import type { defaultBrandSite } from '@/admin/settings/page';
+interface ErrorsType {
+	name: string;
+	url: string;
+	api_key: string;
+	message: string;
+}
+
+const SiteModal = (
+	{ formData, setFormData, onSubmit, onClose, editing, sites, originalData } :
+	{
+		formData: typeof defaultBrandSite;
+		setFormData: ( data: typeof defaultBrandSite ) => void;
+		onSubmit: () => Promise< boolean >;
+		onClose: () => void;
+		editing: boolean;
+		sites: typeof defaultBrandSite[];
+		originalData: typeof defaultBrandSite | undefined;
+	},
+) => {
+	const [ errors, setErrors ] = useState< ErrorsType >( {
 		name: '',
 		url: '',
 		api_key: '',
@@ -31,7 +44,20 @@ const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, origina
 	const [ showNotice, setShowNotice ] = useState( false );
 	const [ isProcessing, setIsProcessing ] = useState( false );
 
-	const handleSubmit = async () => {
+	// Check if form data has changed from original data (only for editing mode)
+	const hasChanges = useMemo( () => {
+		if ( ! editing ) {
+			return true;
+		} // Always allow submission for new sites
+
+		return (
+			formData.name !== originalData?.name ||
+			formData.url !== originalData?.url ||
+			formData.api_key !== originalData?.api_key
+		);
+	}, [ editing, formData, originalData ] );
+
+	const handleSubmit = async ():Promise<void> => {
 		// Validate inputs
 		let siteUrlError = '';
 		if ( ! formData.url.trim() ) {
@@ -40,9 +66,6 @@ const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, origina
 			siteUrlError = __( 'Enter a valid URL (must start with http or https).', 'onesearch' );
 		}
 
-		// Guarantee a trailing slash in the payload
-		formData.url = withTrailingSlash( formData.url );
-
 		const newErrors = {
 			name: ! formData.name.trim() ? __( 'Site Name is required.', 'onesearch' ) : '',
 			url: siteUrlError,
@@ -50,7 +73,7 @@ const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, origina
 			message: '',
 		};
 
-		// Make sure site name is under 20 characters.
+		// make sure site name is under 20 characters
 		if ( formData.name.length > 20 ) {
 			newErrors.name = __( 'Site Name must be under 20 characters.', 'onesearch' );
 		}
@@ -81,11 +104,38 @@ const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, origina
 			);
 
 			const healthCheckData = await healthCheck.json();
-
 			if ( ! healthCheckData.success ) {
 				setErrors( {
 					...newErrors,
-					message: __( 'Health check failed. Please ensure the site is accessible and the API key is correct.', 'onesearch' ),
+					message: __( 'Health check failed, please verify API key and make sure there\'s no governing site connected.', 'onesearch' ),
+				} );
+				setShowNotice( true );
+				setIsProcessing( false );
+				return;
+			}
+
+			// check if same url is already added or not.
+			let isAlreadyExists = false;
+			sites.forEach( ( site ) => {
+				const trimmedSiteUrl = site.url.endsWith( '/' )
+					? site.url
+					: `${ site.url }/`;
+				const trimmedFormUrl = formData.url.endsWith( '/' )
+					? formData.url
+					: `${ formData.url }/`;
+				if ( trimmedSiteUrl === trimmedFormUrl ) {
+					if ( editing && originalData?.url === formData.url ) {
+						// allow if url is same as original url in editing mode
+						return;
+					}
+					isAlreadyExists = true;
+				}
+			} );
+
+			if ( isAlreadyExists ) {
+				setErrors( {
+					...newErrors,
+					message: __( 'Site URL already exists. Please use a different URL.', 'onesearch' ),
 				} );
 				setShowNotice( true );
 				setIsProcessing( false );
@@ -95,18 +145,10 @@ const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, origina
 			setShowNotice( false );
 			const submitResponse = await onSubmit();
 
-			if ( ! submitResponse.ok ) {
-				const errorData = await submitResponse.json();
+			if ( ! submitResponse ) {
 				setErrors( {
 					...newErrors,
-					message: errorData.message || __( 'An error occurred while saving the site. Please try again.', 'onesearch' ),
-				} );
-				setShowNotice( true );
-			}
-			if ( submitResponse?.data?.status === 400 ) {
-				setErrors( {
-					...newErrors,
-					message: submitResponse?.message || __( 'An error occurred while saving the site. Please try again.', 'onesearch' ),
+					message: __( 'An error occurred while saving the site. Please try again.', 'onesearch' ),
 				} );
 				setShowNotice( true );
 			}
@@ -118,23 +160,10 @@ const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, origina
 			setShowNotice( true );
 			setIsProcessing( false );
 			return;
+		} finally {
+			setIsProcessing( false );
 		}
-
-		setIsProcessing( false );
 	};
-
-	const hasChanges = useMemo( () => {
-		if ( ! editing ) {
-			return true;
-		} // Always allow submission for new sites
-
-		return (
-			formData?.name !== originalData?.name ||
-			formData?.url !== originalData?.url ||
-			formData?.api_key !== originalData?.api_key ||
-			formData?.logo !== originalData?.logo
-		);
-	}, [ editing, formData, originalData ] );
 
 	// Button should be disabled if:
 	// 1. Currently processing, OR
@@ -151,6 +180,7 @@ const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, origina
 			title={ editing ? __( 'Edit Brand Site', 'onesearch' ) : __( 'Add Brand Site', 'onesearch' ) }
 			onRequestClose={ onClose }
 			size="medium"
+			shouldCloseOnClickOutside={ true }
 		>
 			{ showNotice && (
 				<Notice
@@ -166,19 +196,15 @@ const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, origina
 				label={ __( 'Site Name*', 'onesearch' ) }
 				value={ formData.name }
 				onChange={ ( value ) => setFormData( { ...formData, name: value } ) }
-				error={ errors.name }
 				help={ __( 'This is the name of the site that will be registered.', 'onesearch' ) }
-				className="onesearch-site-modal-text"
-				__nextHasNoMarginBottom
 				__next40pxDefaultSize
+				__nextHasNoMarginBottom
 			/>
 			<TextControl
 				label={ __( 'Site URL*', 'onesearch' ) }
 				value={ formData.url }
 				onChange={ ( value ) => setFormData( { ...formData, url: value } ) }
-				error={ errors.url }
-				help={ __( 'It must start with http or https, like: https://rtcamp.com/', 'onesearch' ) }
-				className="onesearch-site-modal-text"
+				help={ __( 'It must start with http or https and end with /, like: https://rtcamp.com/', 'onesearch' ) }
 				__next40pxDefaultSize
 				__nextHasNoMarginBottom
 			/>
@@ -186,9 +212,7 @@ const SiteModal = ( { formData, setFormData, onSubmit, onClose, editing, origina
 				label={ __( 'API Key*', 'onesearch' ) }
 				value={ formData.api_key }
 				onChange={ ( value ) => setFormData( { ...formData, api_key: value } ) }
-				error={ errors.api_key }
-				help={ __( 'This is the API key that will be used to authenticate the site for onesearch.', 'onesearch' ) }
-				className="onesearch-site-modal-text"
+				help={ __( 'This is the API key that will be used to authenticate the site for OneSearch.', 'onesearch' ) }
 				__nextHasNoMarginBottom
 			/>
 

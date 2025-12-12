@@ -1,3 +1,7 @@
+/**
+ * WordPress dependencies
+ */
+import { useState, useEffect } from 'react';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import {
@@ -8,7 +12,6 @@ import {
 	Button,
 	SelectControl,
 } from '@wordpress/components';
-import { useState, useEffect } from 'react';
 
 const BRAND_SITE = 'brand-site';
 const GOVERNING_SITE = 'governing-site';
@@ -19,6 +22,15 @@ interface NoticeState {
 	type: 'success' | 'error' | 'warning' | 'info';
 	message: string;
 }
+
+// WordPress provides snake_case keys here. Using them intentionally.
+// eslint-disable-next-line camelcase
+const { nonce, setup_url, site_type } = window.OneSearchOnboarding;
+
+/**
+ * Create NONCE middleware for apiFetch
+ */
+apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
 
 const SiteTypeSelector = ( { value, setSiteType }: {
 	value: SiteType | '';
@@ -43,16 +55,11 @@ const SiteTypeSelector = ( { value, setSiteType }: {
 );
 
 const OnboardingScreen = () => {
-	// WordPress provides snake_case keys here. Using them intentionally.
-	// eslint-disable-next-line camelcase
-	const { nonce, setup_url, site_type } = window.OneSearchSettings;
-
 	const [ siteType, setSiteType ] = useState<SiteType | ''>( site_type || '' );
 	const [ notice, setNotice ] = useState<NoticeState | null>( null );
-	const [ isSaving, setIsSaving ] = useState<boolean>( false );
+	const [ isSaving, setIsSaving ] = useState( false );
 
 	useEffect( () => {
-		apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
 		apiFetch<{ onesearch_site_type?: SiteType }>( { path: '/wp/v2/settings' } )
 			.then( ( settings ) => {
 				if ( settings?.onesearch_site_type ) {
@@ -65,7 +72,7 @@ const OnboardingScreen = () => {
 					message: __( 'Error fetching site type.', 'onesearch' ),
 				} );
 			} );
-	} );
+	}, [] ); // for initial component mount
 
 	const handleSiteTypeChange = async ( value: SiteType | '' ) => {
 		// Optimistically set site type.

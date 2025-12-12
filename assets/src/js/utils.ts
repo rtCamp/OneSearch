@@ -1,29 +1,27 @@
-/* global OneSearchSettings */
-
 /**
- * Checks whether a given string is a valid URL pattern using URL.
+ * Helper function to validate if a string is a well-formed URL.
  *
- * @function
- * @param {string} str - The string to validate.
- * @return {boolean} True if the string is a correct URL, false otherwise.
+ * @param {string} str - The string to validate as a URL.
+ *
+ * @return {boolean} True if the string is a valid URL, false otherwise.
  */
-const isURL = ( str ) => {
+const isURL = ( str : string ) : boolean => {
 	try {
-		const url = new URL( str );
-		return [ 'http:', 'https:' ].includes( url.protocol );
+		new URL( str );
+		return true;
 	} catch {
 		return false;
 	}
 };
 
 /**
- * Validates whether the provided string is a syntactically valid URL.
+ * Validates if a given string is a valid URL.
  *
- * @function
  * @param {string} url - The URL string to validate.
- * @return {boolean} True if the URL is valid and conforms to a proper format, false otherwise.
+ *
+ * @return {boolean} True if the URL is valid, false otherwise.
  */
-export const isValidUrl = ( url ) => {
+export const isValidUrl = ( url:string ):boolean => {
 	try {
 		const parsedUrl = new URL( url );
 		return isURL( parsedUrl.href );
@@ -35,11 +33,10 @@ export const isValidUrl = ( url ) => {
 /**
  * Ensures that a URL string ends with a trailing slash.
  *
- * @function
  * @param {string} url - The URL string to normalize.
  * @return {string} The normalized URL with a trailing slash.
  */
-export const withTrailingSlash = ( url ) => {
+export const withTrailingSlash = ( url : string ) : string => {
 	if ( ! url ) {
 		return '';
 	}
@@ -52,12 +49,12 @@ export const withTrailingSlash = ( url ) => {
  * @constant
  * @type {string}
  */
-export const API_NAMESPACE = OneSearchSettings.restUrl + OneSearchSettings.restNamespace;
+export const API_NAMESPACE = window.OneSearchSettings.restUrl + window.OneSearchSettings.restNamespace;
 
 /**
  * The API key used for authenticating requests to the OneSearch REST API.
  */
-export const API_KEY = OneSearchSettings.api_key;
+export const API_KEY = window.OneSearchSettings.api_key;
 
 /**
  * WordPress REST API nonce for authenticated requests.
@@ -65,7 +62,7 @@ export const API_KEY = OneSearchSettings.api_key;
  * @constant
  * @type {string}
  */
-export const NONCE = OneSearchSettings.nonce;
+export const NONCE = window.OneSearchSettings.nonce as string;
 
 /**
  * REST namespace used by the OneSearch plugin.
@@ -73,7 +70,7 @@ export const NONCE = OneSearchSettings.nonce;
  * @constant
  * @type {string}
  */
-export const REST_NAMESPACE = OneSearchSettings.restNamespace;
+export const REST_NAMESPACE = window.OneSearchSettings.restNamespace;
 
 /**
  * Current site’s base URL.
@@ -81,5 +78,5 @@ export const REST_NAMESPACE = OneSearchSettings.restNamespace;
  * @constant
  * @type {string}
  */
-export const CURRENT_SITE_URL = OneSearchSettings.currentSiteUrl;
+export const CURRENT_SITE_URL = window.OneSearchSettings.currentSiteUrl;
 

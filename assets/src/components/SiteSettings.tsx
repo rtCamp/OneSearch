@@ -1,7 +1,7 @@
 /**
  * WordPress dependencies
  */
-import { useEffect, useState, useCallback } from '@wordpress/element';
+import { useEffect, useState, useCallback } from 'react';
 import {
 	TextareaControl,
 	Button,
@@ -18,24 +18,22 @@ import { __ } from '@wordpress/i18n';
 /**
  * Internal dependencies
  */
-import { API_NAMESPACE, NONCE, API_KEY } from '../js/utils';
+import type { NoticeType } from '@/admin/settings/page';
 
-/**
- * SiteSettings component for managing API key and governing site connection.
- *
- * @return {JSX.Element} Rendered component.
- */
+const API_NAMESPACE = window.OneSearchSettings.restUrl + 'onesearch/v1';
+const NONCE = window.OneSearchSettings.nonce as string;
+const API_KEY = window.OneSearchSettings.api_key;
+
 const SiteSettings = () => {
 	const [ apiKey, setApiKey ] = useState( '' );
 	const [ isLoading, setIsLoading ] = useState( false );
-	const [ isBusy, setIsBusy ] = useState( false );
-	const [ notice, setNotice ] = useState( null );
+	const [ notice, setNotice ] = useState< NoticeType | null >( null );
 	const [ governingSite, setGoverningSite ] = useState( '' );
 	const [ showDisconnectionModal, setShowDisconnectionModal ] = useState( false );
 
 	const fetchApiKey = useCallback( async () => {
+		setIsLoading( true );
 		try {
-			setIsLoading( true );
 			const response = await fetch( API_NAMESPACE + '/secret-key', {
 				method: 'GET',
 				headers: {
@@ -125,7 +123,6 @@ const SiteSettings = () => {
 
 	const deleteGoverningSiteConnection = useCallback( async () => {
 		try {
-			setIsBusy( true );
 			const response = await fetch(
 				`${ API_NAMESPACE }/governing-site`,
 				{
@@ -151,7 +148,6 @@ const SiteSettings = () => {
 				message: __( 'Failed to disconnect governing site. Please try again later.', 'onesearch' ),
 			} );
 		} finally {
-			setIsBusy( false );
 			setShowDisconnectionModal( false );
 		}
 	}, [ apiKey ] );
@@ -171,6 +167,7 @@ const SiteSettings = () => {
 
 	return (
 		<>
+
 			{ notice && (
 				<Notice
 					status={ notice.type }
@@ -181,7 +178,7 @@ const SiteSettings = () => {
 				</Notice>
 			) }
 
-			<Card className="onesearch-brand-site-settings" style={ { marginTop: '30px' } } >
+			<Card style={ { marginTop: '30px' } } >
 				<CardHeader>
 					<h2>{ __( 'API Key', 'onesearch' ) }</h2>
 					<div>
@@ -222,11 +219,13 @@ const SiteSettings = () => {
 							value={ apiKey }
 							disabled={ true }
 							help={ __( 'This key is used for secure communication with the Governing site.', 'onesearch' ) }
+							__nextHasNoMarginBottom
+							onChange={ () => {} } // to avoid ts warning
 						/>
 					</div>
 				</CardBody>
-			</Card>
 
+			</Card>
 			<Card className="governing-site-connection"
 				style={ { marginTop: '30px' } }
 			>
@@ -236,9 +235,9 @@ const SiteSettings = () => {
 						variant="secondary"
 						isDestructive
 						onClick={ handleDisconnectGoverningSite }
-						disabled={ governingSite?.trim().length === 0 || isBusy }
+						disabled={ governingSite.trim().length === 0 || isLoading }
 					>
-						{ isBusy ? __( 'Disconnecting…', 'onesearch' ) : __( 'Disconnect Governing Site', 'onesearch' ) }
+						{ __( 'Disconnect Governing Site', 'onesearch' ) }
 					</Button>
 				</CardHeader>
 				<CardBody>
@@ -249,6 +248,7 @@ const SiteSettings = () => {
 						help={ __( 'This is the URL of the Governing site this Brand site is connected to.', 'onesearch' ) }
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom
+						onChange={ () => {} } // to avoid ts warning
 					/>
 				</CardBody>
 			</Card>
@@ -271,7 +271,6 @@ const SiteSettings = () => {
 							variant="primary"
 							isDestructive
 							onClick={ deleteGoverningSiteConnection }
-							isBusy={ isBusy }
 						>
 							{ __( 'Disconnect', 'onesearch' ) }
 						</Button>
