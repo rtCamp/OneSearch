@@ -33,18 +33,6 @@ class Basic_Options_Controller extends Abstract_REST_Controller {
 					'callback'            => [ $this, 'get_site_type' ],
 					'permission_callback' => static fn () => current_user_can( 'manage_options' ),
 				],
-				[
-					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => [ $this, 'set_site_type' ],
-					'permission_callback' => static fn () => current_user_can( 'manage_options' ),
-					'args'                => [
-						'site_type' => [
-							'required'          => true,
-							'type'              => 'string',
-							'sanitize_callback' => 'sanitize_text_field',
-						],
-					],
-				],
 			]
 		);
 
@@ -158,27 +146,6 @@ class Basic_Options_Controller extends Abstract_REST_Controller {
 			[
 				'success'   => true,
 				'site_type' => Settings::get_site_type(),
-			]
-		);
-	}
-
-	/**
-	 * Set the site type.
-	 *
-	 * @param \WP_REST_Request $request The request object.
-	 *
-	 * @return \WP_REST_Response|\WP_Error
-	 */
-	public function set_site_type( WP_REST_Request $request ): WP_REST_Response|\WP_Error {
-
-		$site_type = sanitize_text_field( $request->get_param( 'site_type' ) );
-
-		$success = update_option( Settings::OPTION_SITE_TYPE, $site_type );
-
-		return rest_ensure_response(
-			[
-				'success'   => $success,
-				'site_type' => $site_type,
 			]
 		);
 	}
