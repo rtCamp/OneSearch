@@ -74,6 +74,7 @@ final class Assets implements Registrable {
 				'restUrl'           => esc_url( home_url( '/wp-json/' ) ),
 				'setupUrl'          => admin_url( 'admin.php?page=onesearch-settings' ),
 				'sharedSites'       => array_values( Settings::get_shared_sites() ),
+				'siteType'          => Settings::get_site_type(),
 			];
 		}
 

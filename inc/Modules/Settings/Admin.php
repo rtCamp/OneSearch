@@ -85,6 +85,9 @@ final class Admin implements Registrable {
 	 * Remove the default submenu added by WordPress.
 	 */
 	public function remove_default_submenu(): void {
+		if ( Settings::is_governing_site() && ! empty( Settings::get_shared_sites() ) ) {
+			return;
+		}
 		remove_submenu_page( self::MENU_SLUG, self::MENU_SLUG );
 	}
 
@@ -95,7 +98,7 @@ final class Admin implements Registrable {
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Settings', 'onesearch' ); ?></h1>
-			<div id="onesearch-settings"></div>
+			<div id="onesearch-settings-page"></div>
 		</div>
 		<?php
 	}
@@ -183,7 +186,7 @@ final class Admin implements Registrable {
 
 		wp_localize_script(
 			Assets::ONBOARDING_SCRIPT_HANDLE,
-			'OneSearchSettings',
+			'OneSearchOnboarding',
 			[
 				'nonce'     => wp_create_nonce( 'wp_rest' ),
 				'setup_url' => admin_url( sprintf( 'admin.php?page=%s', self::SCREEN_ID ) ),
@@ -231,7 +234,7 @@ final class Admin implements Registrable {
 	 */
 	private function should_display_site_selection_modal(): bool {
 		$current_screen = get_current_screen();
-		if ( ! $current_screen || 'plugins' !== $current_screen->base || strpos( $current_screen->id, self::MENU_SLUG ) === false ) {
+		if ( ! $current_screen || ( 'plugins' !== $current_screen->base && ! str_contains( $current_screen->id, self::MENU_SLUG ) ) ) {
 			return false;
 		}
 

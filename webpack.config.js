@@ -69,7 +69,7 @@ const scripts = {
 	entry: {
 		search: path.resolve( process.cwd(), 'assets', 'src', 'admin/search', 'index.js' ),
 		onboarding: path.resolve( process.cwd(), 'assets', 'src', 'admin/onboarding', 'index.tsx' ),
-		settings: path.resolve( process.cwd(), 'assets', 'src', 'admin/settings', 'index.js' ),
+		settings: path.resolve( process.cwd(), 'assets', 'src', 'admin/settings', 'index.tsx' ),
 	},
 	module: {
 		rules:

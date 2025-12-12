@@ -63,7 +63,7 @@ final class Settings implements Registrable {
 				'type'              => 'string',
 				'label'             => __( 'Site Type', 'onesearch' ),
 				'description'       => __( 'Defines whether this site is a governing or a brand site.', 'onesearch' ),
-				'sanitize_callback' => static function ( $value ) {
+				'sanitize_callback' => static function ( $value ): string {
 					$valid_values = [
 						self::SITE_TYPE_CONSUMER  => true,
 						self::SITE_TYPE_GOVERNING => true,
@@ -347,12 +347,12 @@ final class Settings implements Registrable {
 	/**
 	 * Gets the API key, generating a new one if it doesn't exist.
 	 *
-	 * Returns an empty string on failure.
+	 * @return string The (unencrypted) API key.
 	 */
 	public static function get_api_key(): string {
 		$api_key = get_option( self::OPTION_CONSUMER_API_KEY, '' );
 
-		$api_key = ! empty( $api_key ) ? Encryptor::decrypt( $api_key ) : '';
+		$api_key = ! empty( $api_key ) ? Encryptor::decrypt( $api_key ) : self::regenerate_api_key();
 
 		return $api_key ?: '';
 	}

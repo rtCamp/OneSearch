@@ -1,7 +1,14 @@
+/**
+ * WordPress dependencies
+ */
 import { createRoot } from 'react-dom/client';
+
+/**
+ * Internal dependencies
+ */
 import OnboardingScreen, { type SiteType } from './page';
 
-interface OneSearchSettings {
+interface OneSearchOnboarding {
 	nonce: string;
 	site_type: SiteType | '';
 	setup_url: string;
@@ -9,7 +16,7 @@ interface OneSearchSettings {
 
 declare global {
 	interface Window {
-		OneSearchSettings: OneSearchSettings;
+		OneSearchOnboarding: OneSearchOnboarding;
 	}
 }
 

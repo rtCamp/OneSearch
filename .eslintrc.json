@@ -24,6 +24,7 @@
 		"eslint-comments/no-unlimited-disable": "error",
 		"jsdoc/check-indentation": "error",
 		"no-shadow": "warn",
+		"@wordpress/no-unsafe-wp-apis": "warn",
 		/* WordPress surfaces snake_case keys and globals; allow them */
 		"camelcase": "off"
 	},
