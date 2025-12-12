@@ -45,18 +45,16 @@ const AlgoliaSettings = (
 	useEffect( () => {
 		apiFetch<AlgoliaCredentials>( {
 			path: CREDENTIALS_ENDPOINT,
-			method: 'GET',
 		} )
 			.then( ( data ) => {
 				if ( data?.app_id && data?.write_key ) {
-					setAlgoliaCreds( {
-						app_id: data.app_id,
-						write_key: data.write_key,
-					} );
-					setInitial( {
-						app_id: ( data.app_id ).trim(),
-						write_key: ( data.write_key ).trim(),
-					} );
+					const cleanCreds = {
+						app_id: data.app_id.trim(),
+						write_key: data.write_key.trim(),
+					};
+
+					setAlgoliaCreds( cleanCreds );
+					setInitial( cleanCreds );
 				} else {
 					// No credentials saved yet, set initial as empty
 					setInitial( EMPTY_CREDENTIALS );
@@ -72,38 +70,28 @@ const AlgoliaSettings = (
 
 	const hasChanges =
 		!! initial &&
-		( algoliaCreds.app_id.trim() !== initial.app_id ||
-			algoliaCreds.write_key.trim() !== initial.write_key );
+		( algoliaCreds.app_id !== initial.app_id ||
+			algoliaCreds.write_key !== initial.write_key );
 
 	// Validate that required fields are filled
 	const isValid = !! ( algoliaCreds &&
-		algoliaCreds.app_id.trim() !== '' &&
-		algoliaCreds.write_key.trim() !== '' );
+		algoliaCreds.app_id !== '' &&
+		algoliaCreds.write_key !== '' );
 
 	const onSave = async () => {
 		setSaving( true );
-		apiFetch<AlgoliaCredentials>( {
+		apiFetch<{success:boolean}>( {
 			path: CREDENTIALS_ENDPOINT,
 			method: 'POST',
-			data: {
-				app_id: algoliaCreds.app_id.trim(),
-				write_key: algoliaCreds.write_key.trim(),
-			},
+			data: algoliaCreds,
 		} )
 			.then( ( data ) => {
-				if ( ! data?.app_id || ! data?.write_key ) {
+				if ( ! data.success ) {
 					// Will be handled by the catch block
 					throw new Error( 'Invalid response data' );
 				}
+				setInitial( algoliaCreds );
 
-				setAlgoliaCreds( {
-					app_id: data.app_id,
-					write_key: data.write_key,
-				} );
-				setInitial( {
-					app_id: data.app_id.trim(),
-					write_key: data.write_key.trim(),
-				} );
 				setNotice( {
 					type: 'success',
 					message: __( 'Algolia credentials saved successfully.', 'onesearch' ),
@@ -149,7 +137,7 @@ const AlgoliaSettings = (
 						onChange={ ( value ) =>
 							setAlgoliaCreds( ( prev ) => ( {
 								...prev,
-								app_id: value,
+								app_id: value.trim(),
 							} ) )
 						}
 						__nextHasNoMarginBottom
@@ -167,7 +155,7 @@ const AlgoliaSettings = (
 						onChange={ ( value ) =>
 							setAlgoliaCreds( ( prev ) => ( {
 								...prev,
-								write_key: value,
+								write_key: value.trim(),
 							} ) )
 						}
 						__nextHasNoMarginBottom
