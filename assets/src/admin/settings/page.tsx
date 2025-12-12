@@ -37,7 +37,6 @@ export type EditingIndex = number | null;
 
 const NONCE = window.OneSearchSettings.restNonce;
 const SITE_TYPE = window.OneSearchSettings.siteType as SiteType || '';
-
 const SHARED_SITES_ENDPOINT = '/onesearch/v1/shared-sites';
 
 /**
