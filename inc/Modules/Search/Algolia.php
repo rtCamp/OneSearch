@@ -10,7 +10,6 @@ declare(strict_types = 1);
 namespace OneSearch\Modules\Search;
 
 use Algolia\AlgoliaSearch\SearchClient;
-use OneSearch\Contracts\Traits\Singleton;
 use OneSearch\Modules\Rest\Abstract_REST_Controller;
 use OneSearch\Modules\Search\Settings as Search_Settings;
 use OneSearch\Modules\Settings\Settings;
@@ -19,23 +18,11 @@ use OneSearch\Modules\Settings\Settings;
  * Class - Algolia
  */
 final class Algolia {
-	use Singleton;
-
-	/**
-	 * The instance of the index.
-	 *
-	 * @var ?\Algolia\AlgoliaSearch\SearchIndex
-	 */
-	private ?\Algolia\AlgoliaSearch\SearchIndex $index = null;
 
 	/**
 	 * Get the index object for the current site.
 	 */
 	public function get_index(): \Algolia\AlgoliaSearch\SearchIndex|\WP_Error {
-		if ( $this->index instanceof \Algolia\AlgoliaSearch\SearchIndex ) {
-			return $this->index;
-		}
-
 		$index_name = $this->get_index_name();
 
 		if ( empty( $index_name ) ) {
@@ -51,10 +38,7 @@ final class Algolia {
 			return $client;
 		}
 
-		$index       = $client->initIndex( $index_name );
-		$this->index = $index;
-
-		return $index;
+		return $client->initIndex( $index_name );
 	}
 
 	/**

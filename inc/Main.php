@@ -30,20 +30,13 @@ final class Main {
 		Modules\Settings\Settings::class,
 		Modules\Search\Admin::class,
 		Modules\Search\Settings::class,
+		Modules\Search\Watcher::class,
 		Modules\Rest\Basic_Options_Controller::class,
 		Modules\Rest\Search_Controller::class,
 
 		// @todo finish migrating legacy endpoints.
 		Inc\REST\Basic_Options::class,
 		Inc\Algolia\Algolia_Search::class,
-	];
-
-	/**
-	 * @todo Singletons are an antipattern.
-	 */
-	private const SINGLETON_CLASSES = [
-		Inc\Algolia\Algolia_Index::class,
-		Inc\Algolia\Algolia_Index_By_Post::class,
 	];
 
 	/**
@@ -121,22 +114,9 @@ final class Main {
 			 * @todo reduce use of singletons where possible.
 			 */
 			$instances[ $class_name ] = new $class_name();
+			$instances[ $class_name ]->register_hooks();
 		}
 
-		/**
-		 * @todo remove this when we're no longer dealing with singletons.
-		 */
-		foreach ( self::SINGLETON_CLASSES as $class_name ) {
-			$instances[ $class_name ] = $class_name::instance();
-		}
-
-		foreach ( $instances as $instance ) {
-			// Hooks should be registered outside of the constructor.
-			if ( $instance instanceof Contracts\Interfaces\Registrable ) {
-				$instance->register_hooks();
-			}
-
-			// Do other generalizable stuff here.
-		}
+		// Do other generalizable stuff here.
 	}
 }

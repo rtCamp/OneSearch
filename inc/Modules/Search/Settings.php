@@ -149,19 +149,8 @@ final class Settings implements Registrable {
 			return;
 		}
 
-		try {
-			$index = Algolia::instance()->get_index();
-
-			if ( is_wp_error( $index ) ) {
-				return;
-			}
-
-			$index->delete()->wait();
-		} catch ( \Throwable $e ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- We need visibility.
-			error_log( 'Algolia Exception: ' . $e->getMessage() );
-			return;
-		}
+		$indexer = new Index();
+		$indexer->delete_index();
 	}
 
 	/**
@@ -194,32 +183,22 @@ final class Settings implements Registrable {
 			return;
 		}
 
-		try {
-			$index = Algolia::instance()->get_index();
+		$indexer = new Index();
 
-			// Bubble up if there was an error.
-			if ( is_wp_error( $index ) ) {
-				return;
-			}
+		$filters = implode(
+			' OR ',
+			array_map(
+				static function ( $site_url ) {
+					return sprintf( 'site_url:"%s"', $site_url );
+				},
+				$removed_sites
+			)
+		);
+		// OR filters should be wrapped in quotes.
+		// @see: https://www.algolia.com/doc/rest-api/search/delete-by#body-filters .
+		$success = $indexer->delete_by( [ 'filters' => "\"$filters\"" ] );
 
-			$filters = implode(
-				' OR ',
-				array_map(
-					static function ( $site_url ) {
-						return sprintf( 'site_url:"%s"', $site_url );
-					},
-					$removed_sites
-				)
-			);
-
-			$index->deleteBy(
-				// OR filters should be wrapped in quotes.
-				// @see: https://www.algolia.com/doc/rest-api/search/delete-by#body-filters .
-				[ 'filters' => "\"$filters\"" ]
-			)->wait();
-		} catch ( \Throwable $e ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- We need visibility.
-			error_log( 'Algolia Exception: ' . $e->getMessage() );
+		if ( is_wp_error( $success ) ) {
 			return;
 		}
 

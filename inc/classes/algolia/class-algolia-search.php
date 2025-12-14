@@ -14,12 +14,22 @@ use OneSearch\Modules\Search\Settings as Search_Settings;
 use OneSearch\Modules\Settings\Settings;
 use OneSearch\Utils;
 use WP_Post;
+use WP_Term;
 use stdClass;
 
 /**
  * Class Algolia_Search
+ *
+ * @phpstan-import-type PostRecord from \OneSearch\Modules\Search\Post_Record
  */
 class Algolia_Search implements Registrable {
+
+	/**
+	 * The instance of our Indexer
+	 *
+	 * @var \OneSearch\Modules\Search\Index|null
+	 */
+	private ?\OneSearch\Modules\Search\Index $index = null;
 
 	/**
 	 * {@inheritDoc}
@@ -58,6 +68,9 @@ class Algolia_Search implements Registrable {
 
 		add_filter( 'get_the_terms', [ $this, 'get_post_terms' ], 10, 3 );
 		add_filter( 'wp_get_post_terms', [ $this, 'get_post_terms' ], 10, 3 );
+
+		// Block-theme compatibility: fix remote permalinks/excerpts in rendered blocks.
+		add_filter( 'render_block', [ $this, 'filter_render_block' ], 10, 3 );
 	}
 
 	/**
@@ -120,36 +133,38 @@ class Algolia_Search implements Registrable {
 	 * @return array|\WP_Term[]|false
 	 */
 	public function get_post_terms( $terms, $post_id, $taxonomy ) {
-		if ( $post_id < 0 ) {
-			$post = get_post( $post_id );
-
-			if ( $post && isset( $post->onesearch_remote_taxonomies ) ) {
-				$filtered_terms = [];
-
-				foreach ( $post->onesearch_remote_taxonomies as $tax_data ) {
-					if ( $tax_data['taxonomy'] !== $taxonomy ) {
-						continue;
-					}
-
-					$fake_term                   = new \stdClass();
-					$fake_term->term_id          = $tax_data['term_id'];
-					$fake_term->name             = $tax_data['name'];
-					$fake_term->slug             = $tax_data['slug'];
-					$fake_term->term_group       = 0;
-					$fake_term->term_taxonomy_id = $tax_data['term_id'];
-					$fake_term->taxonomy         = $tax_data['taxonomy'];
-					$fake_term->description      = $tax_data['description'];
-					$fake_term->parent           = $tax_data['parent'];
-					$fake_term->count            = $tax_data['count'];
-
-					$filtered_terms[] = $fake_term;
-				}
-
-				return ! empty( $filtered_terms ) ? $filtered_terms : $terms;
-			}
+		if ( $post_id >= 0 ) {
+			return $terms;
 		}
 
-		return $terms;
+		$post = get_post( $post_id );
+
+		if ( ! $post || ! isset( $post->onesearch_remote_taxonomies ) ) {
+			return $terms;
+		}
+
+		$filtered_terms = [];
+
+		foreach ( $post->onesearch_remote_taxonomies as $tax_data ) {
+			if ( $tax_data['taxonomy'] !== $taxonomy ) {
+				continue;
+			}
+
+			$fake_term                   = new WP_Term( new \stdClass() );
+			$fake_term->count            = $tax_data['count'];
+			$fake_term->description      = $tax_data['description'];
+			$fake_term->name             = $tax_data['name'];
+			$fake_term->parent           = $tax_data['parent'];
+			$fake_term->slug             = $tax_data['slug'];
+			$fake_term->taxonomy         = $tax_data['taxonomy'];
+			$fake_term->term_id          = $tax_data['term_id'];
+			$fake_term->term_taxonomy_id = $tax_data['term_id'];
+			$fake_term->term_group       = 0;
+
+			$filtered_terms[] = $fake_term;
+		}
+
+		return ! empty( $filtered_terms ) ? $filtered_terms : $terms;
 	}
 
 	/**
@@ -239,17 +254,19 @@ class Algolia_Search implements Registrable {
 
 		global $wp_query;
 
-		$post_id = $post instanceof WP_Post ? $post->ID : $post;
+		$post_id = $post instanceof WP_Post ? (int) $post->ID : $post;
 
-		if ( (int) $post_id < 0 ) {
-			$original_post_id = absint( $post_id + 1 );
-			$all_found_posts  = $wp_query->posts;
+		if ( $post_id >= 0 ) {
+			return $permalink;
+		}
 
-			foreach ( $all_found_posts as $post ) {
-				// For remote placeholders we set onesearch_original_id.
-				if ( absint( $post->onesearch_original_id ) === $original_post_id ) {
-					return $post->guid;
-				}
+		$original_post_id = absint( $post_id + 1 );
+		$all_found_posts  = $wp_query->posts;
+
+		foreach ( $all_found_posts as $post ) {
+			// For remote placeholders we set onesearch_original_id.
+			if ( absint( $post->onesearch_original_id ) === $original_post_id ) {
+				return $post->guid;
 			}
 		}
 
@@ -305,22 +322,39 @@ class Algolia_Search implements Registrable {
 	}
 
 	/**
+	 * Gets the Algolia SearchIndex from our Index class.
+	 *
+	 * @todo this is likely temporary until this class is refactored.
+	 */
+	private function get_index(): \Algolia\AlgoliaSearch\SearchIndex|\WP_Error {
+		if ( ! $this->index instanceof \OneSearch\Modules\Search\Index ) {
+			$client = new Algolia();
+			$index  = $client->get_index();
+			if ( is_wp_error( $index ) ) {
+				return $index;
+			}
+			$this->index = new \OneSearch\Modules\Search\Index();
+		}
+
+		return $this->index->get_index();
+	}
+
+	/**
 	 * Build posts for the current page using batch chunk fetches.
 	 *
-	 * @param array<string,mixed>[] $hits_for_page One representative hit per grouped post.
-	 * @param bool                  $reconstruct   Whether to reconstruct chunked posts (true = fetch chunks).
+	 * @param PostRecord[] $hits_for_page One representative hit per grouped post.
+	 * @param bool         $reconstruct   Whether to reconstruct chunked posts (true = fetch chunks).
 	 * @return \WP_Post[] List of WP_Post / WP_Post-like objects.
 	 */
 	private function build_posts_from_grouped_hits( array $hits_for_page, bool $reconstruct = true ): array {
 		$parent_ids = [];
 
-		// Collect all parent IDs we need to fetch (for chunked posts only).
+		// Collect all site_ids we need to fetch (for chunked posts only).
 		if ( $reconstruct ) {
 			foreach ( $hits_for_page as $hit ) {
-				$is_chunked = ! empty( $hit['is_chunked'] );
-				$parent_id  = $hit['parent_post_id'] ?? null;
+				$is_chunked = ! empty( $hit['total_chunks'] ) ? intval( $hit['total_chunks'] ) > 1 : false;
+				$parent_id  = $hit['site_post_id'] ?? null;
 
-				// Site filtering is already done by Algolia, so site_url is guaranteed to exist.
 				if ( ! $is_chunked || ! $parent_id ) {
 					continue;
 				}
@@ -329,13 +363,13 @@ class Algolia_Search implements Registrable {
 			}
 		}
 
-		// Fetch chunks in batches using parent_post_id (globally unique with site_key prefix).
+		// Fetch chunks in batches using site_post_id (globally unique with site_key prefix).
 		$chunks_by_parent = $reconstruct ? $this->batch_fetch_chunks( $parent_ids ) : [];
 
 		$posts = [];
 
 		foreach ( $hits_for_page as $hit ) {
-			$is_chunked = ! empty( $hit['is_chunked'] );
+			$is_chunked = ! empty( $hit['total_chunks'] ) ? intval( $hit['total_chunks'] ) > 1 : false;
 
 			// If not chunked, or we are not rebuilding full content, just build from this hit.
 			if ( ! $is_chunked || ! $reconstruct ) {
@@ -346,7 +380,7 @@ class Algolia_Search implements Registrable {
 				continue;
 			}
 
-			$parent_id  = $hit['parent_post_id'] ?? null;
+			$parent_id  = $hit['site_post_id'] ?? null;
 			$all_chunks = isset( $parent_id, $chunks_by_parent[ $parent_id ] ) ? $chunks_by_parent[ $parent_id ] : [];
 
 			// If we did not get any chunks, fall back to the single hit.
@@ -376,7 +410,7 @@ class Algolia_Search implements Registrable {
 	 * @return array<string, array<array<string, mixed>>> Map of parent_post_id to list of chunk hits.
 	 */
 	private function batch_fetch_chunks( array $parent_ids ): array {
-		$index = Algolia::instance()->get_index();
+		$index = $this->get_index();
 		if ( is_wp_error( $index ) ) {
 			return [];
 		}
@@ -429,7 +463,7 @@ class Algolia_Search implements Registrable {
 	 * @param string    $search_query User query string.
 	 * @param \WP_Query $wp_query     WP_Query instance.
 	 *
-	 * @return array<array<string,mixed>>|\WP_Error Array of Algolia records or WP_Error.
+	 * @return PostRecord[]|\WP_Error Array of Algolia records or WP_Error.
 	 */
 	private function get_all_searched_record_ids( $search_query, $wp_query ) {
 		$default_params = [
@@ -437,7 +471,6 @@ class Algolia_Search implements Registrable {
 			'highlightPreTag'       => '<span class="algolia-highlight">',
 			'highlightPostTag'      => '</span>',
 			'getRankingInfo'        => true,
-			'distinct'              => false,
 			'typoTolerance'         => 'min',
 			'minWordSizefor1Typo'   => 3,
 			'minWordSizefor2Typos'  => 6,
@@ -479,7 +512,7 @@ class Algolia_Search implements Registrable {
 		$search_params = apply_filters( 'onesearch_algolia_search_params', $default_params, $wp_query, $search_query );
 
 		try {
-			$index = Algolia::instance()->get_index();
+			$index = $this->get_index();
 			if ( is_wp_error( $index ) ) {
 				return $index;
 			}
@@ -501,7 +534,7 @@ class Algolia_Search implements Registrable {
 	 * @param string                             $search_query  Query string.
 	 * @param array<string,mixed>                $search_params Search parameters.
 	 *
-	 * @return array<array<string,mixed>> Array of search hits.
+	 * @return PostRecord[] Array of search hits.
 	 *
 	 * @throws \Exception On client errors.
 	 */
@@ -591,13 +624,13 @@ class Algolia_Search implements Registrable {
 	/**
 	 * Create a WP_Post (local) or WP_Post-like placeholder (remote) from hit data.
 	 *
-	 * @param array<string,mixed> $post_data Algolia hit.
+	 * @param PostRecord $post_data Algolia hit.
 	 *
 	 * @return \WP_Post|null
 	 */
 	private function create_post_object( $post_data ) {
-		$post_id  = (int) ( $post_data['post_id'] ?? 0 );
-		$site_url = trailingslashit( $post_data['site_url'] );
+		$post_id  = $post_data['post_id'] ?? null;
+		$site_url = isset( $post_data['site_url'] ) ? Utils::normalize_url( $post_data['site_url'] ) : '';
 
 		$algolia_highlights = $this->extract_algolia_highlights( $post_data );
 
@@ -605,45 +638,48 @@ class Algolia_Search implements Registrable {
 		if ( trailingslashit( get_site_url() ) !== $site_url ) {
 			$custom_post = new WP_Post( new stdClass() );
 			// Ensure negative ID to avoid conflicts with local posts.
-			$custom_post->ID                    = -1 - $post_id;
-			$custom_post->onesearch_original_id = $post_id;
-			$custom_post->post_title            = $post_data['title'];
-			$custom_post->post_excerpt          = $post_data['excerpt'];
-			$custom_post->post_content          = $post_data['content'];
-			$custom_post->guid                  = $post_data['permalink'];
-			$custom_post->post_name             = $post_data['name'];
-			$custom_post->post_status           = 'publish';
-			$custom_post->post_type             = $post_data['type'];
-			$custom_post->filter                = 'raw';
-			$custom_post->post_date             = $post_data['postDate'];
-			$custom_post->post_modified         = $post_data['postDateGmt'];
+			$custom_post->ID           = -1 - absint( $post_id );
+			$custom_post->post_title   = $post_data['post_title'] ?? '';
+			$custom_post->post_excerpt = $post_data['post_excerpt'] ?? '';
+			$custom_post->post_content = $post_data['post_content'] ?? '';
+			$custom_post->guid         = $post_data['permalink'] ?? '';
+			$custom_post->post_name    = $post_data['post_name'] ?? '';
+			$custom_post->post_status  = 'publish';
+			$custom_post->post_type    = $post_data['post_type'] ?? '';
+			$custom_post->filter       = 'raw';
+			$custom_post->post_date    = isset( $post_data['post_date_gmt'] ) ? (string) wp_date( 'Y-m-d H:i:s', $post_data['post_date_gmt'] ) : '';
+
+			$custom_post->post_modified = isset( $post_data['post_modified_gmt'] ) ? (string) wp_date( 'Y-m-d H:i:s', $post_data['post_modified_gmt'] ) : '';
 			// Set negative author ID to avoid conflicts.
-			$custom_post->post_author                               = -1000 - absint( $post_id );
-			$custom_post->onesearch_remote_post_author_display_name = $post_data['author_display_name'];
-			$custom_post->onesearch_remote_post_author_link         = $post_data['author_posts_url'];
-			$custom_post->onesearch_remote_post_author_gravatar     = $post_data['author_avatar'];
+			$custom_post->post_author = (string) ( -1000 - absint( $post_id ) );
+
+			$custom_post->onesearch_original_id                     = $post_id;
+			$custom_post->onesearch_remote_post_author_display_name = $post_data['post_author_data']['author_display_name'] ?? '';
+			$custom_post->onesearch_remote_post_author_link         = $post_data['post_author_data']['author_posts_url'] ?? '';
+			$custom_post->onesearch_remote_post_author_gravatar     = $post_data['post_author_data']['author_avatar'] ?? '';
 			$custom_post->onesearch_remote_taxonomies               = $post_data['taxonomies'] ?? [];
-			$custom_post->onesearch_site_url                        = $post_data['site_url'];
-			$custom_post->onesearch_site_name                       = $post_data['site_name'];
+			$custom_post->onesearch_site_url                        = $post_data['site_url'] ?? '';
+			$custom_post->onesearch_site_name                       = $post_data['site_name'] ?? '';
 			$custom_post->onesearch_algolia_highlights              = $algolia_highlights ?? [];
 			return apply_filters( 'onesearch_post_custom_data', $custom_post, $post_data );
 		}
 
+		// Get the local post copy.
 		$post = get_post( $post_id );
 
-		if ( $post instanceof WP_Post ) {
-			if ( $post_data['is_chunked'] ) {
-				$post->post_content = $post_data['content'];
-			}
-
-			$post->onesearch_site_url           = $post_data['site_url'];
-			$post->onesearch_site_name          = $post_data['site_name'];
-			$post->onesearch_algolia_highlights = $algolia_highlights;
-
-			return $post;
+		if ( ! $post instanceof WP_Post ) {
+			return null;
 		}
 
-		return null;
+		if ( ! empty( $post_data['content'] ) && ! empty( $post_data['total_chunks'] ) && intval( $post_data['total_chunks'] ) > 1 ) {
+			$post->post_content = $post_data['content'];
+		}
+
+		$post->onesearch_site_url           = $post_data['site_url'] ?? '';
+		$post->onesearch_site_name          = $post_data['site_name'] ?? '';
+		$post->onesearch_algolia_highlights = $algolia_highlights;
+
+		return $post;
 	}
 
 	/**
@@ -679,21 +715,21 @@ class Algolia_Search implements Registrable {
 	}
 
 	/**
-	 * Group Algolia hits by the unique parent_post_id.
+	 * Group Algolia hits by the unique site_post_id.
 	 *
-	 * @param array<array<string, mixed>> $hits List of Algolia hits.
+	 * @param PostRecord[] $hits List of Algolia hits.
 	 *
-	 * @return array<string, array<array<string, mixed>>> Grouped hits by parent_post_id.
+	 * @return array<string, PostRecord[]> Grouped hits by site_post_id.
 	 */
 	private function group_hits_by_post( array $hits ): array {
 		$grouped = [];
 
 		foreach ( $hits as $hit ) {
-			if ( ! isset( $hit['parent_post_id'] ) ) {
+			if ( ! isset( $hit['site_post_id'] ) ) {
 				continue;
 			}
 
-			$grouped[ (string) $hit['parent_post_id'] ][] = $hit;
+			$grouped[ (string) $hit['site_post_id'] ][] = $hit;
 		}
 
 		return $grouped;
@@ -702,7 +738,7 @@ class Algolia_Search implements Registrable {
 	/**
 	 * Compute current page's group keys for pagination.
 	 *
-	 * @param array<string,array<string, mixed>[]> $grouped Grouped hits by parent_post_id.
+	 * @param array<string,array<string, mixed>[]> $grouped Grouped hits by site_post_id.
 	 * @param \WP_Query                            $query   WP_Query.
 	 *
 	 * @return array{0: ?string[], 1: int} Array with page keys and total group count.
@@ -740,10 +776,10 @@ class Algolia_Search implements Registrable {
 	/**
 	 * Choose the representative hit per grouped post for the requested page slice.
 	 *
-	 * @param array<string, array<array<string, mixed>>> $grouped   Grouped hits by parent_post_id.
-	 * @param string[]                                   $page_keys Keys selected for the current page.
+	 * @param array<string, PostRecord[]> $grouped   Grouped hits by parent_post_id.
+	 * @param string[]                    $page_keys Keys selected for the current page.
 	 *
-	 * @return array<string,mixed>[] Representative hits for the current page.
+	 * @return PostRecord[] Representative hits for the current page.
 	 */
 	private function pick_representative_hits( array $grouped, array $page_keys ): array {
 		$all_hits = [];
@@ -789,5 +825,49 @@ class Algolia_Search implements Registrable {
 		$selected_sites = $selected_sites['searchable_sites'] ?? [];
 
 		return ! empty( $selected_sites ) ? array_intersect( $selected_sites, $available_sites ) : [];
+	}
+
+	/**
+	 * Adjust block output for remote posts (block themes).
+	 *
+	 * Ensures that for remote posts (negative IDs) the post title block
+	 * links to the remote permalink, and the excerpt block shows the
+	 * Algolia-provided excerpt.
+	 *
+	 * @param string              $block_content Rendered block HTML.
+	 * @param array<string,mixed> $block         Block data.
+	 * @param \WP_Block           $instance      Block instance.
+	 *
+	 * @return string
+	 */
+	public function filter_render_block( $block_content, $block, $instance ) {
+		global $post;
+
+		// Only adjust for our remote placeholder posts (negative IDs).
+		if ( ! ( $post instanceof WP_Post ) || (int) $post->ID >= 0 ) {
+			return $block_content;
+		}
+
+		if ( empty( $post->guid ) ) {
+			return $block_content;
+		}
+
+		$block_name = isset( $block['blockName'] ) ? $block['blockName'] : '';
+
+		// Fix permalink for block-based post titles.
+		if ( 'core/post-title' === $block_name && false !== strpos( $block_content, 'href=' ) ) {
+			$remote_url    = esc_url( $post->guid );
+			$block_content = (string) preg_replace( '#href="[^"]*"#', 'href="' . $remote_url . '"', $block_content, 1 );
+		}
+
+		// Ensure excerpt block uses our remote excerpt when present.
+		if ( 'core/post-excerpt' === $block_name && ! empty( $post->post_excerpt ) ) {
+			if ( preg_match( '#<p[^>]*>.*?</p>#s', $block_content ) ) {
+				$excerpt_html  = wpautop( wp_kses_post( $post->post_excerpt ) );
+				$block_content = (string) preg_replace( '#<p[^>]*>.*?</p>#s', $excerpt_html, $block_content, 1 );
+			}
+		}
+
+		return $block_content;
 	}
 }

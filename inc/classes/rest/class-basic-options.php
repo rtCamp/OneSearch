@@ -10,10 +10,9 @@
 
 namespace OneSearch\Inc\REST;
 
-use OneSearch\Inc\Algolia\Algolia_Index;
-use OneSearch\Inc\Algolia\Algolia_Index_By_Post;
 use OneSearch\Modules\Rest\Abstract_REST_Controller;
 use OneSearch\Modules\Rest\Governing_Data;
+use OneSearch\Modules\Search\Index;
 use OneSearch\Modules\Search\Settings as Search_Settings;
 use OneSearch\Modules\Settings\Settings;
 use OneSearch\Utils;
@@ -30,35 +29,6 @@ class Basic_Options extends Abstract_REST_Controller {
 	 * {@inheritDoc}
 	 */
 	public function register_routes(): void {
-
-		// Indexable entities (per site URL): get / set.
-		register_rest_route(
-			self::NAMESPACE,
-			'/indexable-entities',
-			[
-				[
-					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => [ $this, 'get_indexable_entities' ],
-					'permission_callback' => '__return_true',
-				],
-				[
-					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => [ $this, 'set_indexable_entities' ],
-					'permission_callback' => static function () {
-						return current_user_can( 'manage_options' );
-					},
-					'args'                => [
-						'entities' => [
-							'required'          => true,
-							'type'              => 'array',
-							'sanitize_callback' => static function ( $value ) {
-								return is_array( $value );
-							},
-						],
-					],
-				],
-			]
-		);
 
 		// Re-index current site (and children for governing sites).
 		register_rest_route(
@@ -79,24 +49,6 @@ class Basic_Options extends Abstract_REST_Controller {
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => [ $this, 'get_all_post_types' ],
 				'permission_callback' => [ $this, 'check_api_permissions' ],
-			]
-		);
-
-		// Algolia credentials: get / set.
-		register_rest_route(
-			self::NAMESPACE,
-			'/algolia-credentials',
-			[
-				[
-					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => [ $this, 'get_algolia_credentials' ],
-					'permission_callback' => '__return_true',
-				],
-				[
-					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => [ $this, 'save_algolia_credentials' ],
-					'permission_callback' => [ $this, 'check_api_permissions' ],
-				],
 			]
 		);
 
@@ -179,55 +131,6 @@ class Basic_Options extends Abstract_REST_Controller {
 				'permission_callback' => '__return_true',
 			]
 		);
-
-		/**
-		 * Governing: REST endpoint to receive brand requests.
-		 */
-		register_rest_route(
-			self::NAMESPACE,
-			'/reindex-post',
-			[
-				[
-					'methods'             => 'POST',
-					'callback'            => [ $this, 'reindex_post' ],
-					'permission_callback' => '__return_true',
-				],
-			]
-		);
-	}
-
-	/**
-	 * Reindex a post from a child (brand) site.
-	 *
-	 * @param \WP_REST_Request $request The incoming REST API request.
-	 *
-	 * @return \WP_REST_Response|\WP_Error The response with indexing result or error.
-	 */
-	public function reindex_post( \WP_REST_Request $request ) {
-		if ( ! Settings::is_governing_site() ) {
-			return new \WP_Error( 'forbidden', __( 'Only governing site can reindex posts.', 'onesearch' ), [ 'status' => 403 ] );
-		}
-
-		$incoming_key = (string) ( $request->get_header( 'X-OneSearch-Token' ) ?? '' );
-
-		if ( empty( $incoming_key ) || ! $this->is_valid_child_token( $incoming_key ) ) {
-			return new \WP_Error( 'invalid_api_key', __( 'Invalid or missing API key.', 'onesearch' ), [ 'status' => 403 ] );
-		}
-
-		$body        = json_decode( (string) $request->get_body(), true ) ?: [];
-		$records     = (array) ( $body['records'] ?? [] );
-		$site_url    = Utils::normalize_url( sanitize_url( (string) ( $body['site_url'] ?? '' ) ) );
-		$post_id     = absint( ( $body['post_id'] ?? 0 ) );
-		$post_type   = sanitize_text_field( wp_unslash( (string) ( $body['post_type'] ?? '' ) ) );
-		$post_status = sanitize_text_field( wp_unslash( (string) ( $body['post_status'] ?? '' ) ) );
-
-		if ( empty( $site_url ) || empty( $post_id ) ) {
-			return new \WP_Error( 'bad_request', __( 'Missing site_url or post_id.', 'onesearch' ), [ 'status' => 400 ] );
-		}
-
-		$result = Algolia_Index_By_Post::instance()->governing_handle_change( $site_url, $post_id, $post_type, $post_status, $records );
-
-		return rest_ensure_response( $result );
 	}
 
 	/**
@@ -726,7 +629,7 @@ class Basic_Options extends Abstract_REST_Controller {
 			$entities_map = $this->get_governing_entities_map();
 			$my_entities  = isset( $entities_map[ $current_site_url ] ) ? $entities_map[ $current_site_url ] : [];
 
-			$indexed = Algolia_Index::instance()->index( $my_entities );
+			$indexed = ( new Index() )->index_all_posts( $my_entities );
 
 			$results[ $current_site_url ] = is_wp_error( $indexed )
 				? [
@@ -741,79 +644,77 @@ class Basic_Options extends Abstract_REST_Controller {
 			// Trigger re-index on each child site (child fetches its own entities).
 			$child_sites = Settings::get_shared_sites();
 
-			if ( ! empty( $child_sites ) ) {
-				foreach ( $child_sites as $child ) {
-					$raw_url = isset( $child['url'] ) ? (string) $child['url'] : '';
-					$url     = Utils::normalize_url( $raw_url );
-					$key     = isset( $child['api_key'] ) ? (string) $child['api_key'] : '';
+			foreach ( $child_sites as $child ) {
+				$raw_url = isset( $child['url'] ) ? (string) $child['url'] : '';
+				$url     = Utils::normalize_url( $raw_url );
+				$key     = isset( $child['api_key'] ) ? (string) $child['api_key'] : '';
 
-					if ( empty( $url ) || empty( $key ) ) {
-						$results[ $url ?: '(missing)' ] = [
-							'status'  => 'error',
-							'message' => __( 'Missing url or api_key for child.', 'onesearch' ),
-						];
-						continue;
+				if ( empty( $url ) || empty( $key ) ) {
+					$results[ $url ?: '(missing)' ] = [
+						'status'  => 'error',
+						'message' => __( 'Missing url or api_key for child.', 'onesearch' ),
+					];
+					continue;
+				}
+
+				$endpoint = trailingslashit( $url ) . 'wp-json/' . self::NAMESPACE . '/re-index';
+
+				$response_obj = wp_remote_post(
+					$endpoint,
+					[
+						'headers' => [
+							'Accept'            => 'application/json',
+							'Content-Type'      => 'application/json',
+							'X-OneSearch-Token' => $key,
+						],
+						'body'    => wp_json_encode( [] ) ?: '',
+						'timeout' => 999, // phpcs:ignore WordPressVIPMinimum.Performance.RemoteRequestTimeout.timeout_timeout
+					]
+				);
+
+				if ( is_wp_error( $response_obj ) ) {
+					$results[ $url ] = [
+						'status'  => 'error',
+						'message' => $response_obj->get_error_message() ?: __( 'Request failed.', 'onesearch' ),
+					];
+					continue;
+				}
+
+				$code = (int) wp_remote_retrieve_response_code( $response_obj );
+				$body = (string) wp_remote_retrieve_body( $response_obj );
+				$json = json_decode( $body, true );
+
+				if ( 200 !== $code ) {
+					$pretty = '';
+					if ( is_array( $json ) && isset( $json['message'] ) && is_string( $json['message'] ) ) {
+						$pretty = trim( $json['message'] );
+					} else {
+						$strip  = trim( wp_strip_all_tags( $body ) );
+						$pretty = '' !== $strip ? $strip : __( 'Request failed.', 'onesearch' );
 					}
-
-					$endpoint = trailingslashit( $url ) . 'wp-json/' . self::NAMESPACE . '/re-index';
-
-					$response_obj = wp_remote_post(
-						$endpoint,
-						[
-							'headers' => [
-								'Accept'            => 'application/json',
-								'Content-Type'      => 'application/json',
-								'X-OneSearch-Token' => $key,
-							],
-							'body'    => wp_json_encode( [] ) ?: '',
-							'timeout' => 999, // phpcs:ignore WordPressVIPMinimum.Performance.RemoteRequestTimeout.timeout_timeout
-						]
-					);
-
-					if ( is_wp_error( $response_obj ) ) {
-						$results[ $url ] = [
-							'status'  => 'error',
-							'message' => $response_obj->get_error_message() ?: __( 'Request failed.', 'onesearch' ),
-						];
-						continue;
-					}
-
-					$code = (int) wp_remote_retrieve_response_code( $response_obj );
-					$body = (string) wp_remote_retrieve_body( $response_obj );
-					$json = json_decode( $body, true );
-
-					if ( 200 !== $code ) {
-						$pretty = '';
-						if ( is_array( $json ) && isset( $json['message'] ) && is_string( $json['message'] ) ) {
-							$pretty = trim( $json['message'] );
-						} else {
-							$strip  = trim( wp_strip_all_tags( $body ) );
-							$pretty = '' !== $strip ? $strip : __( 'Request failed.', 'onesearch' );
-						}
-
-						$results[ $url ] = [
-							'status'  => 'error',
-							'message' => $pretty,
-						];
-						continue;
-					}
-
-					if ( ! is_array( $json ) ) {
-						$results[ $url ] = [
-							'status'  => 'error',
-							'message' => __( 'Invalid response from child site.', 'onesearch' ),
-						];
-						continue;
-					}
-
-					$ok  = (bool) ( $json['success'] ?? false );
-					$msg = (string) ( $json['message'] ?? '' );
 
 					$results[ $url ] = [
-						'status'  => $ok ? 'ok' : 'error',
-						'message' => $msg ?: ( $ok ? __( 'Re-indexed successfully.', 'onesearch' ) : __( 'Re-index failed.', 'onesearch' ) ),
+						'status'  => 'error',
+						'message' => $pretty,
 					];
+					continue;
 				}
+
+				if ( ! is_array( $json ) ) {
+					$results[ $url ] = [
+						'status'  => 'error',
+						'message' => __( 'Invalid response from child site.', 'onesearch' ),
+					];
+					continue;
+				}
+
+				$ok  = (bool) ( $json['success'] ?? false );
+				$msg = (string) ( $json['message'] ?? '' );
+
+				$results[ $url ] = [
+					'status'  => $ok ? 'ok' : 'error',
+					'message' => $msg ?: ( $ok ? __( 'Re-indexed successfully.', 'onesearch' ) : __( 'Re-index failed.', 'onesearch' ) ),
+				];
 			}
 		} else {
 			// Brand site: pull entities from parent, then index locally.
@@ -823,22 +724,18 @@ class Basic_Options extends Abstract_REST_Controller {
 				return $my_entities;
 			}
 
-			try {
-				$indexed = Algolia_Index::instance()->index( $my_entities );
+			$indexed = ( new Index() )->index_all_posts( $my_entities );
 
-				if ( is_wp_error( $indexed ) ) {
-					return new \WP_Error(
-						'reindex_failed',
-						sprintf(
-							// translators: %s: error message.
-							__( 'Re-indexing failed: %s.', 'onesearch' ),
-							$indexed->get_error_message()
-						),
-						[ 'status' => 500 ]
-					);
-				}
-			} catch ( \Throwable $e ) {
-				return new \WP_Error( 'reindex_failed', $e->getMessage(), [ 'status' => 500 ] );
+			if ( is_wp_error( $indexed ) ) {
+				return new \WP_Error(
+					'reindex_failed',
+					sprintf(
+						// translators: %s: error message.
+						__( 'Re-indexing failed: %s.', 'onesearch' ),
+						$indexed->get_error_message()
+					),
+					[ 'status' => 500 ]
+				);
 			}
 
 			$results[ $current_site_url ] = [
@@ -924,71 +821,5 @@ class Basic_Options extends Abstract_REST_Controller {
 		$my_entities = isset( $entities_map[ $current_site_url ] ) ? $entities_map[ $current_site_url ] : [];
 
 		return is_array( $my_entities ) ? $my_entities : [];
-	}
-
-	/**
-	 * Get the stored indexable entities map (governing only).
-	 *
-	 * @return \WP_REST_Response|\WP_Error
-	 */
-	public function get_indexable_entities(): \WP_REST_Response|\WP_Error {
-		if ( ! Settings::is_governing_site() ) {
-			return new \WP_Error( 'not_governing_site', __( 'Only governing sites can provide indexable entities.', 'onesearch' ), [ 'status' => 403 ] );
-		}
-
-		$indexable_entities = Search_Settings::get_indexable_entities();
-
-		return rest_ensure_response(
-			[
-				'success'           => true,
-				'indexableEntities' => $indexable_entities,
-			]
-		);
-	}
-
-	/**
-	 * Save the indexable entities map (governing only).
-	 *
-	 * @param \WP_REST_Request $request Request object with JSON body.
-	 *
-	 * @return \WP_REST_Response|\WP_Error
-	 */
-	public function set_indexable_entities( \WP_REST_Request $request ) {
-
-		$indexable_entities = json_decode( $request->get_body(), true );
-
-		if ( ! is_array( $indexable_entities ) ) {
-			return new \WP_Error( 'invalid_data', __( 'Failed saving settings. Please try again', 'onesearch' ), [ 'status' => 400 ] );
-		}
-
-		update_option( Search_Settings::OPTION_GOVERNING_INDEXABLE_SITES, $indexable_entities );
-
-		return rest_ensure_response(
-			[
-				'success'           => true,
-				'message'           => __( 'Data saved successfully.', 'onesearch' ),
-				'indexableEntities' => $indexable_entities,
-			]
-		);
-	}
-
-	/**
-	 * Checks if the token sent by the child site is valid.
-	 *
-	 * @param string $incoming The token sent by the child site.
-	 *
-	 * @return bool True if the token is valid, false otherwise.
-	 */
-	private function is_valid_child_token( string $incoming ): bool {
-		$child_sites = Settings::get_shared_sites();
-
-		foreach ( $child_sites as $child ) {
-			$key = isset( $child['api_key'] ) ? (string) $child['api_key'] : '';
-			if ( $key && hash_equals( $key, $incoming ) ) {
-				return true;
-			}
-		}
-
-		return false;
 	}
 }
