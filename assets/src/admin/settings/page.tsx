@@ -36,7 +36,8 @@ export const defaultBrandSite: BrandSite = {
 export type EditingIndex = number | null;
 
 const NONCE = window.OneSearchSettings.restNonce;
-const siteType = window.OneSearchSettings.siteType as SiteType || '';
+const SITE_TYPE = window.OneSearchSettings.siteType as SiteType || '';
+const SHARED_SITES_ENDPOINT = '/onesearch/v1/shared-sites';
 
 /**
  * Create NONCE middleware for apiFetch
@@ -51,12 +52,12 @@ const SettingsPage = () => {
 	const [ notice, setNotice ] = useState< NoticeType | null >( null );
 
 	useEffect( () => {
-		apiFetch<{ onesearch_shared_sites?: BrandSite[] }>( {
-			path: '/wp/v2/settings',
+		apiFetch<{ shared_sites?: BrandSite[] }>( {
+			path: SHARED_SITES_ENDPOINT,
 		} )
-			.then( ( settings ) => {
-				if ( settings?.onesearch_shared_sites ) {
-					setSites( settings.onesearch_shared_sites );
+			.then( ( data ) => {
+				if ( data?.shared_sites ) {
+					setSites( data?.shared_sites );
 				}
 			} )
 			.catch( () => {
@@ -68,7 +69,7 @@ const SettingsPage = () => {
 	}, [] ); // Empty dependency array to run only once on mount
 
 	useEffect( () => {
-		if ( siteType === 'governing-site' && sites.length > 0 ) {
+		if ( SITE_TYPE === 'governing-site' && sites.length > 0 ) {
 			document.body.classList.remove( 'onesearch-missing-brand-sites' );
 		}
 	}, [ sites ] );
@@ -77,19 +78,23 @@ const SettingsPage = () => {
 		const updated : BrandSite[] = editingIndex !== null
 			? sites.map( ( item, i ) => ( i === editingIndex ? formData : item ) )
 			: [ ...sites, formData ];
-		return apiFetch<{ onesearch_shared_sites?: BrandSite[] }>( {
-			path: '/wp/v2/settings',
+
+		return apiFetch<{ shared_sites?: BrandSite[] }>( {
+			path: SHARED_SITES_ENDPOINT,
 			method: 'POST',
-			data: { onesearch_shared_sites: updated },
-		} ).then( ( settings ) => {
-			if ( ! settings?.onesearch_shared_sites ) {
+			data: { sites_data: updated },
+		} ).then( ( data ) => {
+			if ( ! data?.shared_sites ) {
 				throw new Error( 'No shared sites in response' );
 			}
-			const previousLength = sites.length;
-			setSites( settings.onesearch_shared_sites );
-			if ( ( settings.onesearch_shared_sites.length === 1 && previousLength === 0 ) || ( previousLength === 1 && settings.onesearch_shared_sites.length === 0 ) ) {
+
+			setSites( data.shared_sites );
+
+			if ( data.shared_sites.length === 0 ) {
+				// Reloading causes the menus etc to reflect the missing sites.
 				window.location.reload();
 			}
+
 			setNotice( {
 				type: 'success',
 				message: __( 'Brand Site saved successfully.', 'onesearch' ),
@@ -111,17 +116,18 @@ const SettingsPage = () => {
 	const handleDelete = async ( index : number|null ) : Promise<void> => {
 		const updated : BrandSite[] = sites.filter( ( _, i ) => i !== index );
 
-		apiFetch<{ onesearch_shared_sites?: BrandSite[] }>( {
-			path: '/wp/v2/settings',
+		apiFetch<{ shared_sites?: BrandSite[] }>( {
+			path: SHARED_SITES_ENDPOINT,
 			method: 'POST',
-			data: { onesearch_shared_sites: updated },
-		} ).then( ( settings ) => {
-			if ( ! settings?.onesearch_shared_sites ) {
+			data: { sites_data: updated },
+		} ).then( ( data ) => {
+			if ( ! data?.shared_sites ) {
 				throw new Error( 'No shared sites in response' );
 			}
-			const previousLength = sites.length;
-			setSites( settings.onesearch_shared_sites );
-			if ( ( settings.onesearch_shared_sites.length === 1 && previousLength === 0 ) || ( previousLength === 1 && settings.onesearch_shared_sites.length === 0 ) ) {
+			setSites( data.shared_sites );
+
+			if ( data.shared_sites.length === 0 ) {
+				// Reloading causes the menus etc to reflect the missing sites.
 				window.location.reload();
 			} else {
 				document.body.classList.remove( 'onesearch-missing-brand-sites' );
@@ -143,15 +149,15 @@ const SettingsPage = () => {
 				</Snackbar>
 			}
 
-			{ siteType === 'brand-site' && (
+			{ SITE_TYPE === 'brand-site' && (
 				<SiteSettings />
 			) }
 
-			{ siteType === 'governing-site' && (
+			{ SITE_TYPE === 'governing-site' && (
 				<SiteTable sites={ sites } onEdit={ setEditingIndex } onDelete={ handleDelete } setFormData={ setFormData } setShowModal={ setShowModal } />
 			) }
 
-			{ siteType === 'governing-site' && (
+			{ SITE_TYPE === 'governing-site' && (
 				<AlgoliaSettings setNotice={ setNotice } />
 			) }
 

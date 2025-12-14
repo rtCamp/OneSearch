@@ -10,7 +10,6 @@
 
 namespace OneSearch\Inc\REST;
 
-use Algolia\AlgoliaSearch\SearchClient;
 use OneSearch\Inc\Algolia\Algolia_Index;
 use OneSearch\Inc\Algolia\Algolia_Index_By_Post;
 use OneSearch\Modules\Rest\Abstract_REST_Controller;
@@ -111,17 +110,6 @@ class Basic_Options extends Abstract_REST_Controller {
 					'callback'            => [ $this, 'get_searchable_sites_for_child' ],
 					'permission_callback' => '__return_true',
 				],
-			]
-		);
-
-		// Cache busting endpoints.
-		register_rest_route(
-			self::NAMESPACE,
-			'/bust-creds-cache',
-			[
-				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => [ $this, 'bust_creds_cache' ],
-				'permission_callback' => [ $this, 'check_api_permissions' ],
 			]
 		);
 
@@ -488,23 +476,6 @@ class Basic_Options extends Abstract_REST_Controller {
 	}
 
 	/**
-	 * Clear the cached Algolia credentials.
-	 *
-	 * @return \WP_REST_Response|\WP_Error
-	 */
-	public function bust_creds_cache(): \WP_REST_Response|\WP_Error {
-
-		Governing_Data::clear_credentials_cache();
-
-		return rest_ensure_response(
-			[
-				'success' => true,
-				'message' => __( 'Cache cleared successfully.', 'onesearch' ),
-			]
-		);
-	}
-
-	/**
 	 * Clear the cached searchable sites data.
 	 *
 	 * @return \WP_REST_Response|\WP_Error
@@ -565,39 +536,6 @@ class Basic_Options extends Abstract_REST_Controller {
 	}
 
 	/**
-	 * Return saved Algolia credentials to authorized callers.
-	 *
-	 * @param \WP_REST_Request $request Request object (validates token for non-admin).
-	 *
-	 * @return \WP_REST_Response|\WP_Error
-	 */
-	public function get_algolia_credentials( \WP_REST_Request $request ) {
-		$incoming_key = (string) ( $request->get_header( 'X-OneSearch-Token' ) ?? '' );
-		$is_admin     = current_user_can( 'manage_options' );
-
-		if ( ! $is_admin ) {
-			if ( empty( $incoming_key ) || ! $this->is_valid_child_site_key( $incoming_key ) ) {
-				return new \WP_Error(
-					'invalid_api_key',
-					__( 'Invalid or missing API key.', 'onesearch' ),
-					[ 'status' => 403 ]
-				);
-			}
-		}
-
-		$creds = Search_Settings::get_algolia_credentials();
-
-		return new \WP_REST_Response(
-			[
-				'success'   => true,
-				'app_id'    => $creds['app_id'] ?? '',
-				'write_key' => $creds['write_key'] ?? '',
-				'admin_key' => $creds['admin_key'] ?? '',
-			]
-		);
-	}
-
-	/**
 	 * Validate that a provided key matches a known child site.
 	 *
 	 * @param string $key Candidate public key.
@@ -615,209 +553,6 @@ class Basic_Options extends Abstract_REST_Controller {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Save Algolia credentials (admin or exact token required).
-	 *
-	 * @param \WP_REST_Request $request Request object with app_id/write_key/admin_key.
-	 *
-	 * @return \WP_REST_Response|\WP_Error
-	 */
-	public function save_algolia_credentials( \WP_REST_Request $request ) {
-
-		$body = json_decode( (string) $request->get_body(), true ) ?: [];
-
-		$app_id    = isset( $body['app_id'] ) ? sanitize_text_field( wp_unslash( $body['app_id'] ) ) : '';
-		$write_key = isset( $body['write_key'] ) ? sanitize_text_field( wp_unslash( $body['write_key'] ) ) : '';
-		$admin_key = isset( $body['admin_key'] ) ? sanitize_text_field( wp_unslash( $body['admin_key'] ) ) : '';
-
-		if ( empty( $app_id ) ) {
-			return new \WP_Error( 'missing_app_id', __( 'Application ID is required.', 'onesearch' ), [ 'status' => 400 ] );
-		}
-
-		if ( empty( $write_key ) && empty( $admin_key ) ) {
-			return new \WP_Error( 'missing_keys', __( 'Provide a Write API Key.', 'onesearch' ), [ 'status' => 400 ] );
-		}
-
-		$key_validation_result = $this->check_valid_api_key( $app_id, $write_key );
-
-		if ( is_wp_error( $key_validation_result ) ) {
-			return $key_validation_result;
-		}
-
-		$new = [
-			'app_id'    => $app_id,
-			'write_key' => $write_key,
-			'admin_key' => $admin_key,
-		];
-
-		$success = Search_Settings::set_algolia_credentials( $new );
-
-		if ( false === $success ) {
-			return new \WP_Error( 'update_failed', __( 'Failed to update Algolia credentials.', 'onesearch' ), [ 'status' => 500 ] );
-		}
-
-		// If governing: instruct all child sites to clear their credentials cache.
-		$bust_results = [];
-
-		if ( Settings::is_governing_site() ) {
-			$child_sites = Settings::get_shared_sites();
-
-			if ( ! empty( $child_sites ) ) {
-				foreach ( $child_sites as $child ) {
-					$raw_url = isset( $child['url'] ) ? (string) $child['url'] : '';
-					$url     = rtrim( $raw_url, '/' );
-					$key     = isset( $child['api_key'] ) ? (string) $child['api_key'] : '';
-
-					if ( empty( $url ) || empty( $key ) ) {
-						$bust_results[ $url ?: '(missing)' ] = __( 'Missing URL or key.', 'onesearch' );
-						continue;
-					}
-
-					$bust_endpoint = trailingslashit( $url ) . 'wp-json/' . self::NAMESPACE . '/bust-creds-cache';
-
-					$bust_response = wp_remote_post(
-						$bust_endpoint,
-						[
-							'headers' => [
-								'Accept'            => 'application/json',
-								'Content-Type'      => 'application/json',
-								'X-OneSearch-Token' => $key,
-							],
-							'body'    => wp_json_encode( [] ) ?: '',
-						]
-					);
-
-					if ( is_wp_error( $bust_response ) ) {
-						$bust_results[ $url ] = sprintf(
-							/* translators: %s: error message */
-							__( 'Error: %s', 'onesearch' ),
-							$bust_response->get_error_message()
-						);
-					} else {
-						$code                 = (int) wp_remote_retrieve_response_code( $bust_response );
-						$bust_results[ $url ] = 200 === $code
-						? __( 'Cache cleared.', 'onesearch' )
-						: sprintf(
-							/* translators: %d: HTTP status code */
-							__( 'Failed: HTTP %d', 'onesearch' ),
-							$code
-						);
-					}
-				}
-			}
-		}
-
-		$response_data = [
-			'success' => true,
-			'message' => __( 'Algolia credentials saved.', 'onesearch' ),
-		];
-
-		if ( ! empty( $bust_results ) ) {
-			$response_data['cache_bust_results'] = $bust_results;
-		}
-
-		return rest_ensure_response( $response_data );
-	}
-
-	/**
-	 * Check if the provided API key has write permissions.
-	 *
-	 * @param string $app_id  Algolia Application ID.
-	 * @param string $api_key API key to validate.
-	 *
-	 * @return true|\WP_Error True if valid write key, WP_Error otherwise.
-	 */
-	public function check_valid_api_key( $app_id, $api_key ) {
-
-		if ( empty( $app_id ) || empty( $api_key ) ) {
-			return new \WP_Error(
-				'missing_credentials',
-				__( 'Application ID and API key are required.', 'onesearch' ),
-				[ 'status' => 400 ]
-			);
-		}
-
-		try {
-			// Create Algolia client with provided credentials.
-			$client = SearchClient::create( $app_id, $api_key );
-
-			// Try to get API key information to check permissions (ACL).
-			$key_info = $client->getApiKey( $api_key );
-
-			// Check if key has required write permissions.
-			$acl = $key_info['acl'] ?? [];
-
-			// Required permissions for write operations.
-			$required_permissions = [ 'addObject', 'deleteObject' ];
-
-			// Check if the key has write permissions.
-			$has_write_permissions = false;
-			foreach ( $required_permissions as $permission ) {
-				if ( in_array( $permission, $acl, true ) ) {
-					$has_write_permissions = true;
-					break;
-				}
-			}
-
-			// Admin keys have all permissions, so check for that too.
-			if ( ! $has_write_permissions && in_array( 'editSettings', $acl, true ) ) {
-				$has_write_permissions = true; // Admin key.
-			}
-
-			if ( ! $has_write_permissions ) {
-				return new \WP_Error(
-					'insufficient_permissions',
-					__( 'The provided API key does not have write permissions. Please provide a Write API Key.', 'onesearch' ),
-					[ 'status' => 403 ]
-				);
-			}
-
-			// Additional validation: try to perform a simple write operation.
-			$test_index_name = 'onesearch_validation_test_' . time();
-			$test_index      = $client->initIndex( $test_index_name );
-
-			// Try to add a test object.
-			$test_object = [
-				'objectID' => 'test_validation',
-				'test'     => 'validation',
-			];
-
-			$test_index->saveObject( $test_object )->wait();
-
-			// Clean up: delete the test object and index.
-			$test_index->deleteObject( 'test_validation' )->wait();
-			$test_index->delete()->wait();
-
-			return true;
-		} catch ( \Throwable $e ) {
-			$error_message = $e->getMessage();
-
-			if ( strpos( $error_message, 'Invalid Application-Id or API key' ) !== false ) {
-				return new \WP_Error(
-					'invalid_credentials',
-					__( 'Invalid Application ID or API key. Please check your credentials.', 'onesearch' ),
-					[ 'status' => 401 ]
-				);
-			}
-
-			if ( strpos( $error_message, 'operation not allowed' ) !== false ||
-				strpos( $error_message, 'write operation' ) !== false ) {
-				return new \WP_Error(
-					'read_only_key',
-					__( 'The provided API key appears to be a Search-Only key. Please provide a Write API Key instead.', 'onesearch' ),
-					[ 'status' => 403 ]
-				);
-			}
-
-			return new \WP_Error(
-				'validation_failed',
-				/* translators: %s: error message */
-				sprintf( __( 'API key validation failed: %s', 'onesearch' ), $error_message ),
-				[ 'status' => 400 ]
-			);
-		}
 	}
 
 	/**

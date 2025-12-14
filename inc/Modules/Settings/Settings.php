@@ -347,7 +347,7 @@ final class Settings implements Registrable {
 	/**
 	 * Gets the API key, generating a new one if it doesn't exist.
 	 *
-	 * @return string The (unencrypted) API key.
+	 * Returns an empty string on failure.
 	 */
 	public static function get_api_key(): string {
 		$api_key = get_option( self::OPTION_CONSUMER_API_KEY, '' );

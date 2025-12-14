@@ -11,7 +11,6 @@ namespace OneSearch\Modules\Search;
 
 use OneSearch\Contracts\Interfaces\Registrable;
 use OneSearch\Encryptor;
-use OneSearch\Inc\Algolia\Algolia;
 use OneSearch\Modules\Settings\Settings as Admin_Settings;
 use OneSearch\Utils;
 
@@ -47,11 +46,6 @@ final class Settings implements Registrable {
 		// Listen to updates.
 		add_action( 'update_option_' . Admin_Settings::OPTION_SITE_TYPE, [ $this, 'on_site_type_change' ], 10, 2 );
 		add_action( 'update_option_' . Admin_Settings::OPTION_GOVERNING_SHARED_SITES, [ $this, 'on_shared_sites_change' ], 10, 2 );
-
-		// Before getting algolia credentials decrypt them.
-		add_filter( 'rest_pre_get_setting', [ self::class, 'pre_get_algolia_credentials' ], 10, 3 );
-
-		// @todo add check if algolia creds are valid or not before saving them.
 	}
 
 	/**
@@ -72,7 +66,6 @@ final class Settings implements Registrable {
 					return [
 						'app_id'    => isset( $value['app_id'] ) ? sanitize_text_field( $value['app_id'] ) : null,
 						'write_key' => isset( $value['write_key'] ) ? Encryptor::encrypt( sanitize_text_field( $value['write_key'] ) ) : null,
-						'admin_key' => isset( $value['admin_key'] ) ? Encryptor::encrypt( sanitize_text_field( $value['admin_key'] ) ) : null,
 					];
 				},
 				'show_in_rest'      => [
@@ -83,9 +76,6 @@ final class Settings implements Registrable {
 								'type' => 'string',
 							],
 							'write_key' => [
-								'type' => 'string',
-							],
-							'admin_key' => [
 								'type' => 'string',
 							],
 						],
@@ -261,17 +251,16 @@ final class Settings implements Registrable {
 	 * @return array{
 	 *   app_id: ?string,
 	 *   write_key: ?string,
-	 *   admin_key: ?string
 	 * }
 	 */
 	public static function get_algolia_credentials(): array {
 		$creds = get_option( self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS, [] );
 
-		// @todo we are only taking 2 things from user so where does admin_key come from?
+		$decrypted_write_key = ! empty( $creds['write_key'] ) ? Encryptor::decrypt( $creds['write_key'] ) : null;
+
 		return [
-			'app_id'    => $creds['app_id'] ?? '',
-			'write_key' => Encryptor::decrypt( $creds['write_key'] ?? '' ) ?: null,
-			'admin_key' => Encryptor::decrypt( $creds['admin_key'] ?? '' ) ?: null,
+			'app_id'    => $creds['app_id'] ?? null,
+			'write_key' => $decrypted_write_key ?: null,
 		];
 	}
 
@@ -282,7 +271,6 @@ final class Settings implements Registrable {
 	 * @phpstan-param array{
 	 *   app_id: string,
 	 *   write_key: string,
-	 *   admin_key: string
 	 * } $value
 	 */
 	public static function set_algolia_credentials( $value ): bool {
@@ -293,13 +281,9 @@ final class Settings implements Registrable {
 		$write_key = isset( $value['write_key'] ) ? sanitize_text_field( $value['write_key'] ) : null;
 		$write_key = ! empty( $write_key ) ? Encryptor::encrypt( $write_key ) : null;
 
-		$admin_key = isset( $value['admin_key'] ) ? sanitize_text_field( $value['admin_key'] ) : null;
-		$admin_key = ! empty( $admin_key ) ? Encryptor::encrypt( $admin_key ) : null;
-
 		$sanitized = [
 			'app_id'    => isset( $value['app_id'] ) ? sanitize_text_field( $value['app_id'] ) : null,
 			'write_key' => $write_key ?: null,
-			'admin_key' => $admin_key ?: null,
 		];
 
 		return update_option( self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS, $sanitized );
@@ -326,22 +310,5 @@ final class Settings implements Registrable {
 	public static function get_search_settings(): array {
 		$value = get_option( self::OPTION_GOVERNING_SEARCH_SETTINGS, [] );
 		return is_array( $value ) ? $value : [];
-	}
-
-	/**
-	 * Decrypt algolia credentials before sending to REST.
-	 *
-	 * @param mixed  $result  The current value.
-	 * @param string $name    The setting name.
-	 * @param mixed  $args    $args The default value to return if the option does not exist.
-	 *
-	 * @return mixed
-	 */
-	public static function pre_get_algolia_credentials( $result, $name, $args ): mixed {
-		if ( self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS !== $name ) {
-			return $result;
-		}
-
-		return self::get_algolia_credentials();
 	}
 }

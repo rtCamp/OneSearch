@@ -84,7 +84,7 @@ function cleanup_algolia_index(): void {
 	}
 
 	try {
-		$algolia_index = \OneSearch\Inc\Algolia\Algolia::instance()->get_index();
+		$algolia_index = \OneSearch\Modules\Search\Algolia::instance()->get_index();
 		if ( is_wp_error( $algolia_index ) ) {
 			throw new \RuntimeException( $algolia_index->get_error_message() );
 		}

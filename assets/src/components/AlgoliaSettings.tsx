@@ -21,14 +21,14 @@ import type { NoticeType } from '@/admin/settings/page';
 interface AlgoliaCredentials {
 	app_id: string;
 	write_key: string;
-	admin_key?: string;
 }
 
 const EMPTY_CREDENTIALS: AlgoliaCredentials = {
 	app_id: '',
 	write_key: '',
-	admin_key: '',
 };
+
+const CREDENTIALS_ENDPOINT = '/onesearch/v1/algolia-credentials';
 
 const AlgoliaSettings = (
 	{ setNotice } :
@@ -43,29 +43,21 @@ const AlgoliaSettings = (
 	const [ saving, setSaving ] = useState( false );
 
 	useEffect( () => {
-		apiFetch<{ onesearch_algolia_credentials: AlgoliaCredentials }>( {
-			path: '/wp/v2/settings',
+		apiFetch<AlgoliaCredentials>( {
+			path: CREDENTIALS_ENDPOINT,
 		} )
-			.then( ( settings ) => {
-				if ( settings?.onesearch_algolia_credentials ) {
-					const creds = settings.onesearch_algolia_credentials;
-					setAlgoliaCreds( {
-						app_id: creds.app_id,
-						write_key: creds.write_key,
-						admin_key: creds.admin_key || '',
-					} );
-					setInitial( {
-						app_id: ( creds.app_id ).trim(),
-						write_key: ( creds.write_key ).trim(),
-						admin_key: ( creds.admin_key || '' ).trim(),
-					} );
+			.then( ( data ) => {
+				if ( data?.app_id && data?.write_key ) {
+					const cleanCreds = {
+						app_id: data.app_id.trim(),
+						write_key: data.write_key.trim(),
+					};
+
+					setAlgoliaCreds( cleanCreds );
+					setInitial( cleanCreds );
 				} else {
 					// No credentials saved yet, set initial as empty
-					setInitial( {
-						app_id: '',
-						write_key: '',
-						admin_key: '',
-					} );
+					setInitial( EMPTY_CREDENTIALS );
 				}
 			} )
 			.catch( () => {
@@ -78,46 +70,32 @@ const AlgoliaSettings = (
 
 	const hasChanges =
 		!! initial &&
-		( algoliaCreds.app_id.trim() !== initial.app_id ||
-			algoliaCreds.write_key.trim() !== initial.write_key ||
-			algoliaCreds.admin_key?.trim() !== initial.admin_key );
+		( algoliaCreds.app_id !== initial.app_id ||
+			algoliaCreds.write_key !== initial.write_key );
 
 	// Validate that required fields are filled
 	const isValid = !! ( algoliaCreds &&
-		algoliaCreds.app_id.trim() !== '' &&
-		algoliaCreds.write_key.trim() !== '' );
+		algoliaCreds.app_id !== '' &&
+		algoliaCreds.write_key !== '' );
 
 	const onSave = async () => {
 		setSaving( true );
-		apiFetch<{ onesearch_algolia_credentials: AlgoliaCredentials }>( {
-			path: '/wp/v2/settings',
+		apiFetch<{success:boolean}>( {
+			path: CREDENTIALS_ENDPOINT,
 			method: 'POST',
-			data: {
-				onesearch_algolia_credentials: {
-					app_id: algoliaCreds.app_id.trim(),
-					write_key: algoliaCreds.write_key.trim(),
-					admin_key: algoliaCreds?.admin_key?.trim() || '',
-				},
-			},
+			data: algoliaCreds,
 		} )
-			.then( ( settings ) => {
-				if ( settings?.onesearch_algolia_credentials ) {
-					const creds = settings.onesearch_algolia_credentials;
-					setAlgoliaCreds( {
-						app_id: creds.app_id,
-						write_key: creds.write_key,
-						admin_key: creds.admin_key || '',
-					} );
-					setInitial( {
-						app_id: ( creds.app_id ).trim(),
-						write_key: ( creds.write_key ).trim(),
-						admin_key: ( creds.admin_key || '' ).trim(),
-					} );
-					setNotice( {
-						type: 'success',
-						message: __( 'Algolia credentials saved successfully.', 'onesearch' ),
-					} );
+			.then( ( data ) => {
+				if ( ! data.success ) {
+					// Will be handled by the catch block
+					throw new Error( 'Invalid response data' );
 				}
+				setInitial( algoliaCreds );
+
+				setNotice( {
+					type: 'success',
+					message: __( 'Algolia credentials saved successfully.', 'onesearch' ),
+				} );
 			} )
 			.catch( () => {
 				setNotice( {
@@ -159,7 +137,7 @@ const AlgoliaSettings = (
 						onChange={ ( value ) =>
 							setAlgoliaCreds( ( prev ) => ( {
 								...prev,
-								app_id: value,
+								app_id: value.trim(),
 							} ) )
 						}
 						__nextHasNoMarginBottom
@@ -177,7 +155,7 @@ const AlgoliaSettings = (
 						onChange={ ( value ) =>
 							setAlgoliaCreds( ( prev ) => ( {
 								...prev,
-								write_key: value,
+								write_key: value.trim(),
 							} ) )
 						}
 						__nextHasNoMarginBottom

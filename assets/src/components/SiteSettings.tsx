@@ -80,13 +80,13 @@ const SiteSettings = () => {
 			} else {
 				setNotice( {
 					type: 'error',
-					message: __( 'Failed to regenerate api key. Please try again later.', 'onesearch' ),
+					message: __( 'Failed to regenerate API key. Please try again later.', 'onesearch' ),
 				} );
 			}
 		} catch ( error ) {
 			setNotice( {
 				type: 'error',
-				message: __( 'Error regenerating api key. Please try again later.', 'onesearch' ),
+				message: __( 'Error regenerating API key. Please try again later.', 'onesearch' ),
 			} );
 		}
 	}, [] );
@@ -178,9 +178,7 @@ const SiteSettings = () => {
 				</Notice>
 			) }
 
-			<Card
-				style={ { marginTop: '30px' } }
-			>
+			<Card style={ { marginTop: '30px' } } >
 				<CardHeader>
 					<h2>{ __( 'API Key', 'onesearch' ) }</h2>
 					<div>

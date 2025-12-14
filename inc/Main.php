@@ -31,6 +31,7 @@ final class Main {
 		Modules\Search\Admin::class,
 		Modules\Search\Settings::class,
 		Modules\Rest\Basic_Options_Controller::class,
+		Modules\Rest\Search_Controller::class,
 
 		// @todo finish migrating legacy endpoints.
 		Inc\REST\Basic_Options::class,

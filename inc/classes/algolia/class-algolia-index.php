@@ -10,6 +10,7 @@
 namespace OneSearch\Inc\Algolia;
 
 use OneSearch\Contracts\Traits\Singleton;
+use OneSearch\Modules\Search\Algolia;
 use OneSearch\Utils;
 use WP_Post;
 

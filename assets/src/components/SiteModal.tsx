@@ -212,7 +212,7 @@ const SiteModal = (
 				label={ __( 'API Key*', 'onesearch' ) }
 				value={ formData.api_key }
 				onChange={ ( value ) => setFormData( { ...formData, api_key: value } ) }
-				help={ __( 'This is the api key that will be used to authenticate the site for OneSearch.', 'onesearch' ) }
+				help={ __( 'This is the API key that will be used to authenticate the site for OneSearch.', 'onesearch' ) }
 				__nextHasNoMarginBottom
 			/>
 
