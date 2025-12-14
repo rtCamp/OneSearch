@@ -8,7 +8,7 @@ import {
 	Card,
 	CardHeader,
 	TextControl,
-	__experimentalGrid as Grid, // eslint-disable-line @wordpress/no-unsafe-wp-apis
+	__experimentalGrid as Grid,
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
