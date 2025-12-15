@@ -116,12 +116,11 @@ final class Watcher implements Registrable {
 		$response = wp_safe_remote_get(
 			$endpoint,
 			[
-				'headers'    => [
+				'headers' => [
 					'Accept'            => 'application/json',
 					'Content-Type'      => 'application/json',
 					'X-OneSearch-Token' => $our_public_key,
 				],
-				'user-agent' => sprintf( 'OneSearch/%s', ONESEARCH_VERSION ),
 			]
 		);
 
