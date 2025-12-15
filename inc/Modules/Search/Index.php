@@ -24,7 +24,7 @@ final class Index {
 	private const DEFAULT_BATCH_SIZE = 100;
 
 	/**
-	 * Flag to check whether settings we're already set on this instance.
+	 * Flag to check whether settings were already set on this instance.
 	 *
 	 * @var bool
 	 */
