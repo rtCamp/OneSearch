@@ -99,18 +99,14 @@ class Basic_Options extends Abstract_REST_Controller {
 			'/sites-search-settings',
 			[
 				[
-					'methods'             => 'GET',
+					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => [ $this, 'get_sites_search_settings' ],
-					'permission_callback' => static function () {
-						return current_user_can( 'manage_options' );
-					},
+					'permission_callback' => static fn (): bool => current_user_can( 'manage_options' ),
 				],
 				[
-					'methods'             => 'POST',
+					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => [ $this, 'update_sites_search_settings' ],
-					'permission_callback' => static function () {
-						return current_user_can( 'manage_options' );
-					},
+					'permission_callback' => static fn (): bool => current_user_can( 'manage_options' ),
 					'args'                => [
 						'settings' => [
 							'required' => true,
@@ -126,7 +122,7 @@ class Basic_Options extends Abstract_REST_Controller {
 			self::NAMESPACE,
 			'/search-settings',
 			[
-				'methods'             => 'GET',
+				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => [ $this, 'get_search_settings_for_brand' ],
 				'permission_callback' => '__return_true',
 			]
