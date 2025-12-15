@@ -400,7 +400,7 @@ final class Search implements Registrable {
 		return $query->is_search() &&
 			$query->is_main_query() &&
 			! empty( $query->get( 's' ) ) &&
-			! $query->is_admin &&
+			! is_admin() &&
 			( empty( $query->query['post_type'] ) || 'wp_template' !== $query->query['post_type'] );
 	}
 
