@@ -125,7 +125,7 @@ final class Post_Record {
 			],
 			'customRanking'         => [
 				'desc(is_sticky)',
-				'desc(post_date)',
+				'desc(post_date_gmt)',
 				'asc(chunk_index)',
 			],
 			'searchableAttributes'  => [
