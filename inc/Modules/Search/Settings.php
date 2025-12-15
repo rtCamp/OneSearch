@@ -194,7 +194,7 @@ final class Settings implements Registrable {
 				$removed_sites
 			)
 		);
-		// OR filters should be wrapped in quotes.
+		// Wrap the OR expression in quotes per Algolia requirements.
 		// @see: https://www.algolia.com/doc/rest-api/search/delete-by#body-filters .
 		$success = $indexer->delete_by( [ 'filters' => "\"$filters\"" ] );
 
