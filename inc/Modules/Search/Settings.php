@@ -11,6 +11,7 @@ namespace OneSearch\Modules\Search;
 
 use OneSearch\Contracts\Interfaces\Registrable;
 use OneSearch\Encryptor;
+use OneSearch\Modules\Rest\Governing_Data_Handler;
 use OneSearch\Modules\Settings\Settings as Admin_Settings;
 use OneSearch\Utils;
 
@@ -46,6 +47,11 @@ final class Settings implements Registrable {
 		// Listen to updates.
 		add_action( 'update_option_' . Admin_Settings::OPTION_SITE_TYPE, [ $this, 'on_site_type_change' ], 10, 2 );
 		add_action( 'update_option_' . Admin_Settings::OPTION_GOVERNING_SHARED_SITES, [ $this, 'on_shared_sites_change' ], 10, 2 );
+
+		// Purge algolia caches when search settings change.
+		add_action( 'update_option_' . self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS, [ $this, 'purge_cache_on_update' ], 10, 3 );
+		add_action( 'update_option_' . self::OPTION_GOVERNING_INDEXABLE_SITES, [ $this, 'purge_cache_on_update' ], 10, 3 );
+		add_action( 'update_option_' . self::OPTION_GOVERNING_SEARCH_SETTINGS, [ $this, 'purge_cache_on_update' ], 10, 3 );
 	}
 
 	/**
@@ -222,6 +228,31 @@ final class Settings implements Registrable {
 
 		$indexable_entities['entities'] = $updated_map;
 		update_option( self::OPTION_GOVERNING_INDEXABLE_SITES, $indexable_entities );
+	}
+
+	/**
+	 * Purges the Governing_Data_Handler cache when a setting update triggers.
+	 *
+	 * @param mixed  $old_value The old value.
+	 * @param mixed  $new_value The new value.
+	 * @param string $option    The option name.
+	 */
+	public function purge_cache_on_update( $old_value, $new_value, $option ): void {
+		switch ( $option ) {
+			case self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS:
+			case self::OPTION_GOVERNING_SEARCH_SETTINGS:
+					Governing_Data_Handler::clear_brand_config_cache();
+				break;
+			// Indexable entities are per-site.
+			case self::OPTION_GOVERNING_INDEXABLE_SITES:
+				// @todo only trigger for changed sites.
+				Governing_Data_Handler::clear_brand_config_cache();
+				break;
+
+			// Unless it's ours, do nothing.
+			default:
+				break;
+		}
 	}
 
 	/**

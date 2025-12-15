@@ -32,6 +32,7 @@ final class Main {
 		Modules\Search\Settings::class,
 		Modules\Search\Watcher::class,
 		Modules\Rest\Basic_Options_Controller::class,
+		Modules\Rest\Governing_Data_Controller::class,
 		Modules\Rest\Search_Controller::class,
 
 		// @todo finish migrating legacy endpoints.

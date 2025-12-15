@@ -8,7 +8,7 @@
 namespace OneSearch\Inc\Algolia;
 
 use OneSearch\Contracts\Interfaces\Registrable;
-use OneSearch\Modules\Rest\Governing_Data;
+use OneSearch\Modules\Rest\Governing_Data_Handler;
 use OneSearch\Modules\Search\Algolia;
 use OneSearch\Modules\Search\Settings as Search_Settings;
 use OneSearch\Modules\Settings\Settings;
@@ -37,7 +37,8 @@ class Algolia_Search implements Registrable {
 	public function register_hooks(): void {
 		// Select search config based on site role.
 		if ( Settings::is_consumer_site() ) {
-			$search_config = Governing_Data::get_search_settings();
+			$brand_config  = Governing_Data_Handler::get_brand_config();
+			$search_config = is_wp_error( $brand_config ) ? null : ( $brand_config['search_settings'] ?? null );
 		} else {
 			$all_settings  = Search_Settings::get_search_settings();
 			$search_config = $all_settings[ Utils::normalize_url( (string) get_site_url() ) ] ?? null;
@@ -810,18 +811,20 @@ class Algolia_Search implements Registrable {
 		}
 
 		// Brand: intersect local selection with governing-available sites.
-		$available_sites = Governing_Data::get_searchable_sites();
+		$brand_config = Governing_Data_Handler::get_brand_config();
 
-		if ( empty( $available_sites ) || is_wp_error( $available_sites ) ) {
+		if ( empty( $brand_config ) || is_wp_error( $brand_config ) ) {
 			return [];
 		}
 
-		$selected_sites = Governing_Data::get_search_settings();
-		if ( is_wp_error( $selected_sites ) || empty( $selected_sites ) ) {
+		$available_sites = $brand_config['searchable_sites'] ?? [];
+		$search_settings = $brand_config['search_settings'] ?? [];
+
+		if ( empty( $search_settings ) ) {
 			return [];
 		}
 
-		$selected_sites = $selected_sites['searchable_sites'] ?? [];
+		$selected_sites = $search_settings['searchable_sites'] ?? [];
 
 		return ! empty( $selected_sites ) ? array_intersect( $selected_sites, $available_sites ) : [];
 	}

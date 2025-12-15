@@ -10,7 +10,7 @@ declare(strict_types = 1);
 namespace OneSearch\Modules\Search;
 
 use Algolia\AlgoliaSearch\SearchClient;
-use OneSearch\Modules\Rest\Abstract_REST_Controller;
+use OneSearch\Modules\Rest\Governing_Data_Handler;
 use OneSearch\Modules\Search\Settings as Search_Settings;
 use OneSearch\Modules\Settings\Settings;
 
@@ -102,63 +102,15 @@ final class Algolia {
 			return Search_Settings::get_algolia_credentials();
 		}
 
-		// If no parent is configured, return an error.
-		$parent_url     = Settings::get_parent_site_url();
-		$our_public_key = Settings::get_api_key();
-		if ( empty( $parent_url ) || empty( $our_public_key ) ) {
-			return new \WP_Error(
-				'algolia_credentials_unavailable',
-				__( 'Algolia credentials are unavailable because no governing site is configured.', 'onesearch' )
-			);
-		}
-
-		$endpoint = sprintf(
-			'%s/wp-json/%s/algolia-credentials',
-			untrailingslashit( $parent_url ),
-			Abstract_REST_Controller::NAMESPACE,
-		);
-
-		$response = wp_safe_remote_get(
-			$endpoint,
-			[
-				'headers' => [
-					'Accept'            => 'application/json',
-					'Content-Type'      => 'application/json',
-					'X-OneSearch-Token' => $our_public_key,
-				],
-			]
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		$code = wp_remote_retrieve_response_code( $response );
-		$body = wp_remote_retrieve_body( $response );
-
-		if ( 200 !== $code ) {
-			return new \WP_Error(
-				'onesearch_rest_failed_to_connect',
-				__( 'Failed to connect to the governing site.', 'onesearch' ),
-				[
-					'status' => $code,
-					'body'   => $body,
-				]
-			);
-		}
-
-		$response_data = json_decode( $body, true );
-		if ( null === $response_data || ! is_array( $response_data ) ) {
-			return new \WP_Error(
-				'onesearch_rest_invalid_response',
-				__( 'The governing site returned an invalid response.', 'onesearch' ),
-				[ 'status' => 500 ]
-			);
+		// For brand sites, fetch from the consolidated config.
+		$config = Governing_Data_Handler::get_brand_config();
+		if ( is_wp_error( $config ) ) {
+			return $config;
 		}
 
 		return [
-			'app_id'    => isset( $response_data['app_id'] ) ? sanitize_text_field( $response_data['app_id'] ) : null,
-			'write_key' => isset( $response_data['write_key'] ) ? sanitize_text_field( $response_data['write_key'] ) : null,
+			'app_id'    => $config['algolia_credentials']['app_id'] ?? null,
+			'write_key' => $config['algolia_credentials']['write_key'] ?? null,
 		];
 	}
 }
