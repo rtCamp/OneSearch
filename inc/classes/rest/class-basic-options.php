@@ -101,7 +101,7 @@ class Basic_Options extends Abstract_REST_Controller {
 	public function update_sites_search_settings( \WP_REST_Request $request ) {
 		$settings = $request->get_param( 'settings' );
 
-		// @todo this needs to be sanitizied if we keep it!!!!
+		// @todo this needs to be sanitized if we keep it!!!!
 
 		update_option( Search_Settings::OPTION_GOVERNING_SEARCH_SETTINGS, $settings );
 
