@@ -659,7 +659,7 @@ final class Search implements Registrable {
 				if ( ! isset( $hit['site_post_id'] ) ) {
 					continue;
 				}
-				$grouped_hits[ (int) $hit['site_post_id'] ][] = $hit;
+				$grouped_hits[ $hit['site_post_id'] ][] = $hit;
 			}
 		}
 
