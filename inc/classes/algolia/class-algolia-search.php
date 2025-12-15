@@ -300,7 +300,7 @@ class Algolia_Search implements Registrable {
 			return $posts;
 		}
 
-		// Group all hits by their parent_post_id.
+		// Group all hits by their site_post_id.
 		$grouped = $this->group_hits_by_post( $hits );
 
 		// Set total for pagination.
@@ -349,7 +349,7 @@ class Algolia_Search implements Registrable {
 	private function build_posts_from_grouped_hits( array $hits_for_page, bool $reconstruct = true ): array {
 		$parent_ids = [];
 
-		// Collect all site_ids we need to fetch (for chunked posts only).
+		// Collect all site_post_ids we need to fetch (for chunked posts only).
 		if ( $reconstruct ) {
 			foreach ( $hits_for_page as $hit ) {
 				$is_chunked = ! empty( $hit['total_chunks'] ) ? intval( $hit['total_chunks'] ) > 1 : false;
@@ -406,8 +406,8 @@ class Algolia_Search implements Registrable {
 	/**
 	 * Fetch chunks for many posts in batches.
 	 *
-	 * @param array<string> $parent_ids Array of parent_post_id values (strings with site_key prefix).
-	 * @return array<string, array<array<string, mixed>>> Map of parent_post_id to list of chunk hits.
+	 * @param array<string> $parent_ids Array of site_post_id values (strings with site_key prefix).
+	 * @return array<string, array<array<string, mixed>>> Map of site_post_id to list of chunk hits.
 	 */
 	private function batch_fetch_chunks( array $parent_ids ): array {
 		$index = $this->get_index();
@@ -422,10 +422,10 @@ class Algolia_Search implements Registrable {
 		$collected = [];
 
 		foreach ( $groups as $group_ids ) {
-			// Build "parent_post_id:ID1 OR parent_post_id:ID2 ..." filter.
+			// Build "site_post_id:ID1 OR site_post_id:ID2 ..." filter.
 			$parts = [];
 			foreach ( $group_ids as $parent_id ) {
-				$parts[] = 'parent_post_id:' . $parent_id;
+				$parts[] = 'site_post_id:' . $parent_id;
 			}
 			$filters = implode( ' OR ', $parts );
 
@@ -445,7 +445,7 @@ class Algolia_Search implements Registrable {
 
 			$hits = isset( $res['hits'] ) ? (array) $res['hits'] : [];
 			foreach ( $hits as $hit ) {
-				$pid = $hit['parent_post_id'] ?? null;
+				$pid = $hit['site_post_id'] ?? null;
 				if ( ! $pid ) {
 					continue;
 				}
@@ -776,7 +776,7 @@ class Algolia_Search implements Registrable {
 	/**
 	 * Choose the representative hit per grouped post for the requested page slice.
 	 *
-	 * @param array<string, PostRecord[]> $grouped   Grouped hits by parent_post_id.
+	 * @param array<string, PostRecord[]> $grouped   Grouped hits by site_post_id.
 	 * @param string[]                    $page_keys Keys selected for the current page.
 	 *
 	 * @return PostRecord[] Representative hits for the current page.

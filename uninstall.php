@@ -81,7 +81,7 @@ function cleanup_algolia_index(): void {
 		return;
 	}
 
-	$indexer = new Modules\Search\Index();
+	$indexer = new \OneSearch\Modules\Search\Index();
 	$indexer->delete_index();
 }
 
