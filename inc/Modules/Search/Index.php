@@ -38,7 +38,7 @@ final class Index {
 	private ?\Algolia\AlgoliaSearch\SearchIndex $index = null;
 
 	/**
-	 * Get the index, instantiating it if it doesnt exist.
+	 * Get the index, instantiating it if it doesn't exist.
 	 */
 	public function get_index(): \Algolia\AlgoliaSearch\SearchIndex|\WP_Error {
 		if ( ! $this->index instanceof \Algolia\AlgoliaSearch\SearchIndex ) {
