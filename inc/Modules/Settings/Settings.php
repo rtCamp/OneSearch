@@ -259,7 +259,7 @@ final class Settings implements Registrable {
 				'logo'    => $brand['logo'] ?? '',
 				'logo_id' => $brand['logo_id'] ?? 0,
 				'name'    => $brand['name'] ?? '',
-				'url'     => $brand['url'] ?? '',
+				'url'     => trailingslashit( $brand['url'] ?? '' ),
 			];
 		}
 
@@ -310,15 +310,17 @@ final class Settings implements Registrable {
 				continue;
 			}
 
-			$api_key = Encryptor::encrypt( $site['api_key'] );
+			$encrypted_key = Encryptor::encrypt( $site['api_key'] );
 
 			// Bail if encryption fails.
-			if ( false === $api_key ) {
+			if ( false === $encrypted_key ) {
 				return false;
 			}
+
+			$site['api_key'] = $encrypted_key;
 		}
 
-		return update_option( self::OPTION_GOVERNING_SHARED_SITES, array_values( $sites ), false );
+		return update_option( self::OPTION_GOVERNING_SHARED_SITES, $sites, false );
 	}
 
 	/**

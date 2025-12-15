@@ -106,7 +106,7 @@ abstract class Abstract_REST_Controller extends WP_REST_Controller implements Re
 		}
 
 		// If token is valid and request is from different domain then check if it matches governing site url.
-		return self::is_same_domain( $governing_site_url, $request_origin );
+		return self::is_same_domain( $governing_site_url, $request_origin ) || str_contains( $user_agent, $governing_site_url );
 	}
 
 	/**
@@ -117,7 +117,7 @@ abstract class Abstract_REST_Controller extends WP_REST_Controller implements Re
 	 *
 	 * @return bool True if both URLs belong to the same domain, false otherwise.
 	 */
-	private function is_same_domain( string $url1, string $url2 ): bool {
+	protected static function is_same_domain( string $url1, string $url2 ): bool {
 		$parsed_url1 = wp_parse_url( $url1 );
 		$parsed_url2 = wp_parse_url( $url2 );
 

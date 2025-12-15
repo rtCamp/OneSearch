@@ -30,11 +30,10 @@ final class Main {
 		Modules\Settings\Settings::class,
 		Modules\Search\Admin::class,
 		Modules\Search\Settings::class,
+		Modules\Rest\Algolia_Controller::class,
 		Modules\Rest\Basic_Options_Controller::class,
-		Modules\Rest\Search_Controller::class,
 
 		// @todo finish migrating legacy endpoints.
-		Inc\REST\Basic_Options::class,
 		Inc\Algolia\Algolia_Search::class,
 	];
 
