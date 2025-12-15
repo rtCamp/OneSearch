@@ -269,7 +269,7 @@ class Algolia_Controller extends Abstract_REST_Controller {
 	 *
 	 * @param \WP_REST_Request $request Request object with JSON body.
 	 *
-	 * @return \WP_REST_Response|\OneSearch\Modules\Rest\WP_Error
+	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function set_indexable_entities( WP_REST_Request $request ): \WP_Error|WP_REST_Response {
 		$indexable_entities = json_decode( $request->get_body(), true );
@@ -666,7 +666,7 @@ class Algolia_Controller extends Abstract_REST_Controller {
 	 *
 	 * @param \WP_REST_Request $request Request object (validates token for non-admin).
 	 *
-	 * @return \WP_REST_Response|\OneSearch\Modules\Rest\WP_Error
+	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_searchable_sites_for_child( WP_REST_Request $request ): WP_REST_Response|\WP_Error {
 
@@ -781,7 +781,7 @@ class Algolia_Controller extends Abstract_REST_Controller {
 	 *
 	 * @param \WP_REST_Request $request The incoming REST API request.
 	 *
-	 * @return \WP_REST_Response|\OneSearch\Modules\Rest\WP_Error The response with indexing result or error.
+	 * @return \WP_REST_Response|\WP_Error The response with indexing result or error.
 	 */
 	public function reindex_post( WP_REST_Request $request ): \WP_Error|WP_REST_Response {
 
