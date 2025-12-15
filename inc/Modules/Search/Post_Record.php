@@ -64,11 +64,11 @@ use OneSearch\Utils;
  */
 final class Post_Record {
 	/**
-	 * The default Algolia record limit.
+	 * The default Algolia record size limit in bytes (Algolia's max is 10KB per record).
 	 *
 	 * @todo make filterable via a constant or setting.
 	 */
-	private const DEFAULT_ALGOLIA_RECORD_LIMIT = 1000;
+	private const DEFAULT_ALGOLIA_RECORD_LIMIT = 10000;
 
 	/**
 	 * The (normalized) Site URL
