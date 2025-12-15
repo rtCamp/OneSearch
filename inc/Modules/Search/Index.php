@@ -78,7 +78,6 @@ final class Index {
 			// For non-governing sites, only delete this site's records.
 			$index->deleteBy(
 				[
-					// Shims `Utils::normalize_url()` to avoid the dependency.
 					'filters' => sprintf( 'site_url:"%s"', Utils::normalize_url( get_site_url() ) ),
 				]
 			)->wait();
