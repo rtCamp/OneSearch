@@ -671,9 +671,8 @@ class Algolia_Search implements Registrable {
 			return null;
 		}
 
-		if ( ! empty( $post_data['content'] ) && ! empty( $post_data['total_chunks'] ) && intval( $post_data['total_chunks'] ) > 1 ) {
-			$post->post_content = $post_data['content'];
-		}
+		// Use the hit data for the content, if present.
+		$post->post_content = ! empty( $post_data['content'] ) ? $post_data['content'] : $post->post_content;
 
 		$post->onesearch_site_url           = $post_data['site_url'] ?? '';
 		$post->onesearch_site_name          = $post_data['site_name'] ?? '';
