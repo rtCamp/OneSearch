@@ -241,7 +241,8 @@ final class Index {
 	 * @return \Generator<list<PostRecord>>
 	 */
 	private function generate_post_batches( array $post_types, int $batch_size ): \Generator {
-		$page = 1;
+		$page            = 1;
+		$record_instance = new Post_Record();
 
 		while ( true ) {
 			$posts = Post_Record::get_indexable_posts( $post_types, $page, $batch_size );
@@ -252,7 +253,7 @@ final class Index {
 
 			$records = [];
 			foreach ( $posts as $post ) {
-				$post_records = ( new Post_Record() )->to_records( $post );
+				$post_records = $record_instance->to_records( $post );
 				$records      = array_merge( $records, $post_records );
 			}
 			yield $records;
