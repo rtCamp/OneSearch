@@ -102,7 +102,6 @@ class Basic_Options extends Abstract_REST_Controller {
 		$settings = $request->get_param( 'settings' );
 
 		// @todo this needs to be sanitized if we keep it!!!!
-
 		update_option( Search_Settings::OPTION_GOVERNING_SEARCH_SETTINGS, $settings );
 
 		return rest_ensure_response(
