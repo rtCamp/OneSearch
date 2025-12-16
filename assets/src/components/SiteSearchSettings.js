@@ -127,7 +127,7 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 				} );
 			} );
 		}
-	}, [ indexableEntities, siteHasEntities ] );
+	}, [ indexableEntities ] );
 
 	// Load existing search settings
 	useEffect( () => {
