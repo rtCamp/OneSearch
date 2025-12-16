@@ -40,11 +40,6 @@ final class Search implements Registrable {
 	 * {@inheritDoc}
 	 */
 	public function register_hooks(): void {
-		// @todo, see wpsearch
-		if ( ! $this->is_search_enabled() ) {
-			return;
-		}
-
 		// Hook the results.
 		add_filter( 'posts_pre_query', [ $this, 'get_algolia_results' ], 10, 2 );
 
@@ -80,7 +75,7 @@ final class Search implements Registrable {
 	 * @return ?\WP_Post[] Modified posts.
 	 */
 	public function get_algolia_results( $posts, $query ) {
-		if ( ! $query instanceof \WP_Query || ! $this->should_filter_query( $query ) ) {
+		if ( ! $this->is_search_enabled() || ! $query instanceof \WP_Query || ! $this->should_filter_query( $query ) ) {
 			return $posts;
 		}
 
@@ -120,7 +115,7 @@ final class Search implements Registrable {
 		global $wp_query;
 		$post_id = $post instanceof \WP_Post ? (int) $post->ID : $post;
 
-		if ( $post_id >= 0 ) {
+		if ( ! $this->is_search_enabled() || $post_id >= 0 ) {
 			return $permalink;
 		}
 
@@ -153,7 +148,7 @@ final class Search implements Registrable {
 	public function get_post_author( $author_name ) {
 		global $wp_query, $post;
 
-		if ( ! $wp_query instanceof \WP_Query || ! $this->should_filter_query( $wp_query ) ) {
+		if ( ! $this->is_search_enabled() || ! $wp_query instanceof \WP_Query || ! $this->should_filter_query( $wp_query ) ) {
 			return $author_name;
 		}
 
@@ -176,7 +171,7 @@ final class Search implements Registrable {
 	public function get_post_author_link( $author_link, $author_id, $author_nicename = null ) {
 		global $wp_query, $post;
 
-		if ( ! $wp_query instanceof \WP_Query || ! $this->should_filter_query( $wp_query ) ) {
+		if ( ! $this->is_search_enabled() || ! $wp_query instanceof \WP_Query || ! $this->should_filter_query( $wp_query ) ) {
 			return $author_link;
 		}
 
@@ -197,7 +192,7 @@ final class Search implements Registrable {
 	public function get_post_author_avatar( $avatar_url ) {
 		global $wp_query, $post;
 
-		if ( ! $wp_query instanceof \WP_Query || ! $this->should_filter_query( $wp_query ) ) {
+		if ( ! $this->is_search_enabled() || ! $wp_query instanceof \WP_Query || ! $this->should_filter_query( $wp_query ) ) {
 			return $avatar_url;
 		}
 
@@ -220,7 +215,7 @@ final class Search implements Registrable {
 	public function get_term_link( $term_link, $term, $taxonomy ) {
 		global $wp_query, $post;
 
-		if ( ! $wp_query instanceof \WP_Query || ! $this->should_filter_query( $wp_query ) ) {
+		if ( ! $this->is_search_enabled() || ! $wp_query instanceof \WP_Query || ! $this->should_filter_query( $wp_query ) ) {
 			return $term_link;
 		}
 
@@ -283,7 +278,7 @@ final class Search implements Registrable {
 	public function get_post_terms( $terms, $post_id, $taxonomy ) {
 		global $wp_query;
 
-		if ( ! $wp_query instanceof \WP_Query || ! $this->should_filter_query( $wp_query ) ) {
+		if ( ! $this->is_search_enabled() || ! $wp_query instanceof \WP_Query || ! $this->should_filter_query( $wp_query ) ) {
 			return $terms;
 		}
 
@@ -333,7 +328,7 @@ final class Search implements Registrable {
 	public function filter_render_block( $block_content, $block, $instance ) {
 		global $post;
 
-		if ( ! $post instanceof \WP_Post || (int) $post->ID >= 0 || empty( $post->guid ) ) {
+		if ( ! $this->is_search_enabled() || ! $post instanceof \WP_Post || (int) $post->ID >= 0 || empty( $post->guid ) ) {
 			return $block_content;
 		}
 
@@ -378,7 +373,7 @@ final class Search implements Registrable {
 		}
 
 		$search_config = null;
-		if ( Settings::is_governing_site() ) {
+		if ( ! Settings::is_consumer_site() ) {
 			$all_sites = Search_Settings::get_search_settings();
 
 			$search_config = $all_sites[ Utils::normalize_url( get_site_url() ) ] ?? null;
