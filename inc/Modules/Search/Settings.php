@@ -71,7 +71,7 @@ final class Settings implements Registrable {
 
 					return [
 						'app_id'    => isset( $value['app_id'] ) ? sanitize_text_field( $value['app_id'] ) : null,
-						'write_key' => isset( $value['write_key'] ) ? Encryptor::encrypt( sanitize_text_field( $value['write_key'] ) ) : null,
+						'write_key' => isset( $value['write_key'] ) ? sanitize_text_field( $value['write_key'] ) : null,
 					];
 				},
 				'show_in_rest'      => [
