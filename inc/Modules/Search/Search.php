@@ -444,7 +444,7 @@ final class Search implements Registrable {
 	 * @return array<string,mixed>
 	 */
 	private function prepare_search_params( \WP_Query $query, array $searchable_sites ): array {
-		$current_page   = get_query_var( 'paged' ) ?: ( get_query_var( 'page' ) ?: 1 );
+		$current_page   = max( 1, (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) );
 		$default_params = array_merge(
 			$this->get_default_search_params(),
 			[
