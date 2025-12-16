@@ -184,6 +184,7 @@ class Governing_Data_Handler {
 				$endpoint,
 				[
 					'headers'  => [
+						'methods'           => \WP_REST_Server::DELETABLE,
 						'Accept'            => 'application/json',
 						'Content-Type'      => 'application/json',
 						'X-OneSearch-Token' => $site_data['api_key'],
