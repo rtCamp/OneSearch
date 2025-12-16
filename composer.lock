@@ -1052,16 +1052,16 @@
         },
         {
             "name": "phpcompatibility/phpcompatibility-wp",
-            "version": "3.0.0-alpha1",
+            "version": "3.0.0-alpha2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PHPCompatibility/PHPCompatibilityWP.git",
-                "reference": "a141394e6c99c9cca11c0f2b1bee9fb401a8537d"
+                "reference": "bd53f24e7528422ac51d64dc8d53e8d4c4a877b3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PHPCompatibility/PHPCompatibilityWP/zipball/a141394e6c99c9cca11c0f2b1bee9fb401a8537d",
-                "reference": "a141394e6c99c9cca11c0f2b1bee9fb401a8537d",
+                "url": "https://api.github.com/repos/PHPCompatibility/PHPCompatibilityWP/zipball/bd53f24e7528422ac51d64dc8d53e8d4c4a877b3",
+                "reference": "bd53f24e7528422ac51d64dc8d53e8d4c4a877b3",
                 "shasum": ""
             },
             "require": {
@@ -1115,7 +1115,7 @@
                     "type": "thanks_dev"
                 }
             ],
-            "time": "2025-10-22T17:30:30+00:00"
+            "time": "2025-12-16T13:35:20+00:00"
         },
         {
             "name": "phpcsstandards/phpcsextra",

@@ -22,6 +22,7 @@ class Governing_Data_Controller extends Abstract_REST_Controller {
 	 * {@inheritDoc}
 	 */
 	public function register_routes(): void {
+		// Only on governing sites.
 		if ( Settings::is_governing_site() ) {
 			register_rest_route(
 				self::NAMESPACE,
@@ -32,17 +33,29 @@ class Governing_Data_Controller extends Abstract_REST_Controller {
 					'permission_callback' => [ $this, 'check_api_permissions' ],
 				]
 			);
-
-			return;
 		}
 
-		// Prime the config cache on brand sites.
+		// Only on consumer sites.
+		if ( Settings::is_consumer_site() ) {
+			// Prime the config cache on brand sites.
+			register_rest_route(
+				self::NAMESPACE,
+				'/brand-config',
+				[
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => [ $this, 'delete_brand_config_cache' ],
+					'permission_callback' => [ $this, 'check_api_permissions' ],
+				]
+			);
+		}
+
+		// Both sites: get all post types.
 		register_rest_route(
 			self::NAMESPACE,
-			'/brand-config',
+			'/all-post-types',
 			[
-				'methods'             => WP_REST_Server::DELETABLE,
-				'callback'            => [ $this, 'delete_brand_config_cache' ],
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $this, 'get_all_post_types' ],
 				'permission_callback' => [ $this, 'check_api_permissions' ],
 			]
 		);
@@ -122,6 +135,44 @@ class Governing_Data_Controller extends Abstract_REST_Controller {
 	}
 
 	/**
+	 * Return public post types for the current site (and children if governing).
+	 */
+	public function get_all_post_types(): \WP_REST_Response|\WP_Error {
+		$site_url = trailingslashit( get_site_url() );
+
+		$site_payload = [
+			'site_name'  => (string) get_bloginfo( 'name' ),
+			'site_url'   => $site_url,
+			'post_types' => $this->get_local_post_types(),
+		];
+
+		$all_sites = [
+			$site_url => $site_payload,
+		];
+		$errors    = [];
+
+		// If governing, get post types from child sites as well.
+		if ( Settings::is_governing_site() ) {
+			$child_post_type_data = Governing_Data_Handler::get_all_brand_post_types();
+
+			if ( is_wp_error( $child_post_type_data ) ) {
+				return $child_post_type_data;
+			}
+
+			$all_sites = array_merge( $all_sites, $child_post_type_data['sites'] );
+			$errors    = $child_post_type_data['errors'] ?? [];
+		}
+
+		return rest_ensure_response(
+			[
+				'success' => empty( $errors ),
+				'sites'   => $all_sites,
+				'errors'  => $errors,
+			]
+		);
+	}
+
+	/**
 	 * Check whether the request is from a known brand site.
 	 *
 	 * @param string $origin The origin URL.
@@ -130,5 +181,29 @@ class Governing_Data_Controller extends Abstract_REST_Controller {
 		$shared_sites = Settings::get_shared_sites();
 
 		return isset( $shared_sites[ $origin ] );
+	}
+
+	/**
+	 * Get available public post types for the site.
+	 *
+	 * @return array{
+	 *   slug: string,
+	 *   label: string,
+	 *   restBase: string,
+	 * }[]
+	 */
+	private function get_local_post_types(): array {
+		$post_types = get_post_types( [ 'public' => true ], 'objects' );
+
+		$payload = [];
+		foreach ( $post_types as $slug => $post_type ) {
+			$payload[] = [
+				'slug'     => $slug,
+				'label'    => isset( $post_type->labels->name ) ? (string) $post_type->labels->name : $slug,
+				'restBase' => ! empty( $post_type->rest_base ) ? (string) $post_type->rest_base : $slug,
+			];
+		}
+
+		return $payload;
 	}
 }

@@ -67,9 +67,7 @@ function delete_plugin_data(): void {
 	// Brand site options.
 	delete_option( 'onesearch_parent_site_url' );
 	delete_option( 'onesearch_consumer_api_key' );
-	delete_transient( 'onesearch_site_search_settings_cache' );
-	delete_transient( 'onesearch_algolia_credentials_cache' );
-	delete_transient( 'onesearch_shared_sites_cache' );
+	delete_transient( 'onesearch_brand_config_cache' );
 }
 
 /**

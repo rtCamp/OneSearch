@@ -7,8 +7,10 @@
 
 namespace OneSearch\Modules\Rest;
 
+use OneSearch\Modules\Search\Index;
 use OneSearch\Modules\Search\Settings as Search_Settings;
 use OneSearch\Modules\Settings\Settings;
+use OneSearch\Utils;
 use WP_REST_Response;
 use WP_REST_Server;
 
@@ -81,6 +83,17 @@ class Search_Controller extends Abstract_REST_Controller {
 						],
 					],
 				],
+			]
+		);
+
+		// Re-index current site (and children for governing sites).
+		register_rest_route(
+			self::NAMESPACE,
+			'/re-index',
+			[
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => [ $this, 'reindex' ],
+				'permission_callback' => [ $this, 'check_api_permissions' ],
 			]
 		);
 	}
@@ -196,6 +209,49 @@ class Search_Controller extends Abstract_REST_Controller {
 	}
 
 	/**
+	 * Reindex the current site.
+	 *
+	 * If the site is a governing site, trigger the reindex on children as well.
+	 */
+	public function reindex(): \WP_REST_Response|\WP_Error {
+		$errors = [];
+
+		// If Governing, trigger re-index on children as well.
+		if ( Settings::is_governing_site() ) {
+			$child_errors = $this->reindex_child_sites();
+
+			if ( is_array( $child_errors ) ) {
+				$errors = array_merge( $errors, $child_errors );
+			}
+		}
+
+		$post_types = $this->get_post_types_to_index();
+
+		if ( is_wp_error( $post_types ) ) {
+			return $post_types;
+		}
+
+		// Index the current site.
+		$indexed = ( new Index() )->index_all_posts( $post_types );
+
+		if ( is_wp_error( $indexed ) ) {
+			$errors[] = [
+				'site_url' => get_site_url(),
+				'message'  => $indexed->get_error_message() ?: __( 'Re-index failed.', 'onesearch' ),
+			];
+		}
+
+		return rest_ensure_response(
+			[
+				'success' => empty( $errors ),
+				'message' => empty( $errors )
+					? __( 'Re-indexing completed successfully.', 'onesearch' )
+					: __( 'Re-indexing was unsuccessful. Please try again later.', 'onesearch' ),
+			]
+		);
+	}
+
+	/**
 	 * Validate the Algolia Key before saving.
 	 *
 	 * @param string $app_id    The Algolia Application ID.
@@ -222,5 +278,107 @@ class Search_Controller extends Abstract_REST_Controller {
 		} catch ( \Throwable $e ) {
 			return false;
 		}
+	}
+
+	/**
+	 * Get the post types to index for the site.
+	 *
+	 * @return \WP_Error|string[]
+	 */
+	private function get_post_types_to_index(): array|\WP_Error {
+		// For governing sets, get it from the local options.
+		if ( Settings::is_governing_site() ) {
+			$opt        = Search_Settings::get_indexable_entities();
+			$site_url   = Utils::normalize_url( get_site_url() );
+			$post_types = $opt['entities'][ $site_url ] ?? null;
+
+			return is_array( $post_types ) ? array_values( array_unique( array_map( 'strval', $post_types ) ) ) : [];
+		}
+
+		// For consumer sites, fetch from parent.
+		$parent_url = Settings::get_parent_site_url();
+		if ( empty( $parent_url ) ) {
+			return new \WP_Error( 'no_parent_url', __( 'Parent site URL not configured.', 'onesearch' ), [ 'status' => 400 ] );
+		}
+
+		$brand_config = Governing_Data_Handler::get_brand_config();
+
+		if ( is_wp_error( $brand_config ) ) {
+			return $brand_config;
+		}
+
+		return $brand_config['indexable_entities'] ?? [];
+	}
+
+	/**
+	 * Trigger batch reindexing of all child sites (for governing sites).
+	 *
+	 * @return true|array{site_url: string, message: string}[] Array of errors encountered, true if successful.
+	 */
+	private function reindex_child_sites() {
+		$shared_sites = Settings::get_shared_sites();
+
+		$errors = [];
+		// Build the requests array for each site.
+		foreach ( $shared_sites as $site_data ) {
+			if ( empty( $site_data['url'] ) || empty( $site_data['api_key'] ) ) {
+				$errors[] = [
+					'site_url' => $site_data['url'] ?: '(missing)',
+					'message'  => __( 'Missing url or api_key.', 'onesearch' ),
+				];
+				continue;
+			}
+
+			$endpoint = sprintf(
+				'%s/wp-json/%s/re-index',
+				untrailingslashit( $site_data['url'] ),
+				Abstract_REST_Controller::NAMESPACE,
+			);
+
+			$response = wp_safe_remote_post(
+				$endpoint,
+				[
+					'headers' => [
+						'Accept'            => 'application/json',
+						'Content-Type'      => 'application/json',
+						'Origin'            => get_site_url(),
+						'X-OneSearch-Token' => $site_data['api_key'],
+					],
+				]
+			);
+
+			if ( is_wp_error( $response ) ) {
+				$errors[] = [
+					'site_url' => $site_data['url'],
+					// translators: %s is the error message.
+					'message'  => sprintf( __( 'Invalid response received. Error %s', 'onesearch' ), esc_html( $response->get_error_message() ) ),
+				];
+				continue;
+			}
+
+			$code = wp_remote_retrieve_response_code( $response );
+			$body = wp_remote_retrieve_body( $response );
+
+			if ( 200 !== $code ) {
+				$errors[] = [
+					'site_url' => $site_data['url'],
+					// translators: %s is the error code.
+					'message'  => sprintf( esc_html__( 'Failed to connect to the child site. Error code %s', 'onesearch' ), esc_html( (string) $code ) ),
+				];
+				continue;
+			}
+
+			$response_data = json_decode( $body, true );
+			if ( null === $response_data || ! is_array( $response_data ) ) {
+				$errors[] = [
+					'site_url' => $site_data['url'],
+					// translators: %s is the error message.
+					'message'  => __( 'The site returned an invalid response.', 'onesearch' ),
+				];
+				continue;
+			}
+		}
+
+		return $errors ?: true;
 	}
 }

@@ -154,6 +154,118 @@ class Governing_Data_Handler {
 	}
 
 	/**
+	 * Gets available public post types for child sites.
+	 *
+	 * @return \WP_Error|array{
+	 *   sites: array<string, array{
+	 *     site_name: string,
+	 *     site_url: string,
+	 *     post_types: array{
+	 *       slug: string,
+	 *       label: string,
+	 *       restBase: string,
+	 *     }[],
+	 *   }>,
+	 *   errors: array{site_url: string, message: string}[],
+	 * }
+	 */
+	public static function get_all_brand_post_types(): array|\WP_Error {
+		// Only call on Governing sites.
+		if ( ! Settings::is_governing_site() ) {
+			return new \WP_Error(
+				'onesearch_unauthorized_site',
+				__( 'The requesting site is not a governing site.', 'onesearch' ),
+			);
+		}
+
+		$shared_sites = Settings::get_shared_sites();
+
+		$all_sites = [];
+		$errors    = [];
+		// Build the requests array for each site.
+		foreach ( $shared_sites as $site_data ) {
+			if ( empty( $site_data['url'] ) || empty( $site_data['api_key'] ) ) {
+				$errors[] = [
+					'site_url' => $site_data['url'] ?: '(missing)',
+					'message'  => __( 'Missing url or api_key.', 'onesearch' ),
+				];
+				continue;
+			}
+
+			$endpoint = sprintf(
+				'%s/wp-json/%s/all-post-types',
+				untrailingslashit( $site_data['url'] ),
+				Abstract_REST_Controller::NAMESPACE,
+			);
+
+			$response = wp_safe_remote_get(
+				$endpoint,
+				[
+					'headers' => [
+						'Accept'            => 'application/json',
+						'Content-Type'      => 'application/json',
+						'Origin'            => get_site_url(),
+						'X-OneSearch-Token' => $site_data['api_key'],
+					],
+				]
+			);
+
+			if ( is_wp_error( $response ) ) {
+				$errors[] = [
+					'site_url' => $site_data['url'],
+					// translators: %s is the error message.
+					'message'  => sprintf( __( 'Invalid response received. Error %s', 'onesearch' ), esc_html( $response->get_error_message() ) ),
+				];
+				continue;
+			}
+
+			$code = wp_remote_retrieve_response_code( $response );
+			$body = wp_remote_retrieve_body( $response );
+
+			if ( 200 !== $code ) {
+				$errors[] = [
+					'site_url' => $site_data['url'],
+					// translators: %s is the error code.
+					'message'  => sprintf( esc_html__( 'Failed to connect to the child site. Error code %s', 'onesearch' ), esc_html( (string) $code ) ),
+				];
+				continue;
+			}
+
+			$response_data = json_decode( $body, true );
+			if ( null === $response_data || ! is_array( $response_data ) ) {
+				$errors[] = [
+					'site_url' => $site_data['url'],
+					// translators: %s is the error message.
+					'message'  => __( 'The site returned an invalid response.', 'onesearch' ),
+				];
+				continue;
+			}
+
+			foreach ( $response_data['sites'] as $site_url => $site_data ) {
+				if ( ! is_array( $site_data ) ) {
+					continue;
+				}
+				/** @var array{
+				 *   site_name: string,
+				 *   site_url: string,
+				 *   post_types: array{
+				 *     slug: string,
+				 *     label: string,
+				 *     restBase: string,
+				 *   }[],
+				 * } $site_data
+				 */
+				$all_sites[ $site_url ] = $site_data;
+			}
+		}
+
+		return [
+			'sites'  => $all_sites,
+			'errors' => $errors,
+		];
+	}
+
+	/**
 	 * Clear the cached brand configuration.
 	 *
 	 * @param ?string $site_url Optional site URL to clear cache for a specific site. If null, clears cache for all shared sites.
