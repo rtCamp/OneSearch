@@ -21,6 +21,10 @@ use OneSearch\Utils;
  * @phpstan-import-type PostRecord from \OneSearch\Modules\Search\Post_Record
  */
 final class Search implements Registrable {
+	/**
+	 * The number of items to refetch when hydrating records to posts.
+	 */
+	private const CHUNK_BATCH_SIZE = 20;
 
 	/**
 	 * The instance of our Index
@@ -625,7 +629,7 @@ final class Search implements Registrable {
 		}
 
 		// Split into chunks and fetch.
-		$groups       = array_chunk( $ids, 10 );
+		$groups       = array_chunk( $ids, self::CHUNK_BATCH_SIZE );
 		$grouped_hits = [];
 		foreach ( $groups as $group ) {
 			// Build the filter.
