@@ -83,6 +83,7 @@ class Governing_Data_Handler {
 				'headers' => [
 					'Accept'            => 'application/json',
 					'Content-Type'      => 'application/json',
+					'Origin'            => get_site_url(),
 					'X-OneSearch-Token' => $our_public_key,
 				],
 			]
@@ -185,10 +186,11 @@ class Governing_Data_Handler {
 			wp_safe_remote_post(
 				$endpoint,
 				[
-					'method'           => \WP_REST_Server::DELETABLE,
+					'method'   => \WP_REST_Server::DELETABLE,
 					'headers'  => [
 						'Accept'            => 'application/json',
 						'Content-Type'      => 'application/json',
+						'Origin'            => get_site_url(),
 						'X-OneSearch-Token' => $site_data['api_key'],
 					],
 					// Don't wait to see if the cache flush was successful.

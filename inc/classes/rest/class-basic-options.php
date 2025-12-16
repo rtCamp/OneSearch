@@ -179,6 +179,7 @@ class Basic_Options extends Abstract_REST_Controller {
 						'headers' => [
 							'Accept'            => 'application/json',
 							'X-OneSearch-Token' => $child_site_key,
+							'Origin'            => get_site_url(),
 						],
 					]
 				);
@@ -319,6 +320,7 @@ class Basic_Options extends Abstract_REST_Controller {
 						'headers' => [
 							'Accept'            => 'application/json',
 							'Content-Type'      => 'application/json',
+							'Origin'            => get_site_url(),
 							'X-OneSearch-Token' => $key,
 						],
 						'body'    => wp_json_encode( [] ) ?: '',
@@ -441,7 +443,9 @@ class Basic_Options extends Abstract_REST_Controller {
 			$endpoint,
 			[
 				'headers' => [
-					'Accept' => 'application/json',
+					'Accept'            => 'application/json',
+					'Origin'            => get_site_url(),
+					'X-OneSearch-Token' => Settings::get_api_key(),
 				],
 			]
 		);
