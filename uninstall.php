@@ -74,8 +74,6 @@ function delete_plugin_data(): void {
 
 /**
  * Cleans up entries from the Algolia index, or the index itself if governing site.
- *
- * @throws \RuntimeException Doesn't throw as it is caught by the function itself.
  */
 function cleanup_algolia_index(): void {
 	// Load required classes.
@@ -83,29 +81,8 @@ function cleanup_algolia_index(): void {
 		return;
 	}
 
-	try {
-		$algolia_index = \OneSearch\Modules\Search\Algolia::instance()->get_index();
-		if ( is_wp_error( $algolia_index ) ) {
-			throw new \RuntimeException( $algolia_index->get_error_message() );
-		}
-
-		// For governing sites, we can delete the entire index.
-		if ( 'governing-site' === (string) get_option( 'onesearch_site_type', '' ) ) {
-			$algolia_index->getSettings();
-			$algolia_index->delete()->wait();
-			return;
-		}
-
-		// For single sites, just delete the site's records.
-		$algolia_index->deleteBy(
-			[
-				// Shims `Utils::normalize_url()` to avoid the dependency.
-				'filters' => sprintf( 'site_url:"%s"', trailingslashit( trim( get_site_url() ) ) ),
-			]
-		)->wait();
-	} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
-		// Do nothing.
-	}
+	$indexer = new \OneSearch\Modules\Search\Index();
+	$indexer->delete_index();
 }
 
 /**

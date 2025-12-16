@@ -8,6 +8,7 @@
 namespace OneSearch\Modules\Rest;
 
 use OneSearch\Modules\Search\Settings as Search_Settings;
+use OneSearch\Modules\Settings\Settings;
 use WP_REST_Response;
 use WP_REST_Server;
 
@@ -20,6 +21,10 @@ class Search_Controller extends Abstract_REST_Controller {
 	 * {@inheritDoc}
 	 */
 	public function register_routes(): void {
+		if ( ! Settings::is_governing_site() ) {
+			return;
+		}
+
 		// Algolia credentials: get / set.
 		register_rest_route(
 			self::NAMESPACE,
@@ -46,6 +51,35 @@ class Search_Controller extends Abstract_REST_Controller {
 					],
 					'callback'            => [ $this, 'update_algolia_credentials' ],
 					'permission_callback' => [ $this, 'check_api_permissions' ],
+				],
+			]
+		);
+
+		// Indexable entities (per site URL): get / set.
+		register_rest_route(
+			self::NAMESPACE,
+			'/indexable-entities',
+			[
+				[
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => [ $this, 'get_indexable_entities' ],
+					'permission_callback' => [ $this, 'check_api_permissions' ],
+				],
+				[
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => [ $this, 'set_indexable_entities' ],
+					'permission_callback' => static function () {
+						return current_user_can( 'manage_options' );
+					},
+					'args'                => [
+						'entities' => [
+							'required'          => true,
+							'type'              => 'array',
+							'sanitize_callback' => static function ( $value ) {
+								return is_array( $value );
+							},
+						],
+					],
 				],
 			]
 		);
@@ -115,6 +149,48 @@ class Search_Controller extends Abstract_REST_Controller {
 			[
 				'success' => true,
 				'message' => __( 'Algolia credentials updated successfully.', 'onesearch' ),
+			]
+		);
+	}
+
+	/**
+	 * Get the stored indexable entities map (governing only).
+	 *
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function get_indexable_entities(): \WP_REST_Response|\WP_Error {
+		$indexable_entities = Search_Settings::get_indexable_entities();
+
+		return rest_ensure_response(
+			[
+				'success'           => true,
+				'indexableEntities' => $indexable_entities,
+			]
+		);
+	}
+
+	/**
+	 * Save the indexable entities map (governing only).
+	 *
+	 * @param \WP_REST_Request $request Request object with JSON body.
+	 *
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function set_indexable_entities( \WP_REST_Request $request ) {
+
+		$indexable_entities = json_decode( $request->get_body(), true );
+
+		if ( ! is_array( $indexable_entities ) ) {
+			return new \WP_Error( 'invalid_data', __( 'Failed saving settings. Please try again', 'onesearch' ), [ 'status' => 400 ] );
+		}
+
+		update_option( Search_Settings::OPTION_GOVERNING_INDEXABLE_SITES, $indexable_entities );
+
+		return rest_ensure_response(
+			[
+				'success'           => true,
+				'message'           => __( 'Data saved successfully.', 'onesearch' ),
+				'indexableEntities' => $indexable_entities,
 			]
 		);
 	}
