@@ -460,10 +460,13 @@ final class Search implements Registrable {
 
 		// Add the Post Type filters.
 		if ( ! empty( $query->get( 'post_type' ) ) && 'any' !== $query->get( 'post_type' ) ) {
-			$post_types                = is_string( $query->get( 'post_type' ) ) ? [ $query->get( 'post_type' ) ] : (array) $query->get( 'post_type' );
-			$default_params['filters'] = 'post_type:' . implode( ' OR post_type:', $post_types );
-			// Wrap in double quotes to handle post types with special characters.
-			$default_params['filters'] = sprintf( '"%s"', $default_params['filters'] );
+			$post_types        = is_string( $query->get( 'post_type' ) ) ? [ $query->get( 'post_type' ) ] : (array) $query->get( 'post_type' );
+			$post_type_filters = array_map(
+				static fn ( string $post_type ) => sprintf( 'post_type:"%s"', $post_type ),
+				$post_types
+			);
+
+			$default_params['filters'] = implode( ' OR ', $post_type_filters );
 		}
 
 		// Add Site URL filters.
