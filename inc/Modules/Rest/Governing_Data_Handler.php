@@ -185,8 +185,8 @@ class Governing_Data_Handler {
 			wp_safe_remote_post(
 				$endpoint,
 				[
+					'method'           => \WP_REST_Server::DELETABLE,
 					'headers'  => [
-						'methods'           => \WP_REST_Server::DELETABLE,
 						'Accept'            => 'application/json',
 						'Content-Type'      => 'application/json',
 						'X-OneSearch-Token' => $site_data['api_key'],
