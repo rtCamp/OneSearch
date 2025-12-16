@@ -23,68 +23,67 @@ class Search_Controller extends Abstract_REST_Controller {
 	 * {@inheritDoc}
 	 */
 	public function register_routes(): void {
-		if ( ! Settings::is_governing_site() ) {
-			return;
+		if ( Settings::is_governing_site() ) {
+
+			// Algolia credentials: get / set.
+			register_rest_route(
+				self::NAMESPACE,
+				'/algolia-credentials',
+				[
+					[
+						'methods'             => WP_REST_Server::READABLE,
+						'callback'            => [ $this, 'get_algolia_credentials' ],
+						'permission_callback' => [ $this, 'check_api_permissions' ],
+					],
+					[
+						'methods'             => WP_REST_Server::CREATABLE,
+						'args'                => [
+							'app_id'    => [
+								'required'          => true,
+								'type'              => 'string',
+								'sanitize_callback' => 'rest_sanitize_request_arg',
+							],
+							'write_key' => [
+								'required'          => true,
+								'type'              => 'string',
+								'sanitize_callback' => 'rest_sanitize_request_arg',
+							],
+						],
+						'callback'            => [ $this, 'update_algolia_credentials' ],
+						'permission_callback' => [ $this, 'check_api_permissions' ],
+					],
+				]
+			);
+
+			// Indexable entities (per site URL): get / set.
+			register_rest_route(
+				self::NAMESPACE,
+				'/indexable-entities',
+				[
+					[
+						'methods'             => WP_REST_Server::READABLE,
+						'callback'            => [ $this, 'get_indexable_entities' ],
+						'permission_callback' => [ $this, 'check_api_permissions' ],
+					],
+					[
+						'methods'             => WP_REST_Server::CREATABLE,
+						'callback'            => [ $this, 'set_indexable_entities' ],
+						'permission_callback' => static function () {
+							return current_user_can( 'manage_options' );
+						},
+						'args'                => [
+							'entities' => [
+								'required'          => true,
+								'type'              => 'array',
+								'sanitize_callback' => static function ( $value ) {
+									return is_array( $value );
+								},
+							],
+						],
+					],
+				]
+			);
 		}
-
-		// Algolia credentials: get / set.
-		register_rest_route(
-			self::NAMESPACE,
-			'/algolia-credentials',
-			[
-				[
-					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => [ $this, 'get_algolia_credentials' ],
-					'permission_callback' => [ $this, 'check_api_permissions' ],
-				],
-				[
-					'methods'             => WP_REST_Server::CREATABLE,
-					'args'                => [
-						'app_id'    => [
-							'required'          => true,
-							'type'              => 'string',
-							'sanitize_callback' => 'rest_sanitize_request_arg',
-						],
-						'write_key' => [
-							'required'          => true,
-							'type'              => 'string',
-							'sanitize_callback' => 'rest_sanitize_request_arg',
-						],
-					],
-					'callback'            => [ $this, 'update_algolia_credentials' ],
-					'permission_callback' => [ $this, 'check_api_permissions' ],
-				],
-			]
-		);
-
-		// Indexable entities (per site URL): get / set.
-		register_rest_route(
-			self::NAMESPACE,
-			'/indexable-entities',
-			[
-				[
-					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => [ $this, 'get_indexable_entities' ],
-					'permission_callback' => [ $this, 'check_api_permissions' ],
-				],
-				[
-					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => [ $this, 'set_indexable_entities' ],
-					'permission_callback' => static function () {
-						return current_user_can( 'manage_options' );
-					},
-					'args'                => [
-						'entities' => [
-							'required'          => true,
-							'type'              => 'array',
-							'sanitize_callback' => static function ( $value ) {
-								return is_array( $value );
-							},
-						],
-					],
-				],
-			]
-		);
 
 		// Re-index current site (and children for governing sites).
 		register_rest_route(
