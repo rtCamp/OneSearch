@@ -165,7 +165,7 @@ class Governing_Data_Handler {
 
 		$shared_sites = Settings::get_shared_sites();
 
-		// If a specific site URL is provided, We'll just target that one.
+		// If a specific site URL is provided, we'll just target that one.
 		if ( ! empty( $site_url ) && isset( $shared_sites[ $site_url ] ) ) {
 			$shared_sites = [ $shared_sites[ $site_url ] ];
 		}
