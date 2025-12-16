@@ -43,7 +43,7 @@ class Governing_Data_Controller extends Abstract_REST_Controller {
 			[
 				'methods'             => WP_REST_Server::DELETABLE,
 				'callback'            => [ $this, 'delete_brand_config_cache' ],
-				'permission_callback' => [ $this, 'check_governing_site_permissions' ],
+				'permission_callback' => [ $this, 'check_api_permissions' ],
 			]
 		);
 	}
