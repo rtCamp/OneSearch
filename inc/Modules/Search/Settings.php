@@ -238,21 +238,12 @@ final class Settings implements Registrable {
 	 * @param string $option    The option name.
 	 */
 	public function purge_cache_on_update( $old_value, $new_value, $option ): void {
-		switch ( $option ) {
-			case self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS:
-			case self::OPTION_GOVERNING_SEARCH_SETTINGS:
-					Governing_Data_Handler::clear_brand_config_cache();
-				break;
-			// Indexable entities are per-site.
-			case self::OPTION_GOVERNING_INDEXABLE_SITES:
-				// @todo only trigger for changed sites.
-				Governing_Data_Handler::clear_brand_config_cache();
-				break;
-
-			// Unless it's ours, do nothing.
-			default:
-				break;
-		}
+		match ( $option ) {
+			self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS,
+			self::OPTION_GOVERNING_SEARCH_SETTINGS,
+			self::OPTION_GOVERNING_INDEXABLE_SITES => Governing_Data_Handler::clear_brand_config_cache(),
+			default => null,
+		};
 	}
 
 	/**
