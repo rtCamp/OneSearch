@@ -9,10 +9,18 @@
 
 namespace OneSearch\Modules\Rest;
 
+use OneSearch\Encryptor;
 use OneSearch\Modules\Settings\Settings;
 
 /**
  * Class - Governing_Data_Handler
+ *
+ * @phpstan-type SiteConfig array{
+ *  algolia_credentials: array{app_id: string, write_key: string},
+ *  search_settings: array{algolia_enabled: bool, searchable_sites: string[]},
+ *  indexable_entities: string[],
+ *  available_sites: string[],
+ * }
  */
 class Governing_Data_Handler {
 	/**
@@ -25,12 +33,7 @@ class Governing_Data_Handler {
 	 *
 	 * This method consolidates multiple configuration requests into a single endpoint call.
 	 *
-	 * @return array{
-	 *  algolia_credentials: array{app_id: string, write_key: string},
-	 *  search_settings: array{algolia_enabled: bool, searchable_sites: string[]},
-	 *  indexable_entities: string[],
-	 *  available_sites: string[],
-	 * }|\WP_Error
+	 * @return SiteConfig|\WP_Error
 	 */
 	public static function get_brand_config(): array|\WP_Error {
 		// Only call on brand sites.
@@ -42,9 +45,9 @@ class Governing_Data_Handler {
 		}
 
 		// Return cached value when available.
-		$cached = get_transient( self::TRANSIENT_KEY );
-		if ( false !== $cached && is_array( $cached ) ) {
-			/** @var array{algolia_credentials: array{app_id: string, write_key: string}, search_settings: array{algolia_enabled: bool, searchable_sites: array<string>}, indexable_entities: array<string>, available_sites: array<string>} $cached */
+		$cached = self::get_brand_config_cache();
+		if ( false !== $cached ) {
+			/** @var SiteConfig $cached */
 			return $cached;
 		}
 
@@ -144,8 +147,7 @@ class Governing_Data_Handler {
 			'available_sites'     => array_values( array_filter( array_map( 'sanitize_text_field', $available_sites ), 'is_string' ) ),
 		];
 
-		// Cache for 1 week.
-		set_transient( self::TRANSIENT_KEY, $config, WEEK_IN_SECONDS );
+		self::set_brand_config_cache( $config );
 
 		return $config;
 	}
@@ -194,5 +196,43 @@ class Governing_Data_Handler {
 				]
 			);
 		}
+	}
+
+	/**
+	 * Sets the cached config transient, encrypting any creds.
+	 *
+	 * @param array<string,mixed> $config The site configuration.
+	 * @phpstan-param SiteConfig $config
+	 * @return void
+	 */
+	private static function set_brand_config_cache( array $config ): void {
+		// Encrypt the algolia keys before caching.
+		if ( ! empty( $config['algolia_credentials']['write_key'] ) ) {
+			$config['algolia_credentials']['write_key'] = Encryptor::encrypt( $config['algolia_credentials']['write_key'] );
+		}
+
+		// Cache for 1 week.
+		set_transient( self::TRANSIENT_KEY, $config, WEEK_IN_SECONDS );
+	}
+
+	/**
+	 * Gets the cached transient, decrypting any creds.
+	 *
+	 * @return SiteConfig|false
+	 */
+	private static function get_brand_config_cache(): array|false {
+		$cached = get_transient( self::TRANSIENT_KEY );
+
+		if ( false === $cached || ! is_array( $cached ) ) {
+			return false;
+		}
+
+		// Decrypt the algolia keys before returning.
+		if ( ! empty( $cached['algolia_credentials']['write_key'] ) ) {
+			$cached['algolia_credentials']['write_key'] = Encryptor::decrypt( $cached['algolia_credentials']['write_key'] );
+		}
+
+		/** @var SiteConfig $cached */
+		return $cached;
 	}
 }
