@@ -2,7 +2,7 @@
 /**
  * Integrates Algolia results into WordPress search.
  *
- * @package OneSearch\Modules\Settings
+ * @package OneSearch\Modules\Search
  */
 
 declare(strict_types = 1);
@@ -23,7 +23,7 @@ use OneSearch\Utils;
 final class Search implements Registrable {
 
 	/**
-	 * The instance of our Indexer
+	 * The instance of our Index
 	 *
 	 * @var \OneSearch\Modules\Search\Index|null
 	 */
@@ -84,8 +84,9 @@ final class Search implements Registrable {
 			return $posts;
 		}
 
+		$results = $this->execute_algolia_search( $query );
 		/** @var PostRecord[] $records */
-		$records = $this->execute_algolia_search( $query );
+		$records = $results['hits'] ?? [];
 
 		/**
 		 * Filters whether the entire post should be reconstructed from Algolia.
@@ -98,7 +99,7 @@ final class Search implements Registrable {
 		$posts_to_return = $this->build_posts_from_records( $records, $should_reconstruct_posts );
 
 		$query->post_count        = count( $posts_to_return );
-		$query->found_posts       = $query->post_count;
+		$query->found_posts       = isset( $results['nbHits'] ) ? (int) $results['nbHits'] : $query->post_count;
 		$query->is_algolia_search = true;
 
 		return $posts_to_return;
@@ -408,7 +409,7 @@ final class Search implements Registrable {
 	 * Execute Algolia search and return the sorted hits.
 	 *
 	 * @param \WP_Query $query The WP_Query instance.
-	 * @return PostRecord[]|array<string,mixed>[] Array of Algolia hits.
+	 * @return array<string,mixed> Algolia search results.
 	 */
 	private function execute_algolia_search( \WP_Query $query ): array {
 		$site_urls = $this->get_searchable_site_urls();
@@ -434,7 +435,9 @@ final class Search implements Registrable {
 			}
 		);
 
-		return $hits;
+		$results['hits'] = $hits;
+
+		return $results;
 	}
 
 	/**
@@ -614,6 +617,7 @@ final class Search implements Registrable {
 
 			// Preserve the order of the record that needs chunking.
 			$records_to_return[ $record['site_post_id'] ] = null;
+			$ids_to_fetch[]                               = $record['site_post_id'];
 		}
 
 		// Return early if no chunking is needed.
@@ -628,7 +632,7 @@ final class Search implements Registrable {
 		foreach ( $groups as $group ) {
 			// Build the filter.
 			$filters    = array_map(
-				static fn ( int $id ) => sprintf( 'site_post_id:%d', $id ),
+				static fn ( string $id ) => sprintf( 'site_post_id:%s', $id ),
 				$group
 			);
 			$filter_str = implode( ' OR ', $filters );
@@ -649,12 +653,7 @@ final class Search implements Registrable {
 				continue;
 			}
 
-			$hits = ! empty( $results['hits'] ) ? array_map(
-				static function ( $hit ) {
-					return $hit;
-				},
-				$results['hits']
-			) : [];
+			$hits = $results['hits'];
 			foreach ( $hits as $hit ) {
 				if ( ! isset( $hit['site_post_id'] ) ) {
 					continue;
@@ -676,10 +675,10 @@ final class Search implements Registrable {
 			$full_content = '';
 
 			foreach ( $hits as $hit ) {
-				$full_content .= $hit['post_content'] ?? '';
+				$full_content .= $hit['content'] ?? '';
 			}
 
-			$full_record['post_content'] = $full_content;
+			$full_record['content'] = $full_content;
 
 			$records_to_return[ $full_record['site_post_id'] ] = $full_record;
 		}
@@ -722,7 +721,7 @@ final class Search implements Registrable {
 		$post->ID                = -1 - absint( $record['post_id'] );
 		$post->filter            = 'raw';
 		$post->guid              = $record['permalink'] ?? '';
-		$post->post_content      = $record['post_content'] ?? '';
+		$post->post_content      = $record['content'] ?? '';
 		$post->post_excerpt      = $record['post_excerpt'] ?? '';
 		$post->post_name         = $record['post_name'] ?? '';
 		$post->post_status       = 'publish';
