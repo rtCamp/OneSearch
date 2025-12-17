@@ -32,10 +32,7 @@
 	"autoload": {
 		"psr-4": {
 			"OneSearch\\": "inc/"
-		},
-		"classmap": [
-			"inc/classes"
-		]
+		}
 	},
 	"repositories": [
 		{

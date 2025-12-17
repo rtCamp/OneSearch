@@ -239,8 +239,8 @@ class Basic_Options_Controller extends Abstract_REST_Controller {
 	public function remove_governing_site(): WP_REST_Response|\WP_Error {
 		delete_option( Settings::OPTION_CONSUMER_PARENT_SITE_URL );
 
-		// Also delete search setting to prevent brand site taking data from other sites.
-		Governing_Data::clear_search_settings_cache();
+		// Clear cached brand configuration.
+		Governing_Data_Handler::clear_brand_config_cache();
 
 		return rest_ensure_response(
 			[

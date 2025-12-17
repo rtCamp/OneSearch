@@ -2,6 +2,7 @@
 /**
  * WordPress dependencies
  */
+import apiFetch from '@wordpress/api-fetch';
 import {
 	Button,
 	Card,
@@ -21,7 +22,12 @@ import { useState, useEffect } from 'react';
 /**
  * Internal dependencies
  */
-import { API_NAMESPACE, NONCE } from '../js/utils';
+import { NONCE } from '../js/utils';
+
+/**
+ * Create NONCE middleware for apiFetch
+ */
+apiFetch.use( apiFetch.createNonceMiddleware( NONCE ) );
 
 const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) => {
 	const [ searchSettings, setSearchSettings ] = useState( {} );
@@ -96,68 +102,51 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 		if ( hasChanges ) {
 			setSearchSettings( updatedSettings );
 
-			const autoSave = async () => {
-				try {
-					await fetch( `${ API_NAMESPACE }/sites-search-settings`, {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							'X-WP-Nonce': NONCE,
-						},
-						body: JSON.stringify( { settings: updatedSettings } ),
-					} );
+			apiFetch( {
+				path: '/wp/v2/settings',
+				method: 'POST',
+				data: {
+					onesearch_sites_search_settings: updatedSettings,
+				},
+			} ).then( ( settings ) => {
+				setNotice( {
+					type: 'success',
+					message: __(
+						'Sites without indexable entities have been automatically disabled and saved.',
+						'onesearch',
+					),
+				} );
+				setInitialSettings( settings.onesearch_sites_search_settings );
 
-					setInitialSettings( updatedSettings );
-
-					setNotice( {
-						type: 'success',
-						message: __(
-							'Sites without indexable entities have been automatically disabled and saved.',
-							'onesearch',
-						),
-					} );
-
-					// To trigger re-rendering of search configuration component.
-					setReloadKey( ( k ) => k + 1 );
-				} catch ( err ) {
-					setNotice( {
-						type: 'error',
-						message: __( 'Failed to auto-save disabled sites.', 'onesearch' ),
-					} );
-				}
-			};
-
-			autoSave();
+				// To trigger re-rendering of search configuration component.
+				setReloadKey( ( k ) => k + 1 );
+			} ).catch( () => {
+				setNotice( {
+					type: 'error',
+					message: __( 'Failed to auto-save disabled sites.', 'onesearch' ),
+				} );
+			} );
 		}
 	}, [ indexableEntities ] );
 
 	// Load existing search settings
 	useEffect( () => {
-		const loadSettings = async () => {
-			try {
-				const res = await fetch( `${ API_NAMESPACE }/sites-search-settings`, {
-					headers: { 'X-WP-Nonce': NONCE },
-				} );
-
-				if ( res.ok ) {
-					const data = await res.json();
-					if ( data?.success ) {
-						setSearchSettings( data.settings );
-						setInitialSettings( data.settings );
-					}
-				}
-			} catch ( err ) {
-				setNotice( {
-					type: 'error',
-					message: __( 'Failed to load search settings.', 'onesearch' ),
-				} );
-			} finally {
-				setLoading( false );
-				setLocalNotice( null );
+		apiFetch( {
+			path: '/wp/v2/settings',
+		} ).then( ( settings ) => {
+			if ( settings?.onesearch_sites_search_settings ) {
+				setSearchSettings( settings.onesearch_sites_search_settings );
+				setInitialSettings( settings.onesearch_sites_search_settings );
 			}
-		};
-
-		loadSettings();
+		} ).catch( () => {
+			setNotice( {
+				type: 'error',
+				message: __( 'Failed to load search settings.', 'onesearch' ),
+			} );
+		} ).finally( () => {
+			setLoading( false );
+			setLocalNotice( null );
+		} );
 	}, [ reloadKey ] );
 
 	// Toggle Algolia for a site
@@ -272,40 +261,27 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 	// Save the settings.
 	const handleSave = async () => {
 		setSaving( true );
-		try {
-			const res = await fetch( `${ API_NAMESPACE }/sites-search-settings`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-WP-Nonce': NONCE,
-				},
-				body: JSON.stringify( { settings: searchSettings } ),
+		await apiFetch( {
+			path: '/wp/v2/settings',
+			method: 'POST',
+			data: {
+				onesearch_sites_search_settings: searchSettings,
+			},
+		} ).then( ( settings ) => {
+			setNotice( {
+				type: 'success',
+				message: __( 'Search settings saved successfully.', 'onesearch' ),
 			} );
-
-			const data = await res.json();
-			if ( data.success ) {
-				setNotice( {
-					type: 'success',
-					message: __( 'Search settings saved successfully.', 'onesearch' ),
-				} );
-			} else if ( data.data?.status === 500 ) {
-				setNotice( {
-					message: __( 'Internal server error.', 'onesearch' ),
-					type: 'error',
-				} );
-			} else {
-				throw new Error( data.message || 'Save failed' );
-			}
-		} catch ( err ) {
+			setInitialSettings( settings.onesearch_sites_search_settings );
+		} ).catch( () => {
 			setNotice( {
 				type: 'error',
-				message:
-					err.message || __( 'Failed to save search settings.', 'onesearch' ),
+				message: __( 'Failed to save search settings.', 'onesearch' ),
 			} );
-		} finally {
+		} ).finally( () => {
 			setSaving( false );
 			setReloadKey( ( k ) => k + 1 );
-		}
+		} );
 	};
 
 	const isDirty =

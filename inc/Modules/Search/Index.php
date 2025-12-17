@@ -152,6 +152,37 @@ final class Index {
 	}
 
 	/**
+	 * Searches the index.
+	 *
+	 * @param string              $s The search query.
+	 * @param array<string,mixed> $args The search args.
+	 *
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	public function search( string $s, array $args = [] ): array|\WP_Error {
+		$index = $this->get_index();
+		if ( is_wp_error( $index ) ) {
+			return $index;
+		}
+
+		$settings_success = $this->set_settings();
+		if ( is_wp_error( $settings_success ) ) {
+			return $settings_success;
+		}
+
+		try {
+			$results = $index->search( $s, $args );
+			return (array) $results;
+		} catch ( \Throwable $e ) {
+			return new \WP_Error(
+				'onesearch_algolia_search_failed',
+				__( 'Failed to search Algolia index.', 'onesearch' ),
+				[ 'message' => $e->getMessage() ]
+			);
+		}
+	}
+
+	/**
 	 * Index the post types objects into Algolia.
 	 *
 	 * @param string[] $post_types The post types to index.
@@ -241,8 +272,7 @@ final class Index {
 	 * @return \Generator<list<PostRecord>>
 	 */
 	private function generate_post_batches( array $post_types, int $batch_size ): \Generator {
-		$page            = 1;
-		$record_instance = new Post_Record();
+		$page = 1;
 
 		while ( true ) {
 			$posts = Post_Record::get_indexable_posts( $post_types, $page, $batch_size );
@@ -253,7 +283,7 @@ final class Index {
 
 			$records = [];
 			foreach ( $posts as $post ) {
-				$post_records = $record_instance->to_records( $post );
+				$post_records = ( new Post_Record() )->to_records( $post );
 				$records      = array_merge( $records, $post_records );
 			}
 			yield $records;

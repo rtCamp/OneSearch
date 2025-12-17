@@ -53,14 +53,48 @@ use OneSearch\Utils;
  *  }[]>,
  * }
  *
- * @phpstan-type ChunkRecordData array{
- *   chunk_index: int,
- *   content: string,
- *   objectID: string,
- *   total_chunks: int,
+ * @phpstan-type PostRecord array{
+ *  chunk_index: int,
+ *  content: string,
+ *  objectID: string,
+ *  total_chunks: int,
+ *  site_post_id: string,
+ *  is_sticky: 0|1,
+ *  permalink: string,
+ *  post_date_gmt: int,
+ *  post_excerpt: string,
+ *  post_id: int,
+ *  post_modified_gmt: int,
+ *  post_name: string,
+ *  post_title: string,
+ *  post_type: string,
+ *  site_key: string,
+ *  site_name: string,
+ *  site_url: string,
+ *  thumbnail: array{
+ *    url: string,
+ *    width: int,
+ *    height: int,
+ *  }|array{},
+ *  post_author_data?: array{
+ *    author_display_name: string,
+ *    author_first_name: string,
+ *    author_id: int,
+ *    author_last_name: string,
+ *    author_login: string,
+ *    author_posts_url: string,
+ *    author_avatar: string,
+ *  },
+ *  taxonomies: array<string, array{
+ *    count: int,
+ *    description: string,
+ *    name: string,
+ *    parent: int,
+ *    slug: string,
+ *    term_id: int,
+ *    term_link: string,
+ *  }[]>,
  * }
- *
- * @phpstan-type PostRecord (BaseRecordData|ChunkRecordData)&array<string, mixed>
  */
 final class Post_Record {
 	/**
@@ -68,7 +102,7 @@ final class Post_Record {
 	 *
 	 * @todo make filterable via a constant or setting.
 	 */
-	private const DEFAULT_ALGOLIA_RECORD_LIMIT = 10000;
+	private const DEFAULT_ALGOLIA_RECORD_LIMIT = 9000; // 10kb is getting overflowed sometimes.
 
 	/**
 	 * The (normalized) Site URL

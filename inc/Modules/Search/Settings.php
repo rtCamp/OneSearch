@@ -11,6 +11,7 @@ namespace OneSearch\Modules\Search;
 
 use OneSearch\Contracts\Interfaces\Registrable;
 use OneSearch\Encryptor;
+use OneSearch\Modules\Rest\Governing_Data_Handler;
 use OneSearch\Modules\Settings\Settings as Admin_Settings;
 use OneSearch\Utils;
 
@@ -46,6 +47,11 @@ final class Settings implements Registrable {
 		// Listen to updates.
 		add_action( 'update_option_' . Admin_Settings::OPTION_SITE_TYPE, [ $this, 'on_site_type_change' ], 10, 2 );
 		add_action( 'update_option_' . Admin_Settings::OPTION_GOVERNING_SHARED_SITES, [ $this, 'on_shared_sites_change' ], 10, 2 );
+
+		// Purge algolia caches when search settings change.
+		add_action( 'update_option_' . self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS, [ $this, 'purge_cache_on_update' ], 10, 3 );
+		add_action( 'update_option_' . self::OPTION_GOVERNING_INDEXABLE_SITES, [ $this, 'purge_cache_on_update' ], 10, 3 );
+		add_action( 'update_option_' . self::OPTION_GOVERNING_SEARCH_SETTINGS, [ $this, 'purge_cache_on_update' ], 10, 3 );
 	}
 
 	/**
@@ -65,7 +71,7 @@ final class Settings implements Registrable {
 
 					return [
 						'app_id'    => isset( $value['app_id'] ) ? sanitize_text_field( $value['app_id'] ) : null,
-						'write_key' => isset( $value['write_key'] ) ? Encryptor::encrypt( sanitize_text_field( $value['write_key'] ) ) : null,
+						'write_key' => isset( $value['write_key'] ) ? sanitize_text_field( $value['write_key'] ) : null,
 					];
 				},
 				'show_in_rest'      => [
@@ -125,7 +131,26 @@ final class Settings implements Registrable {
 
 					return $sanitized;
 				},
-				'show_in_rest'      => true,
+				'show_in_rest'      => [
+					'schema' => [
+						'type'                 => 'object',
+						'properties'           => [],
+						'additionalProperties' => [
+							'type'       => 'object',
+							'properties' => [
+								'algolia_enabled'  => [
+									'type' => 'boolean',
+								],
+								'searchable_sites' => [
+									'type'  => 'array',
+									'items' => [
+										'type' => 'string',
+									],
+								],
+							],
+						],
+					],
+				],
 			],
 		];
 
@@ -222,6 +247,22 @@ final class Settings implements Registrable {
 
 		$indexable_entities['entities'] = $updated_map;
 		update_option( self::OPTION_GOVERNING_INDEXABLE_SITES, $indexable_entities );
+	}
+
+	/**
+	 * Purges the Governing_Data_Handler cache when a setting update triggers.
+	 *
+	 * @param mixed  $old_value The old value.
+	 * @param mixed  $new_value The new value.
+	 * @param string $option    The option name.
+	 */
+	public function purge_cache_on_update( $old_value, $new_value, $option ): void {
+		match ( $option ) {
+			self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS,
+			self::OPTION_GOVERNING_SEARCH_SETTINGS,
+			self::OPTION_GOVERNING_INDEXABLE_SITES => Governing_Data_Handler::clear_brand_config_cache(),
+			default => null,
+		};
 	}
 
 	/**

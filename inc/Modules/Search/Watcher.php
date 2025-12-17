@@ -10,7 +10,7 @@ declare(strict_types = 1);
 namespace OneSearch\Modules\Search;
 
 use OneSearch\Contracts\Interfaces\Registrable;
-use OneSearch\Modules\Rest\Abstract_REST_Controller;
+use OneSearch\Modules\Rest\Governing_Data_Handler;
 use OneSearch\Modules\Search\Settings as Search_Settings;
 use OneSearch\Modules\Settings\Settings;
 use OneSearch\Utils;
@@ -69,20 +69,9 @@ final class Watcher implements Registrable {
 	 * @param string $post_type The post type.
 	 */
 	private function is_post_type_indexable( string $post_type ): bool {
-		// @todo Need the child site entities.
-		$indexable_entities = $this->get_indexable_entities();
-		if ( is_wp_error( $indexable_entities ) ) {
-			return false;
-		}
+		$allowed_post_types = $this->get_allowed_post_types();
 
-		$types_by_site = $indexable_entities['entities'] ?? [];
-
-		$site_url = Utils::normalize_url( get_site_url() );
-		if ( empty( $types_by_site[ $site_url ] ) ) {
-			return false;
-		}
-
-		return in_array( $post_type, $types_by_site[ $site_url ], true );
+		return ! is_wp_error( $allowed_post_types ) && in_array( $post_type, $allowed_post_types, true );
 	}
 
 	/**
@@ -90,65 +79,21 @@ final class Watcher implements Registrable {
 	 *
 	 * Uses the indexable entities settings on governing site, or fetches from governing site if on child.
 	 *
-	 * @return array<string, mixed>|\WP_Error
+	 * @return string[]|\WP_Error
 	 */
-	private function get_indexable_entities(): array|\WP_Error {
+	private function get_allowed_post_types(): array|\WP_Error {
 		if ( Settings::is_governing_site() ) {
-			return Search_Settings::get_indexable_entities();
+			$entities = Search_Settings::get_indexable_entities();
+
+			return $entities['entities'][ Utils::normalize_url( get_site_url() ) ] ?? [];
 		}
 
-		// If no parent is configured, return an error.
-		$parent_url     = Settings::get_parent_site_url();
-		$our_public_key = Settings::get_api_key();
-		if ( empty( $parent_url ) || empty( $our_public_key ) ) {
-			return new \WP_Error(
-				'onesearch_indexable_entities_unavailable',
-				__( 'Algolia credentials are unavailable because no governing site is configured.', 'onesearch' )
-			);
+		// For brand sites, fetch from the consolidated config.
+		$config = Governing_Data_Handler::get_brand_config();
+		if ( is_wp_error( $config ) ) {
+			return $config;
 		}
 
-		$endpoint = sprintf(
-			'%s/wp-json/%s/indexable-entities',
-			untrailingslashit( $parent_url ),
-			Abstract_REST_Controller::NAMESPACE,
-		);
-
-		$response = wp_safe_remote_get(
-			$endpoint,
-			[
-				'headers' => [
-					'Accept'            => 'application/json',
-					'Content-Type'      => 'application/json',
-					'X-OneSearch-Token' => $our_public_key,
-				],
-			]
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		$code = wp_remote_retrieve_response_code( $response );
-		$body = wp_remote_retrieve_body( $response );
-		if ( 200 !== $code ) {
-			return new \WP_Error(
-				'onesearch_rest_failed_to_connect',
-				__( 'Failed to connect to the governing site.', 'onesearch' ),
-				[
-					'status' => $code,
-					'body'   => $body,
-				]
-			);
-		}
-
-		$response_data = json_decode( $body, true );
-		if ( null === $response_data || ! is_array( $response_data ) ) {
-			return new \WP_Error(
-				'onesearch_rest_invalid_response',
-				__( 'Received invalid response from the governing site.', 'onesearch' )
-			);
-		}
-
-		return $response_data['indexableEntities'] ?? [];
+		return $config['indexable_entities'] ?? [];
 	}
 }
