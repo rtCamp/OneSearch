@@ -131,7 +131,26 @@ final class Settings implements Registrable {
 
 					return $sanitized;
 				},
-				'show_in_rest'      => true,
+				'show_in_rest'      => [
+					'schema' => [
+						'type'                 => 'object',
+						'properties'           => [],
+						'additionalProperties' => [
+							'type'       => 'object',
+							'properties' => [
+								'algolia_enabled'  => [
+									'type' => 'boolean',
+								],
+								'searchable_sites' => [
+									'type'  => 'array',
+									'items' => [
+										'type' => 'string',
+									],
+								],
+							],
+						],
+					],
+				],
 			],
 		];
 

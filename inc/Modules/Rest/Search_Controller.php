@@ -343,6 +343,7 @@ class Search_Controller extends Abstract_REST_Controller {
 						'Origin'            => get_site_url(),
 						'X-OneSearch-Token' => $site_data['api_key'],
 					],
+					'timeout' => 45, // phpcs:ignore WordPressVIPMinimum.Performance.RemoteRequestTimeout.timeout_timeout -- Allow longer timeout for reindexing.
 				]
 			);
 

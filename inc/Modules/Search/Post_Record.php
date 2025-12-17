@@ -102,7 +102,7 @@ final class Post_Record {
 	 *
 	 * @todo make filterable via a constant or setting.
 	 */
-	private const DEFAULT_ALGOLIA_RECORD_LIMIT = 10000;
+	private const DEFAULT_ALGOLIA_RECORD_LIMIT = 9000; // 10kb is getting overflowed sometimes.
 
 	/**
 	 * The (normalized) Site URL
