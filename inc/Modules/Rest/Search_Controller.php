@@ -244,7 +244,7 @@ class Search_Controller extends Abstract_REST_Controller {
 			[
 				'success' => empty( $errors ),
 				'message' => empty( $errors )
-					? __( 'Re-indexing completed successfully.', 'onesearch' )
+					? __( 'Re-indexing scheduled successfully.', 'onesearch' )
 					: __( 'Re-indexing was unsuccessful. Please try again later.', 'onesearch' ),
 			]
 		);
