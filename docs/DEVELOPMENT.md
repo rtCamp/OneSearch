@@ -36,8 +36,26 @@ Code contributions, bug reports, and feature requests are welcome! The following
 ├── .github/ # GitHub-specific files and CI/CD workflows.
 │
 │   # Non-php plugin assets.
-├── assets/ 
-│   └── @todo
+├── assets/
+│   └── src/
+│       ├── admin/
+│       │   ├── onboarding/ # Plugin activation modal.
+│       │   ├── search/     # Indices and Search settings.
+│       │   └── settings/   # Plugin settings.
+│       ├── components/
+│       │   ├── AlgoliaSettings.tsx
+│       │   ├── MultiSelectChips.js
+│       │   ├── SiteIndexableEntities.js
+│       │   ├── SiteModal.tsx
+│       │   ├── SiteSearchSettings.js
+│       │   ├── SiteSettings.tsx
+│       │   └── SiteTable.tsx
+│       ├── css/
+│       │   ├── admin.scss
+│       │   └── onboarding.scss
+│       ├── images/
+│       └── js/
+│           └── utils.ts
 │
 │   # Project documentation.
 ├── docs/
@@ -48,12 +66,37 @@ Code contributions, bug reports, and feature requests are welcome! The following
 │
 │   # PHP source files.
 ├── inc/
-│   # Legacy files loaded via classmap.
-│   ├── classes/
-│   ├── traits/
+│   ├── Contracts/
+│   │   ├── Interfaces/
+│   │   │   └── Registrable.php
+│   │   └── Traits/
+│   │       └── Singleton.php
+│   ├── Modules/
+│   │   ├── Core/
+│   │   │   ├── Assets.php  # JS/CSS asset loader.
+│   │   │   └── Rest.php
+│   │   ├── Rest/
+│   │   │   ├── Abstract_REST_Controller.php
+│   │   │   ├── Basic_Options_Controller.php
+│   │   │   ├── Governing_Data_Controller.php
+│   │   │   ├── Governing_Data_Handler.php
+│   │   │   └── Search_Controller.php
+│   │   ├── Search/ # Algolia-related functionality.
+│   │   │   ├── Admin.php
+│   │   │   ├── Algolia.php
+│   │   │   ├── Index.php
+│   │   │   ├── Post_Record.php
+│   │   │   ├── Search.php
+│   │   │   ├── Settings.php
+│   │   │   └── Watcher.php
+│   │   └── Settings/ # Shared site settings.
+│   │       ├── Admin.php
+│   │       └── Settings.php
 │   │
-│   ├── Autoloader.php # Wraps autoloader for WordPress.
-│   └── Main.php  # Main plugin class, initializes modules.
+│   ├── Autoloader.php # PSR-4 autoloader.
+│   ├── Encryptor.php  # Handles db encryption/decryption.
+│   ├── Main.php       # The main plugin class.
+│   └── Utils.php
 │
 │   # Tests
 ├── tests/

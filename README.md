@@ -3,7 +3,7 @@
 
 **Contributors:** [rtcamp](https://profiles.wordpress.org/rtcamp), [shreya0204](https://github.com/shreya0204), [danish17](https://github.com/danish17), [vishalkakadiya](https://github.com/vishalkakadiya), [rishavjeet](https://github.com/rishavjeet), [vishal4669](https://github.com/vishal4669), [up1512001](https://github.com/up1512001), [justlevine](https://github.com/justlevine), [aviral-mittal](https://github.com/aviral-mittal)
 
-**Tags:** OnePress, OneSearch, Cross-site search, Multi-brand network, WordPress multisite, Federated search, WordPress REST API, Gutenberg, WordPress plugin
+**Tags:** OnePress, OneSearch, Cross-site search, Multi-brand network, WordPress multisite, Federated search, Algolia
 
 **License:** [GPL v2 or later](http://www.gnu.org/licenses/gpl-2.0.html)
 
@@ -13,10 +13,9 @@
 
 ## 🧠 What is OneSearch?
 
-**OneSearch** is part of the **OnePress ecosystem**, designed to enable **cross-site search** across multi-brand WordPress networks.  
-It centralizes the discovery process, allowing users to search and retrieve relevant content from multiple connected sites — from any site(s) in your brand network.
+**OneSearch** is part of the **OnePress ecosystem**, designed to enable **cross-site search** across multi-brand WordPress networks. It centralizes the discovery process, allowing users to search and retrieve relevant content from multiple connected sites from whichever site(s) in your brand network you choose to make searchable.
 
-This plugin acts as the **backend engine** that powers the indexing, querying, brand network management, and filtering logic needed for federated search.  
+This plugin acts as the **backend engine** that powers the indexing, querying, brand network management, and filtering logic needed for federated search.
 
 ---
 
@@ -48,40 +47,37 @@ Managing content across multiple brands, regions, or business units often result
 
 ## 🧾 Requirements
 
-| Requirement   | Version |
+| Requirement   | Version  |
 |---------------|----------|
-| WordPress     | >= 6.5 |
-| PHP           | >= 7.4 |
-| Tested Up To  | >= 6.8.2 |
-| Stable Tag    | 1.0 |
-| Prerequisites | Node.js (as per `.nvmrc`), npm, WordPress instance|
+| WordPress     | >= 6.8   |
+| PHP           | >= 8.0   |
 
 ---
 
 ## 🧰 Installation
-1. Download the latest OneSearch plugin from the [GitHub releases](https://github.com/rtCamp/OneSearch/releases).
-2. Install using the WordPress plugin installer or upload the OneSearch directory to the `/wp-content/plugins/` directory.
-3. For multisite installations, network activate the plugin through the ‘Plugins’ menu in WordPress.
-4. For single site installations, activate the plugin through the ‘Plugins’ menu in WordPress.
-
-## Setting Up OneSearch 
+1. Download the latest OneSearch plugin from the [GitHub releases](https://github.com/rtCamp/OneSearch/releases) and install it on your WordPress sites.
+2. Activate the plugin.
+    For **multisite installations**, make sure to `Network Activate` the plugin.
+3. Visit the `Dashboard > OneLogs > Settings` page to configure the Governing and Brand sites.
+## Setting Up OneSearch
 ### Plugin Setup
 1. Install and activate the OneSearch plugin on the governing site and brand sites.
-2. On the brand sites, navigate to OneSearch.
-3. Generate an API key and copy it.
-4. On the governing site, navigate to OneSearch > Settings.
-5. Click on 'Add Brand Site' and enter Site Name, Site URL, and API Key.
+2. From the `Dashboard > OneSearch > Settings` page or the plugin activation modal, set the Site Type to either 'Governing Site' or 'Brand Site'.
+    - **Governing Site:** The central site that manages the brand network and search configurations. There should be only one governing site in the network.
+    - **Brand Site:** The individual sites that will be connected to the governing site for cross-site search.
+3. On the brand site, navigate to `Dashboard >  OneSearch > Settings` to get the API key.
+4. On the governing site, navigate to  `Dashboard > OneSearch > Settings`, and add the brand site by entering the Site name, URL and the API Key obtained from the brand site.
 
 ## Setting up Algolia
 To connect your site with Algolia, follow these simple steps:
-1. Visit [Algolia](https://www.algolia.com/) and create an account (if you don’t already have one).
-2. After logging in, go to your [API Keys dashboard](https://dashboard.algolia.com/account/api-keys).
-3. Copy the Application ID and Write API Key.
-4. Paste both keys into the OneSearch Settings page under the 'Algolia Credentials' section.
+1. Visit [Algolia](https://www.algolia.com/) and create an account (if you don't already have one).
+2. Gto your [API Keys dashboard](https://dashboard.algolia.com/account/api-keys).
+3. Copy the `Application ID` and `Write API` Key.
+4. Paste both keys into the `Dashboard > OneSearch > Settings` page under the 'Algolia Credentials' section.
 
 ### Configuring Indices and Search Scope
 > Indices: The data (post types) stored to make site content searchable.
-> Search Scope: Defines which sites can search or access other sites’ indexed data.
+> Search Scope: Defines which sites can search or access other sites' indexed data.
 
 #### Configuring Indices
 1. Head to OneSearch > Indices and Search.
@@ -101,11 +97,11 @@ Contributions are Welcome and encouraged! To learn more about contributing to On
 For development guidelines, please refer to our [Development Guide](https://github.com/rtCamp/OneSearch-internal/blob/main/docs/DEVELOPMENT.md).
 
 ## Frequently Asked Questions
-#### Does OneSearch support custom post types?
-Yes, using OneSearch, you can index the default as well as custom post types.
+#### Does OneSearch support CPTs (custom post types)?
+Yes. For each brand site, you can select which built-in custom  post types to index from the `Indices and Search` settings.
 
 #### Do I need to manually index a newly published post?
-As long as the post type is included in the configured entities, new posts are automatically indexed.
+No. Posts are automatically indexed when they are published, and removed when they are deleted or otherwise unpublished (e.g. trashed, changed to `draft`, etc ).
 
 #### Are updates to an already indexed post automatically handled?
 Yes. Any updates made to a post are automatically synced with the Algolia index.
