@@ -14,6 +14,10 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
+if ( ! defined( 'ONESEARCH_DIR' ) ) { // to prevent fatal error when plugin is deleted because ONESEARCH_DIR is defined in onesearch.php level.
+	define( 'ONESEARCH_DIR', plugin_dir_path( __FILE__ ) );
+}
+
 /**
  * Multisite loop for uninstalling from all sites.
  */

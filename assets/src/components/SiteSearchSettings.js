@@ -29,7 +29,7 @@ import { NONCE } from '../js/utils';
  */
 apiFetch.use( apiFetch.createNonceMiddleware( NONCE ) );
 
-const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) => {
+const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes, isIndexableEntitiesSaving } ) => {
 	const [ searchSettings, setSearchSettings ] = useState( {} );
 	const [ loading, setLoading ] = useState( true );
 	const [ saving, setSaving ] = useState( false );
@@ -301,7 +301,13 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 					<Button
 						variant="secondary"
 						onClick={ () => handleBulkToggle( true ) }
-						disabled={ saving }
+						disabled={ saving || allSites.length === 0 || isIndexableEntitiesSaving || allSites.every( ( site ) => {
+							const url = trailingslashit( site.url );
+							return (
+								searchSettings[ url ]?.algolia_enabled ||
+								! siteHasEntities( url )
+							);
+						} ) }
 						className="onesearch-btn-enable-all"
 					>
 						{ __( 'Enable All', 'onesearch' ) }
@@ -309,7 +315,10 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 					<Button
 						variant="secondary"
 						onClick={ () => handleBulkToggle( false ) }
-						disabled={ saving }
+						disabled={ saving || allSites.length === 0 || isIndexableEntitiesSaving || allSites.every( ( site ) => {
+							const url = trailingslashit( site.url );
+							return ! searchSettings[ url ]?.algolia_enabled;
+						} ) }
 						className="onesearch-btn-disable-all"
 					>
 						{ __( 'Disable All', 'onesearch' ) }
@@ -317,7 +326,7 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 					<Button
 						variant="primary"
 						onClick={ handleSave }
-						disabled={ saving || ! isDirty }
+						disabled={ saving || ! isDirty || isIndexableEntitiesSaving }
 						isBusy={ saving }
 						className="onesearch-btn-save"
 					>
@@ -384,7 +393,7 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 									<div className="onesearch-site-toggle">
 										<ToggleControl
 											checked={ siteSettings.algolia_enabled }
-											disabled={ ! hasEntities }
+											disabled={ ! hasEntities || saving || isIndexableEntitiesSaving }
 											onChange={ ( enabled ) => handleSiteToggle( url, enabled ) }
 											__nextHasNoMarginBottom
 										/>
@@ -457,7 +466,7 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes } ) =>
 																</div>
 															}
 															checked={ isChecked || isSelf }
-															disabled={ isSelf }
+															disabled={ isSelf || saving || isIndexableEntitiesSaving }
 															onChange={ ( checked ) =>
 																handleSearchableSiteToggle(
 																	url,

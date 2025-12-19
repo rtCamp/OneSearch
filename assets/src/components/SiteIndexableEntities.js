@@ -6,7 +6,8 @@ import {
 	CardHeader,
 	CardBody,
 	Button,
-	__experimentalText as Text, // eslint-disable-line @wordpress/no-unsafe-wp-apis
+	__experimentalText as Text,
+	Modal,
 } from '@wordpress/components';
 
 /**
@@ -31,11 +32,13 @@ const SiteIndexableEntities = ( {
 	currentSiteUrl,
 	setNotice,
 	onEntitiesSaved,
+	saving,
+	setSaving,
 } ) => {
 	const [ selectedEntities, setSelectedEntities ] = useState( [] );
 	const [ savedEntities, setSavedEntities ] = useState( {} );
-	const [ saving, setSaving ] = useState( false );
 	const [ reindexing, setReindexing ] = useState( false );
+	const [ showReindexingModal, setShowReindexingModal ] = useState( false );
 
 	const controlsDisabled = saving || reindexing;
 
@@ -179,102 +182,138 @@ const SiteIndexableEntities = ( {
 			} );
 		} finally {
 			setReindexing( false );
+			setShowReindexingModal( false );
 		}
 	};
 
 	const isDirty = JSON.stringify( normalizeEntities( selectedEntities ) ) !== JSON.stringify( savedEntities );
 
 	return (
-		<Card className="onesearch-entities-card">
-			<CardHeader className="onesearch-entities-card-group">
-				<h2 className="onesearch-title">
-					{ __( 'Select Entities to Index', 'onesearch' ) }
-				</h2>
-				<div className="onesearch-entities-inner-card">
-					<div className="onesearch-entities-controls">
+		<>
+			<Card className="onesearch-entities-card">
+				<CardHeader className="onesearch-entities-card-group">
+					<h2 className="onesearch-title">
+						{ __( 'Select Entities to Index', 'onesearch' ) }
+					</h2>
+					<div className="onesearch-entities-inner-card">
+						<div className="onesearch-entities-controls">
+							<Button
+								variant="secondary"
+								onClick={ () => setShowReindexingModal( true ) }
+								isBusy={ reindexing }
+								disabled={ reindexing || isEmptySavedEntities() }
+								className="onesearch-btn-reindex"
+							>
+								{ reindexing ? __( 'Re-indexing…', 'onesearch' ) : __( 'Re-index', 'onesearch' ) }
+							</Button>
+							<Button
+								variant="primary"
+								onClick={ () => handleSelectedEntitiesSave( selectedEntities ) }
+								disabled={ ! isDirty || saving }
+								isBusy={ saving }
+								className="onesearch-btn-save-entities"
+							>
+								{ saving ? __( 'Saving…', 'onesearch' ) : __( 'Save Changes', 'onesearch' ) }
+							</Button>
+						</div>
+						<p className="onesearch-entities-info">
+							{ __( 'Saving changes will automatically re-index the data.', 'onesearch' ) }
+						</p>
+					</div>
+				</CardHeader>
+
+				<CardBody className="onesearch-entities-body">
+					{ /* Governing Site */ }
+					<div className="onesearch-entity-site">
+						<div className="onesearch-entity-site-header">
+							<h3 className="onesearch-entity-site-name">
+								{ __( 'Governing Site', 'onesearch' ) }
+							</h3>
+							<p className="onesearch-entity-site-url">
+								{ currentSiteUrl }
+							</p>
+						</div>
+						<div className="onesearch-entity-selector">
+							<MultiSelectChips
+								placeholder={ __( 'Select entities…', 'onesearch' ) }
+								options={ allPostTypes?.[ currentSiteUrl ] || [] }
+								value={ selectedEntities?.[ currentSiteUrl ] || [] }
+								onChange={ ( next ) => handleSelectedEntitiesChange( next, currentSiteUrl ) }
+								valueField="slug"
+								labelField="label"
+								disabled={ controlsDisabled }
+							/>
+						</div>
+					</div>
+
+					{ /* Brand Sites */ }
+					{ sites?.map( ( site, index ) => (
+						<div key={ index } className="onesearch-entity-site onesearch-entity-brand">
+							<div className="onesearch-entity-site-header">
+								<h3 className="onesearch-entity-site-name">
+									{ site.name }
+								</h3>
+								<p className="onesearch-entity-site-url">
+									{ site.url }
+								</p>
+							</div>
+							{
+								! allPostTypes?.[ site?.url ] ? (
+									<Text variant="muted">
+										{ __( 'No entities to select. Please check site configuration', 'onesearch' ) }
+									</Text>
+								) : (
+									<div className="onesearch-entity-selector">
+										<MultiSelectChips
+											placeholder={ __( 'Select entities…', 'onesearch' ) }
+											options={ allPostTypes?.[ site?.url ] || [] }
+											value={ selectedEntities?.[ site?.url ] || [] }
+											onChange={ ( next ) => handleSelectedEntitiesChange( next, site?.url ) }
+											valueField="slug"
+											labelField="label"
+											disabled={ controlsDisabled }
+										/>
+									</div>
+								)
+							}
+						</div>
+					) ) }
+				</CardBody>
+			</Card>
+			{ showReindexingModal && (
+				<Modal
+					title={ __( 'Re-index saved entities', 'onesearch' ) }
+					onRequestClose={ () => setShowReindexingModal( false ) }
+					shouldCloseOnClickOutside={ false }
+					size="medium"
+				>
+					<p>{ __( 'Re-indexing will only index the entities you have previously saved. To re-index modified entities, please make sure you have save them.', 'onesearch' ) }</p>
+					<div style={ {
+						display: 'flex',
+						justifyContent: 'flex-end',
+						marginTop: '24px',
+					} }
+					>
 						<Button
 							variant="secondary"
-							onClick={ handleReIndex }
-							isBusy={ reindexing }
-							disabled={ reindexing || isEmptySavedEntities() }
-							className="onesearch-btn-reindex"
+							onClick={ () => setShowReindexingModal( false ) }
+							disabled={ reindexing }
+							style={ { marginRight: '8px' } }
 						>
-							{ reindexing ? __( 'Re-indexing…', 'onesearch' ) : __( 'Re-index', 'onesearch' ) }
+							{ __( 'Cancel', 'onesearch' ) }
 						</Button>
 						<Button
 							variant="primary"
-							onClick={ () => handleSelectedEntitiesSave( selectedEntities ) }
-							disabled={ ! isDirty || saving }
-							isBusy={ saving }
-							className="onesearch-btn-save-entities"
+							onClick={ handleReIndex }
+							isBusy={ reindexing }
+							disabled={ reindexing }
 						>
-							{ saving ? __( 'Saving…', 'onesearch' ) : __( 'Save Changes', 'onesearch' ) }
+							{ reindexing ? __( 'Re-indexing…', 'onesearch' ) : __( 'Re-index', 'onesearch' ) }
 						</Button>
 					</div>
-					<p className="onesearch-entities-info">
-						{ __( 'Saving changes will automatically re-index the data.', 'onesearch' ) }
-					</p>
-				</div>
-			</CardHeader>
-
-			<CardBody className="onesearch-entities-body">
-				{ /* Governing Site */ }
-				<div className="onesearch-entity-site">
-					<div className="onesearch-entity-site-header">
-						<h3 className="onesearch-entity-site-name">
-							{ __( 'Governing Site', 'onesearch' ) }
-						</h3>
-						<p className="onesearch-entity-site-url">
-							{ currentSiteUrl }
-						</p>
-					</div>
-					<div className="onesearch-entity-selector">
-						<MultiSelectChips
-							placeholder={ __( 'Select entities…', 'onesearch' ) }
-							options={ allPostTypes?.[ currentSiteUrl ] || [] }
-							value={ selectedEntities?.[ currentSiteUrl ] || [] }
-							onChange={ ( next ) => handleSelectedEntitiesChange( next, currentSiteUrl ) }
-							valueField="slug"
-							labelField="label"
-							disabled={ controlsDisabled }
-						/>
-					</div>
-				</div>
-
-				{ /* Brand Sites */ }
-				{ sites?.map( ( site, index ) => (
-					<div key={ index } className="onesearch-entity-site onesearch-entity-brand">
-						<div className="onesearch-entity-site-header">
-							<h3 className="onesearch-entity-site-name">
-								{ site.name }
-							</h3>
-							<p className="onesearch-entity-site-url">
-								{ site.url }
-							</p>
-						</div>
-						{
-							! allPostTypes?.[ site?.url ] ? (
-								<Text variant="muted">
-									{ __( 'No entities to select. Please check site configuration', 'onesearch' ) }
-								</Text>
-							) : (
-								<div className="onesearch-entity-selector">
-									<MultiSelectChips
-										placeholder={ __( 'Select entities…', 'onesearch' ) }
-										options={ allPostTypes?.[ site?.url ] || [] }
-										value={ selectedEntities?.[ site?.url ] || [] }
-										onChange={ ( next ) => handleSelectedEntitiesChange( next, site?.url ) }
-										valueField="slug"
-										labelField="label"
-										disabled={ controlsDisabled }
-									/>
-								</div>
-							)
-						}
-					</div>
-				) ) }
-			</CardBody>
-		</Card>
+				</Modal>
+			) }
+		</>
 	);
 };
 
