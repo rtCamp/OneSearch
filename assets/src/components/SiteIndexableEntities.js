@@ -287,7 +287,7 @@ const SiteIndexableEntities = ( {
 					shouldCloseOnClickOutside={ false }
 					size="medium"
 				>
-					<p>{ __( 'Re-indexing will only index the entities you have previously saved. To re-index modified entities, please make sure you have save them.', 'onesearch' ) }</p>
+					<p>{ __( 'Re-indexing will only index the entities you have previously saved. To re-index modified entities, please make sure you have saved them.', 'onesearch' ) }</p>
 					<div style={ {
 						display: 'flex',
 						justifyContent: 'flex-end',
