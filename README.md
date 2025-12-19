@@ -71,7 +71,7 @@ Managing content across multiple brands, regions, or business units often result
 ## Setting up Algolia
 To connect your site with Algolia, follow these simple steps:
 1. Visit [Algolia](https://www.algolia.com/) and create an account (if you don't already have one).
-2. Gto your [API Keys dashboard](https://dashboard.algolia.com/account/api-keys).
+2. Go to your [API Keys dashboard](https://dashboard.algolia.com/account/api-keys).
 3. Copy the `Application ID` and `Write API` Key.
 4. Paste both keys into the `Dashboard > OneSearch > Settings` page under the 'Algolia Credentials' section.
 
