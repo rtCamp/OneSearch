@@ -297,8 +297,20 @@ final class Post_Record {
 	private function get_cleaned_post_content( \WP_Post $post ): string {
 		$removed_filter = remove_filter( 'the_content', 'wptexturize', 10 );
 
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHookname -- intentionally using the_content.
-		$content = (string) apply_filters( 'the_content', $post->post_content );
+		try {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHookname -- intentionally using the_content.
+			$content = (string) apply_filters( 'the_content', $post->post_content );
+		} catch ( \Throwable $e ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- @todo Surface this better with a Logger class.
+			error_log(
+				sprintf(
+					'Algolia indexing error: Error processing post ID %d content: %s',
+					$post->ID,
+					$e->getMessage()
+				)
+			);
+			return '';
+		}
 
 		// Restore filter if it was removed.
 		if ( $removed_filter ) {

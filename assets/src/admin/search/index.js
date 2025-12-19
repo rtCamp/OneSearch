@@ -32,6 +32,7 @@ const OneSearchSettingsPage = () => {
 	} );
 	const [ allPostTypes, setAllPostTypes ] = useState( {} );
 	const [ indexableEntities, setIndexableEntities ] = useState( {} );
+	const [ saving, setSaving ] = useState( false );
 
 	const fetchEntities = async () => {
 		const res = await fetch( `${ API_NAMESPACE }/indexable-entities`, {
@@ -228,6 +229,8 @@ const OneSearchSettingsPage = () => {
 					currentSiteUrl={ CURRENT_SITE_URL }
 					setNotice={ setNotice }
 					onEntitiesSaved={ handleEntitiesSaved }
+					saving={ saving }
+					setSaving={ setSaving }
 				/>
 			) }
 
@@ -236,6 +239,7 @@ const OneSearchSettingsPage = () => {
 					setNotice={ setNotice }
 					indexableEntities={ indexableEntities }
 					allPostTypes={ allPostTypes }
+					isIndexableEntitiesSaving={ saving }
 				/>
 			) }
 
