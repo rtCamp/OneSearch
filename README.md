@@ -58,7 +58,7 @@ Managing content across multiple brands, regions, or business units often result
 1. Download the latest OneSearch plugin from the [GitHub releases](https://github.com/rtCamp/OneSearch/releases) and install it on your WordPress sites.
 2. Activate the plugin.
     For **multisite installations**, make sure to `Network Activate` the plugin.
-3. Visit the `Dashboard > OneLogs > Settings` page to configure the Governing and Brand sites.
+3. Visit the `Dashboard > OneSearch > Settings` page to configure the Governing and Brand sites.
 ## Setting Up OneSearch
 ### Plugin Setup
 1. Install and activate the OneSearch plugin on the governing site and brand sites.
