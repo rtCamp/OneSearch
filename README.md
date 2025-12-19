@@ -98,7 +98,7 @@ For development guidelines, please refer to our [Development Guide](https://gith
 
 ## Frequently Asked Questions
 #### Does OneSearch support CPTs (custom post types)?
-Yes. For each brand site, you can select which built-in custom  post types to index from the `Indices and Search` settings.
+Yes. For each brand site, you can select which built-in custom post types to index from the `Indices and Search` settings.
 
 #### Do I need to manually index a newly published post?
 No. Posts are automatically indexed when they are published, and removed when they are deleted or otherwise unpublished (e.g. trashed, changed to `draft`, etc ).
