@@ -297,8 +297,12 @@ final class Post_Record {
 	private function get_cleaned_post_content( \WP_Post $post ): string {
 		$removed_filter = remove_filter( 'the_content', 'wptexturize', 10 );
 
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHookname -- intentionally using the_content.
-		$content = (string) apply_filters( 'the_content', $post->post_content );
+		try {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHookname -- intentionally using the_content.
+			$content = (string) apply_filters( 'the_content', $post->post_content );
+		} catch ( \Throwable $e ) {
+			return '';
+		}
 
 		// Restore filter if it was removed.
 		if ( $removed_filter ) {
