@@ -65,7 +65,7 @@ Managing content across multiple brands, regions, or business units often result
 2. From the `Dashboard > OneSearch > Settings` page or the plugin activation modal, set the Site Type to either 'Governing Site' or 'Brand Site'.
     - **Governing Site:** The central site that manages the brand network and search configurations. There should be only one governing site in the network.
     - **Brand Site:** The individual sites that will be connected to the governing site for cross-site search.
-3. On the brand site, navigate to `Dashboard >  OneSearch > Settings` to get the API key.
+3. On the brand site, navigate to `Dashboard > OneSearch > Settings` to get the API key.
 4. On the governing site, navigate to  `Dashboard > OneSearch > Settings`, and add the brand site by entering the Site name, URL and the API Key obtained from the brand site.
 
 ## Setting up Algolia
