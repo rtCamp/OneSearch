@@ -29,9 +29,6 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 == Changelog ==
 
-= 1.1.0-beta.1 =
-Feat: Refactor for WPCS and best practices
-
 = 1.0.0-beta =
 @todo
 
