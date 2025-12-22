@@ -9,10 +9,10 @@
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       onesearch
  * Domain Path:       /languages
- * Version:           1.0
+ * Version:           1.1.0-beta.1
  * Requires PHP:      8.0
  * Requires at least: 6.8
- * Tested up to:      6.8.2
+ * Tested up to:      6.9
  *
  * @package OneSearch
  */
@@ -31,7 +31,7 @@ function constants(): void {
 	/**
 	 * Version of the plugin.
 	 */
-	define( 'ONESEARCH_VERSION', '1.0.0' );
+	define( 'ONESEARCH_VERSION', '1.1.0-beta.1' );
 
 	/**
 	 * Root path to the plugin directory.
@@ -61,34 +61,3 @@ if ( ! \OneSearch\Autoloader::autoload() ) {
 if ( class_exists( '\OneSearch\Main' ) ) {
 	\OneSearch\Main::instance();
 }
-
-// Activation Hooks.
-register_activation_hook(
-	__FILE__,
-	static function (): void {
-		// Show onboarding on first admin load after activation.
-		// @todo onboarding should be its own class.
-		if ( get_option( 'onesearch_show_onboarding' ) ) {
-			return;
-		}
-
-		add_option( 'onesearch_show_onboarding', '1', '', false );
-	}
-);
-
-// Deactivation Hooks.
-register_deactivation_hook(
-	__FILE__,
-	static function (): void {
-		defined( 'WP_UNINSTALL_PLUGIN' ) || define( 'WP_UNINSTALL_PLUGIN', false );
-		try {
-			/**
-			 * Runs the uninstaller script on deactivation.
-			 *
-			 * @todo remove this before release. For testing purposes only.
-			*/
-			require_once __DIR__ . '/uninstall.php';
-		} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
-		}
-	}
-);
