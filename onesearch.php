@@ -12,7 +12,7 @@
  * Version:           1.1.0-beta.1
  * Requires PHP:      8.0
  * Requires at least: 6.8
- * Tested up to:      6.8.2
+ * Tested up to:      6.9
  *
  * @package OneSearch
  */
