@@ -61,34 +61,3 @@ if ( ! \OneSearch\Autoloader::autoload() ) {
 if ( class_exists( '\OneSearch\Main' ) ) {
 	\OneSearch\Main::instance();
 }
-
-// Activation Hooks.
-register_activation_hook(
-	__FILE__,
-	static function (): void {
-		// Show onboarding on first admin load after activation.
-		// @todo onboarding should be its own class.
-		if ( get_option( 'onesearch_show_onboarding' ) ) {
-			return;
-		}
-
-		add_option( 'onesearch_show_onboarding', '1', '', false );
-	}
-);
-
-// Deactivation Hooks.
-register_deactivation_hook(
-	__FILE__,
-	static function (): void {
-		defined( 'WP_UNINSTALL_PLUGIN' ) || define( 'WP_UNINSTALL_PLUGIN', false );
-		try {
-			/**
-			 * Runs the uninstaller script on deactivation.
-			 *
-			 * @todo remove this before release. For testing purposes only.
-			*/
-			require_once __DIR__ . '/uninstall.php';
-		} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
-		}
-	}
-);
