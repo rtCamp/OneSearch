@@ -38,9 +38,8 @@ Managing content across multiple brands, regions, or business units often result
 ## 🪄 Key Features
 
 - **Cross-Site (Federated) Search:** Aggregate search results across multisite or standalone installations.  
-- **Configurable Indexing:** Register which post types, taxonomies, or meta fields are searchable.  
+- **Configurable Indexing:** Register which post types, taxonomies, or meta fields are searchable on a per-site basis.
 - **Custom Blocks:** Gutenberg-ready blocks for search interfaces.  
-- **Brand-Specific Filtering:** Enable brand-based search scopes for multi-brand networks.
 - **Bring Your Own Key:**  Connect it with your Algolia instance for improved data sovereignty and reduced vendor lock-in.
 
 ---
@@ -76,8 +75,8 @@ To connect your site with Algolia, follow these simple steps:
 4. Paste both keys into the `Dashboard > OneSearch > Settings` page under the 'Algolia Credentials' section.
 
 ### Configuring Indices and Search Scope
-> Indices: The data (post types) stored to make site content searchable.
-> Search Scope: Defines which sites can search or access other sites' indexed data.
+> **Indices**: The data (post types) stored to make site content searchable.
+> **Search Scope**: Defines which sites can search or access other sites' indexed data.
 
 #### Configuring Indices
 1. Head to OneSearch > Indices and Search.
@@ -92,7 +91,7 @@ To connect your site with Algolia, follow these simple steps:
 ## Development & Contributing
 OneSearch is under active development and maintained by [rtCamp](https://rtcamp.com).
 
-Contributions are Welcome and encouraged! To learn more about contributing to OneSearch, please read the [Contributing Guide](https://github.com/rtCamp/OneSearch-internal/blob/main/docs/CONTRIBUTING.md).
+Contributions are welcome and encouraged! To learn more about contributing to OneSearch, please read the [Contributing Guide](https://github.com/rtCamp/OneSearch-internal/blob/main/docs/CONTRIBUTING.md).
 
 For development guidelines, please refer to our [Development Guide](https://github.com/rtCamp/OneSearch-internal/blob/main/docs/DEVELOPMENT.md).
 
@@ -107,7 +106,7 @@ No. Posts are automatically indexed when they are published, and removed when th
 Yes. Any updates made to a post are automatically synced with the Algolia index.
 
 #### How are the search results ranked?
-Search results are ranked by Algolia's relevance algorithm. However, OneSearch boosts results from the current site you're searching on, ensuring more relevant local content appears first.
+Search results are ranked by Algolia's relevance algorithm. However, OneSearch boosts results from the current site you're searching on, ensuring more relevant local content appears first. You can further customize ranking and relevance through Algolia's dashboard.
 
 ## Get Involved
 You can join the development and discussions on [GitHub](https://github.com/rtCamp/OneSearch). Feel free to report issues, suggest features, or contribute code.
