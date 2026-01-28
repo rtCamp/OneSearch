@@ -109,27 +109,6 @@ Yes. From the Governing Site, you can configure the search scope for each brand 
 
 See <a href="https://github.com/rtCamp/OneSearch/blob/main/CHANGELOG.md" target="_blank">CHANGELOG.md</a> for detailed changelog.
 
-= 1.0.0 =
-* Initial public release of OneSearch
-* Cross-site federated search powered by Algolia
-* Configurable indexing by post type per site
-* Automatic indexing on publish, update, and deletion
-* Local content boost in search results
-* Gutenberg-ready search blocks
-* Brand site connection and API key management
-* Search scope configuration per site
-
-== Upgrade Notice ==
-
-= 1.0.0 =
-Initial release of OneSearch. Perfect for enterprises requiring unified content discovery across multiple WordPress sites with Algolia-powered federated search.
-
-== Requirements ==
-
-* WordPress 6.8 or higher
-* PHP 8.0 or higher
-* Algolia account with Application ID and Write API Key
-
 == Support ==
 
 For support, feature requests, and bug reports, please visit our [GitHub repository](https://github.com/rtCamp/OneSearch).
