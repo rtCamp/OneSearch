@@ -17,7 +17,7 @@ import { __ } from '@wordpress/i18n';
 /**
  * External dependencies
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 /**
  * Internal dependencies
@@ -77,11 +77,14 @@ const SiteSearchSettings = ( {
 	];
 
 	//  Check if site has indexable entities.
-	const siteHasEntities = ( url ) => {
-		const normalizedUrl = trailingslashit( url );
-		const entities = indexableEntities[ normalizedUrl ] || [];
-		return Array.isArray( entities ) && entities.length > 0;
-	};
+	const siteHasEntities = useCallback(
+		( url ) => {
+			const normalizedUrl = trailingslashit( url );
+			const entities = indexableEntities[ normalizedUrl ] || [];
+			return Array.isArray( entities ) && entities.length > 0;
+		},
+		[ indexableEntities ]
+	);
 
 	// Auto-save search setting when entities are removed.
 	useEffect( () => {
@@ -144,7 +147,8 @@ const SiteSearchSettings = ( {
 					} );
 				} );
 		}
-	}, [ indexableEntities ] );
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ indexableEntities, setNotice, siteHasEntities ] );
 
 	// Load existing search settings
 	useEffect( () => {
@@ -174,7 +178,7 @@ const SiteSearchSettings = ( {
 				setLoading( false );
 				setLocalNotice( null );
 			} );
-	}, [ reloadKey ] );
+	}, [ reloadKey, setNotice ] );
 
 	// Toggle Algolia for a site
 	const handleSiteToggle = ( url, enabled ) => {

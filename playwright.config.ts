@@ -4,10 +4,7 @@
 import { defineConfig, type PlaywrightTestConfig } from '@playwright/test';
 import path from 'path';
 
-const artifactsPath = path.join(
-	process.cwd(),
-	'tests/_output'
-);
+const artifactsPath = path.join( process.cwd(), 'tests/_output' );
 
 // Ensure WP artifacts (and storage-state) are written into tests/_output
 process.env[ 'WP_ARTIFACTS_PATH' ] = artifactsPath;
