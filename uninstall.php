@@ -5,29 +5,25 @@
  * @package OneSearch
  */
 
-declare( strict_types=1 );
+declare( strict_types = 1 );
 
 namespace OneSearch;
 
-// If uninstall not called from WordPress, exit.
-if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
-	exit;
-}
+// Only uninstall if called by WordPress.
+defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
-if ( ! defined( 'ONESEARCH_DIR' ) ) { // to prevent fatal error when plugin is deleted because ONESEARCH_DIR is defined in onesearch.php level.
-	define( 'ONESEARCH_DIR', plugin_dir_path( __FILE__ ) );
-}
+// We use local constants so this plugin can be uninstalled even if the autoloader is corrupted or missing.
+const PLUGIN_PREFIX = 'onesearch_';
 
 /**
- * Multisite loop for uninstalling from all sites.
+ * Uninstalls the plugin. If multisite, uninstalls from all sites.
  */
-function multisite_uninstall(): void {
+function run_uninstaller(): void {
 	if ( ! is_multisite() ) {
 		uninstall();
 		return;
 	}
 
-	// Get all site IDs.
 	$site_ids = get_sites(
 		[
 			'fields' => 'ids',
@@ -36,7 +32,7 @@ function multisite_uninstall(): void {
 	) ?: [];
 
 	foreach ( $site_ids as $site_id ) {
-		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.switch_to_blog_switch_to_blog
+		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.switch_to_blog_switch_to_blog -- The state doesn't matter during uninstall.
 		if ( ! switch_to_blog( (int) $site_id ) ) {
 			continue;
 		}
@@ -47,31 +43,52 @@ function multisite_uninstall(): void {
 }
 
 /**
- * The uninstall function.
+ * The (site-specific) uninstall function.
  */
 function uninstall(): void {
 	cleanup_algolia_index();
 
 	// Wait until the end to delete options and transients.
-	delete_plugin_data();
+
+	delete_transients();
 }
 
 /**
- * Deletes options, transients, etc.
+ * Deletes options.
  */
-function delete_plugin_data(): void {
+function delete_options(): void {
+	$options = [
+		// Add more options as needed.
+		PLUGIN_PREFIX . 'version', // Set by Main::activate().
 
-	// Governing site options.
-	delete_option( 'onesearch_site_type' );
-	delete_option( 'onesearch_shared_sites' );
-	delete_option( 'onesearch_indexable_entities' );
-	delete_option( 'onesearch_algolia_credentials' );
-	delete_option( 'onesearch_sites_search_settings' );
+		// Governing site options.
+		PLUGIN_PREFIX . 'site_type',
+		PLUGIN_PREFIX . 'indexable_entities',
+		PLUGIN_PREFIX . 'algolia_credentials',
+		PLUGIN_PREFIX . 'sites_search_settings',
 
-	// Brand site options.
-	delete_option( 'onesearch_parent_site_url' );
-	delete_option( 'onesearch_consumer_api_key' );
-	delete_transient( 'onesearch_brand_config_cache' );
+		// Brand site options.
+		PLUGIN_PREFIX . 'parent_site_url',
+		PLUGIN_PREFIX . 'consumer_api_key',
+	];
+
+	foreach ( $options as $option ) {
+		delete_option( $option );
+	}
+}
+
+/**
+ * Deletes transients.
+ */
+function delete_transients(): void {
+	$transients = [
+		// Governing site transients.
+		PLUGIN_PREFIX . 'brand_config_cache',
+	];
+
+	foreach ( $transients as $transient ) {
+		delete_transient( $transient );
+	}
 }
 
 /**
@@ -106,4 +123,4 @@ function load_dependencies(): bool {
 }
 
 // Run the uninstaller.
-multisite_uninstall();
+run_uninstaller();

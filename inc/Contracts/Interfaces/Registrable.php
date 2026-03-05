@@ -15,7 +15,6 @@ namespace OneSearch\Contracts\Interfaces;
  * Interface - Registrable
  */
 interface Registrable {
-
 	/**
 	 * Registers class methods to WordPress.
 	 *

@@ -29,7 +29,12 @@ import { NONCE } from '../js/utils';
  */
 apiFetch.use( apiFetch.createNonceMiddleware( NONCE ) );
 
-const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes, isIndexableEntitiesSaving } ) => {
+const SiteSearchSettings = ( {
+	indexableEntities,
+	setNotice,
+	allPostTypes,
+	isIndexableEntitiesSaving,
+} ) => {
 	const [ searchSettings, setSearchSettings ] = useState( {} );
 	const [ loading, setLoading ] = useState( true );
 	const [ saving, setSaving ] = useState( false );
@@ -42,7 +47,9 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes, isInd
 	const [ initialSettings, setInitialSettings ] = useState( {} );
 
 	const trailingslashit = ( url ) => {
-		return typeof url === 'string' && url.endsWith( '/' ) ? url : `${ url }/`;
+		return typeof url === 'string' && url.endsWith( '/' )
+			? url
+			: `${ url }/`;
 	};
 
 	const brandSites = sharedSites
@@ -78,7 +85,10 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes, isInd
 
 	// Auto-save search setting when entities are removed.
 	useEffect( () => {
-		if ( ! indexableEntities || Object.keys( searchSettings ).length === 0 ) {
+		if (
+			! indexableEntities ||
+			Object.keys( searchSettings ).length === 0
+		) {
 			return;
 		}
 
@@ -108,24 +118,31 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes, isInd
 				data: {
 					onesearch_sites_search_settings: updatedSettings,
 				},
-			} ).then( ( settings ) => {
-				setNotice( {
-					type: 'success',
-					message: __(
-						'Sites without indexable entities have been automatically disabled and saved.',
-						'onesearch',
-					),
-				} );
-				setInitialSettings( settings.onesearch_sites_search_settings );
+			} )
+				.then( ( settings ) => {
+					setNotice( {
+						type: 'success',
+						message: __(
+							'Sites without indexable entities have been automatically disabled and saved.',
+							'onesearch'
+						),
+					} );
+					setInitialSettings(
+						settings.onesearch_sites_search_settings
+					);
 
-				// To trigger re-rendering of search configuration component.
-				setReloadKey( ( k ) => k + 1 );
-			} ).catch( () => {
-				setNotice( {
-					type: 'error',
-					message: __( 'Failed to auto-save disabled sites.', 'onesearch' ),
+					// To trigger re-rendering of search configuration component.
+					setReloadKey( ( k ) => k + 1 );
+				} )
+				.catch( () => {
+					setNotice( {
+						type: 'error',
+						message: __(
+							'Failed to auto-save disabled sites.',
+							'onesearch'
+						),
+					} );
 				} );
-			} );
 		}
 	}, [ indexableEntities ] );
 
@@ -133,20 +150,30 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes, isInd
 	useEffect( () => {
 		apiFetch( {
 			path: '/wp/v2/settings',
-		} ).then( ( settings ) => {
-			if ( settings?.onesearch_sites_search_settings ) {
-				setSearchSettings( settings.onesearch_sites_search_settings );
-				setInitialSettings( settings.onesearch_sites_search_settings );
-			}
-		} ).catch( () => {
-			setNotice( {
-				type: 'error',
-				message: __( 'Failed to load search settings.', 'onesearch' ),
+		} )
+			.then( ( settings ) => {
+				if ( settings?.onesearch_sites_search_settings ) {
+					setSearchSettings(
+						settings.onesearch_sites_search_settings
+					);
+					setInitialSettings(
+						settings.onesearch_sites_search_settings
+					);
+				}
+			} )
+			.catch( () => {
+				setNotice( {
+					type: 'error',
+					message: __(
+						'Failed to load search settings.',
+						'onesearch'
+					),
+				} );
+			} )
+			.finally( () => {
+				setLoading( false );
+				setLocalNotice( null );
 			} );
-		} ).finally( () => {
-			setLoading( false );
-			setLocalNotice( null );
-		} );
 	}, [ reloadKey ] );
 
 	// Toggle Algolia for a site
@@ -156,7 +183,7 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes, isInd
 				type: 'warning',
 				message: __(
 					'This site cannot use Algolia search because no content types have been selected for indexing. Please configure indexable entities first, then enable Algolia search.',
-					'onesearch',
+					'onesearch'
 				),
 			} );
 			return;
@@ -176,24 +203,26 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes, isInd
 	const handleSearchableSiteToggle = (
 		parentSiteUrl,
 		targetSiteUrl,
-		checked,
+		checked
 	) => {
 		const isSelf =
-			trailingslashit( targetSiteUrl ) === trailingslashit( parentSiteUrl );
+			trailingslashit( targetSiteUrl ) ===
+			trailingslashit( parentSiteUrl );
 
 		if ( isSelf && ! checked ) {
 			setLocalNotice( {
 				type: 'warning',
 				message: __(
 					'The current site cannot be excluded from search results. It will always be included when Algolia search is enabled.',
-					'onesearch',
+					'onesearch'
 				),
 			} );
 			return;
 		}
 
 		setSearchSettings( ( prev ) => {
-			const currentSearchables = prev[ parentSiteUrl ]?.searchable_sites || [];
+			const currentSearchables =
+				prev[ parentSiteUrl ]?.searchable_sites || [];
 			const newSearchables = checked
 				? [ ...currentSearchables, targetSiteUrl ]
 				: currentSearchables.filter( ( url ) => url !== targetSiteUrl );
@@ -226,10 +255,10 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes, isInd
 			// Preserve previous searchable_sites when enabling.
 			const prev = searchSettings[ url ] || {};
 			const prevSites = Array.isArray( prev?.searchable_sites )
-			// Keep only targets that still have entities.
-				? prev.searchable_sites.filter( ( targetUrl ) =>
-					siteHasEntities( targetUrl ),
-				)
+				? // Keep only targets that still have entities.
+				  prev.searchable_sites.filter( ( targetUrl ) =>
+						siteHasEntities( targetUrl )
+				  )
 				: [];
 
 			let sitesToReturn = [];
@@ -252,7 +281,7 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes, isInd
 				type: 'warning',
 				message: __(
 					'Some sites were skipped because they have no content types selected for indexing. Please configure indexable entities for these sites first.',
-					'onesearch',
+					'onesearch'
 				),
 			} );
 		}
@@ -267,21 +296,30 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes, isInd
 			data: {
 				onesearch_sites_search_settings: searchSettings,
 			},
-		} ).then( ( settings ) => {
-			setNotice( {
-				type: 'success',
-				message: __( 'Search settings saved successfully.', 'onesearch' ),
+		} )
+			.then( ( settings ) => {
+				setNotice( {
+					type: 'success',
+					message: __(
+						'Search settings saved successfully.',
+						'onesearch'
+					),
+				} );
+				setInitialSettings( settings.onesearch_sites_search_settings );
+			} )
+			.catch( () => {
+				setNotice( {
+					type: 'error',
+					message: __(
+						'Failed to save search settings.',
+						'onesearch'
+					),
+				} );
+			} )
+			.finally( () => {
+				setSaving( false );
+				setReloadKey( ( k ) => k + 1 );
 			} );
-			setInitialSettings( settings.onesearch_sites_search_settings );
-		} ).catch( () => {
-			setNotice( {
-				type: 'error',
-				message: __( 'Failed to save search settings.', 'onesearch' ),
-			} );
-		} ).finally( () => {
-			setSaving( false );
-			setReloadKey( ( k ) => k + 1 );
-		} );
 	};
 
 	const isDirty =
@@ -301,13 +339,18 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes, isInd
 					<Button
 						variant="secondary"
 						onClick={ () => handleBulkToggle( true ) }
-						disabled={ saving || allSites.length === 0 || isIndexableEntitiesSaving || allSites.every( ( site ) => {
-							const url = trailingslashit( site.url );
-							return (
-								searchSettings[ url ]?.algolia_enabled ||
-								! siteHasEntities( url )
-							);
-						} ) }
+						disabled={
+							saving ||
+							allSites.length === 0 ||
+							isIndexableEntitiesSaving ||
+							allSites.every( ( site ) => {
+								const url = trailingslashit( site.url );
+								return (
+									searchSettings[ url ]?.algolia_enabled ||
+									! siteHasEntities( url )
+								);
+							} )
+						}
 						className="onesearch-btn-enable-all"
 					>
 						{ __( 'Enable All', 'onesearch' ) }
@@ -315,10 +358,15 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes, isInd
 					<Button
 						variant="secondary"
 						onClick={ () => handleBulkToggle( false ) }
-						disabled={ saving || allSites.length === 0 || isIndexableEntitiesSaving || allSites.every( ( site ) => {
-							const url = trailingslashit( site.url );
-							return ! searchSettings[ url ]?.algolia_enabled;
-						} ) }
+						disabled={
+							saving ||
+							allSites.length === 0 ||
+							isIndexableEntitiesSaving ||
+							allSites.every( ( site ) => {
+								const url = trailingslashit( site.url );
+								return ! searchSettings[ url ]?.algolia_enabled;
+							} )
+						}
 						className="onesearch-btn-disable-all"
 					>
 						{ __( 'Disable All', 'onesearch' ) }
@@ -326,7 +374,9 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes, isInd
 					<Button
 						variant="primary"
 						onClick={ handleSave }
-						disabled={ saving || ! isDirty || isIndexableEntitiesSaving }
+						disabled={
+							saving || ! isDirty || isIndexableEntitiesSaving
+						}
 						isBusy={ saving }
 						className="onesearch-btn-save"
 					>
@@ -341,7 +391,7 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes, isInd
 				{ localNotice && (
 					<Notice
 						status={ localNotice.type }
-						isDismissible={ true }
+						isDismissible
 						onRemove={ () => setLocalNotice( null ) }
 						className="onesearch-notice"
 					>
@@ -367,24 +417,40 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes, isInd
 							<div
 								key={ url }
 								className={ `onesearch-site-card ${
-									site.isGoverning ? 'onesearch-site-governing' : ''
-								} ${ ! hasEntities ? 'onesearch-site-no-entities' : '' }` }
+									site.isGoverning
+										? 'onesearch-site-governing'
+										: ''
+								} ${
+									! hasEntities
+										? 'onesearch-site-no-entities'
+										: ''
+								}` }
 							>
 								{ /* Site Header */ }
 								<div className="onesearch-site-header">
 									<div className="onesearch-site-info">
-										<h3 className="onesearch-site-name">{ site.name }</h3>
-										<p className="onesearch-entity-site-url">{ url }</p>
+										<h3 className="onesearch-site-name">
+											{ site.name }
+										</h3>
+										<p className="onesearch-entity-site-url">
+											{ url }
+										</p>
 										<p className="onesearch-site-status">
 											{ siteSettings.algolia_enabled
-												? __( 'Algolia search enabled', 'onesearch' )
-												: __( 'Using default WordPress search', 'onesearch' ) }
+												? __(
+														'Algolia search enabled',
+														'onesearch'
+												  )
+												: __(
+														'Using default WordPress search',
+														'onesearch'
+												  ) }
 										</p>
 										{ ! hasEntities && (
 											<p className="onesearch-site-warning">
 												{ __(
 													'Please select entities for indexing to enable Algolia search',
-													'onesearch',
+													'onesearch'
 												) }
 											</p>
 										) }
@@ -392,9 +458,17 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes, isInd
 
 									<div className="onesearch-site-toggle">
 										<ToggleControl
-											checked={ siteSettings.algolia_enabled }
-											disabled={ ! hasEntities || saving || isIndexableEntitiesSaving }
-											onChange={ ( enabled ) => handleSiteToggle( url, enabled ) }
+											checked={
+												siteSettings.algolia_enabled
+											}
+											disabled={
+												! hasEntities ||
+												saving ||
+												isIndexableEntitiesSaving
+											}
+											onChange={ ( enabled ) =>
+												handleSiteToggle( url, enabled )
+											}
 											__nextHasNoMarginBottom
 										/>
 									</div>
@@ -404,74 +478,117 @@ const SiteSearchSettings = ( { indexableEntities, setNotice, allPostTypes, isInd
 								{ siteSettings.algolia_enabled && (
 									<div className="onesearch-searchable-sites">
 										<h4 className="onesearch-searchable-title">
-											{ __( 'Search from:', 'onesearch' ) }
+											{ __(
+												'Search from:',
+												'onesearch'
+											) }
 										</h4>
 
 										{ /* Sort sites with current site first */ }
 										{ allSites
 											.slice()
 											.filter( ( singleSite ) => {
-												const siteURL = trailingslashit( singleSite.url );
-												const ents = indexableEntities[ siteURL ] || [];
-												return Array.isArray( ents ) && ents.length > 0;
+												const siteURL = trailingslashit(
+													singleSite.url
+												);
+												const ents =
+													indexableEntities[
+														siteURL
+													] || [];
+												return (
+													Array.isArray( ents ) &&
+													ents.length > 0
+												);
 											} )
 											.sort( ( a, b ) => {
-												const aUrl = trailingslashit( a.url );
-												const bUrl = trailingslashit( b.url );
-												const currentUrl = trailingslashit( url );
+												const aUrl = trailingslashit(
+													a.url
+												);
+												const bUrl = trailingslashit(
+													b.url
+												);
+												const currentUrl =
+													trailingslashit( url );
 
 												// Put current site first.
-												if ( aUrl === currentUrl && bUrl !== currentUrl ) {
+												if (
+													aUrl === currentUrl &&
+													bUrl !== currentUrl
+												) {
 													return -1;
 												}
-												if ( bUrl === currentUrl && aUrl !== currentUrl ) {
+												if (
+													bUrl === currentUrl &&
+													aUrl !== currentUrl
+												) {
 													return 1;
 												}
 
 												// Sort others alphabetically.
-												return a.name.localeCompare( b.name );
+												return a.name.localeCompare(
+													b.name
+												);
 											} )
 											.map( ( targetSite ) => {
-												const targetSiteUrl = trailingslashit(
-													targetSite.url,
-												);
+												const targetSiteUrl =
+													trailingslashit(
+														targetSite.url
+													);
 												const isChecked =
-													siteSettings.searchable_sites.includes( targetSiteUrl );
-												const isSelf = targetSiteUrl === url;
+													siteSettings.searchable_sites.includes(
+														targetSiteUrl
+													);
+												const isSelf =
+													targetSiteUrl === url;
 
 												return (
 													<div
 														key={ targetSiteUrl }
 														className={ `onesearch-searchable-item ${
-															isSelf ? 'onesearch-current-site' : ''
+															isSelf
+																? 'onesearch-current-site'
+																: ''
 														}` }
 													>
 														<ToggleControl
 															label={
 																<div className="onesearch-searchable-label">
 																	<div className="onesearch-searchable-name">
-																		{ targetSite.name }
+																		{
+																			targetSite.name
+																		}
 																	</div>
 																	<div className="onesearch-searchable-url">
-																		{ targetSiteUrl }
+																		{
+																			targetSiteUrl
+																		}
 																		{ isSelf && (
 																			<span className="onesearch-current-indicator">
 																				{ __(
 																					'(Current Site - Always Included)',
-																					'onesearch',
+																					'onesearch'
 																				) }
 																			</span>
 																		) }
 																	</div>
 																</div>
 															}
-															checked={ isChecked || isSelf }
-															disabled={ isSelf || saving || isIndexableEntitiesSaving }
-															onChange={ ( checked ) =>
+															checked={
+																isChecked ||
+																isSelf
+															}
+															disabled={
+																isSelf ||
+																saving ||
+																isIndexableEntitiesSaving
+															}
+															onChange={ (
+																checked
+															) =>
 																handleSearchableSiteToggle(
 																	url,
 																	targetSiteUrl,
-																	checked,
+																	checked
 																)
 															}
 															__nextHasNoMarginBottom

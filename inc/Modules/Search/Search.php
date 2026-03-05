@@ -336,7 +336,7 @@ final class Search implements Registrable {
 			return $block_content;
 		}
 
-		$block_name = isset( $block['blockName'] ) ? $block['blockName'] : '';
+		$block_name = $block['blockName'] ?? '';
 
 		// Fix permalink for block-based post titles.
 		if ( 'core/post-title' === $block_name && false !== strpos( $block_content, 'href=' ) ) {
