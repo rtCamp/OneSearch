@@ -52,17 +52,18 @@ jobs:
               - '**.php'
               - 'composer.*'
             phpcs:
+              - '.github/workflows/reusable-phpcs.yml'
               - '.phpcs.xml.dist'
-              - '.github/reusable-phpcs.yml'
             phpstan:
+              - '.github/workflows/reusable-phpstan.yml'
               - 'phpstan.neon.dist'
-              - '.github/reusable-phpstan.yml'
             phpunit:
               - 'tests/**/*.php'
+              - '.github/workflows/reusable-phpunit.yml'
               - 'phpunit.xml.dist'
-              - '.github/reusable-phpunit.yml'
               - 'package*.json'
             js:
+              - .github/workflows/reusable-lint-css-js.yml
               - '**.cjs'
               - '**.js'
               - '**.jsx'
@@ -75,22 +76,23 @@ jobs:
               - '.eslintrc*'
               - 'tsconfig*.json'
             css:
+              - .github/workflows/reusable-lint-css-js.yml
               - '**.css'
               - '**.scss'
               - '.stylelintignore'
               - '.stylelintrc*'
             e2e:
+              - '.github/workflows/reusable-e2e.yml'
               - 'tests/e2e/**/*'
-              - '.github/reusable-e2e.yml'
             jest:
-              - 'tests/js/**/*'
-              - 'src/**/__tests__/**/*'
-              - 'src/**/*.test.ts'
-              - 'src/**/*.test.tsx'
-              - 'src/**/*.spec.ts'
-              - 'src/**/*.spec.tsx'
-              - 'jest.config.js'
               - '.github/workflows/reusable-jest.yml'
+              - 'assets/src/**/__tests__/**/*'
+              - 'assets/src/**/*.test.ts'
+              - 'assets/src/**/*.test.tsx'
+              - 'assets/src/**/*.spec.ts'
+              - 'assets/src/**/*.spec.tsx'
+              - 'tests/js/**/*'
+              - 'jest.config.js'
               - 'package*.json'
 
   phpcs:
