@@ -1,12 +1,11 @@
 <?php
-
-declare(strict_types = 1);
-
 /**
  * Routes for Search-related operations.
  *
  * @package OneSearch
  */
+
+declare(strict_types = 1);
 
 namespace OneSearch\Modules\Rest;
 

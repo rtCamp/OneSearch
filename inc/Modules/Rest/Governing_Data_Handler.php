@@ -1,7 +1,4 @@
 <?php
-
-declare(strict_types = 1);
-
 /**
  * Handles cross-site requests for governing brand data.
  *
@@ -9,6 +6,8 @@ declare(strict_types = 1);
  *
  * @package OneSearch\Modules\Rest
  */
+
+declare(strict_types = 1);
 
 namespace OneSearch\Modules\Rest;
 
