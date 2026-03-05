@@ -51,6 +51,7 @@ function uninstall(): void {
 	// Wait until the end to delete options and transients.
 
 	delete_transients();
+	delete_options();
 }
 
 /**
@@ -63,6 +64,7 @@ function delete_options(): void {
 
 		// Governing site options.
 		PLUGIN_PREFIX . 'site_type',
+		PLUGIN_PREFIX . 'shared_sites',
 		PLUGIN_PREFIX . 'indexable_entities',
 		PLUGIN_PREFIX . 'algolia_credentials',
 		PLUGIN_PREFIX . 'sites_search_settings',

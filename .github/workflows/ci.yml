@@ -23,7 +23,7 @@ jobs:
   detect:
     name: Detect Changes
     runs-on: ubuntu-24.04
-    if: github.event.pull_request.draft == false
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     permissions:
       contents: read
       pull-requests: read
@@ -116,7 +116,7 @@ jobs:
   lint-css-js:
     name: CSS/JS Lint
     needs: detect
-    if: needs.detect.outputs.css == 'true'
+    if: needs.detect.outputs.css == 'true' || needs.detect.outputs.js == 'true'
     uses: ./.github/workflows/reusable-lint-css-js.yml
     permissions:
       contents: read

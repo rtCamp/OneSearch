@@ -124,7 +124,7 @@ Code contributions, bug reports, and feature requests are welcome! The following
 │   │   # Playwright end-to-end tests.
 │   ├── e2e/
 │   │   # Jest unit tests.
-│   ├── js/file.
+│   ├── js/
 │   │   └── tsconfig.json     # Test TypeScript config.
 │   │   # PHPUnit tests.
 │   └── php/

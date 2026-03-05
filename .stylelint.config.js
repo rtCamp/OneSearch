@@ -1,5 +1,5 @@
 /** @type {import('stylelint').Config} */
-export default {
+module.exports = {
 	extends: '@wordpress/stylelint-config/scss',
 	ignoreFiles: [ '**/*.js', '**/*.json', '**/*.php', '**/*.svg' ],
 	rules: {},

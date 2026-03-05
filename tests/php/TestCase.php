@@ -73,11 +73,11 @@ abstract class TestCase extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Override to avoid PHPUnit scanning parent docblock metadata.
+	 * {@inheritDoc}
 	 *
 	 * @deprecated
 	 */
-	protected function checkRequirements() { // phpcs:ignore Generic.CodeAnalysis.UselessOverridingMethod.Found
+	protected function checkRequirements(): void { // phpcs:ignore Generic.CodeAnalysis.UselessOverridingMethod.Found
 		parent::checkRequirements();
 	}
 
