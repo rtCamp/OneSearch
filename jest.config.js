@@ -34,9 +34,6 @@ module.exports = {
 		...defaultConfig.moduleNameMapper,
 		// Path alias for assets/src directory
 		'^@/(.*)$': '<rootDir>/assets/src/$1',
-		// Mock for WordPress Interactivity API (not available in test environment)
-		'^@wordpress/interactivity$':
-			'<rootDir>/tests/js/__mocks__/wordpress-interactivity.ts',
 	},
 
 	// Directories to ignore when searching for tests
