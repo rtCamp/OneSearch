@@ -27,9 +27,12 @@ interface NoticeState {
 	message: string;
 }
 
-// WordPress provides snake_case keys here. Using them intentionally.
-// eslint-disable-next-line camelcase
-const { nonce, setup_url, site_type } = window.OneSearchOnboarding;
+// WordPress provides snake_case keys here. Rename to camelCase for local use.
+const {
+	nonce,
+	setup_url: setupUrl,
+	site_type: initialSiteType,
+} = window.OneSearchOnboarding;
 
 /**
  * Create NONCE middleware for apiFetch
@@ -66,7 +69,7 @@ const SiteTypeSelector = ( {
 
 const OnboardingScreen = () => {
 	const [ siteType, setSiteType ] = useState< SiteType | '' >(
-		site_type || ''
+		initialSiteType || ''
 	);
 	const [ notice, setNotice ] = useState< NoticeState | null >( null );
 	const [ isSaving, setIsSaving ] = useState( false );
@@ -106,8 +109,8 @@ const OnboardingScreen = () => {
 				setSiteType( settings.onesearch_site_type );
 
 				// Redirect user to setup page.
-				if ( setup_url ) {
-					window.location.href = setup_url;
+				if ( setupUrl ) {
+					window.location.href = setupUrl;
 				}
 			} );
 		} catch {
