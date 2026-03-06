@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types = 1);
+
 /**
  * Routes for Search-related operations.
  *
@@ -17,7 +20,6 @@ use WP_REST_Server;
  * Class Governing_Data_Controller
  */
 class Governing_Data_Controller extends Abstract_REST_Controller {
-
 	/**
 	 * {@inheritDoc}
 	 */

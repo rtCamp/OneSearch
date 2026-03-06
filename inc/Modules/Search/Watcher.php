@@ -19,7 +19,6 @@ use OneSearch\Utils;
  * Class - Watcher
  */
 final class Watcher implements Registrable {
-
 	/**
 	 * {@inheritDoc}
 	 */

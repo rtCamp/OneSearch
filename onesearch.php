@@ -1,11 +1,18 @@
 <?php
 /**
+ * OneSearch
+ *
+ * @package           OneSearch
+ * @author            rtCamp
+ * @copyright         2025 rtCamp
+ * @license           GPL-2.0-or-later
+ *
  * Plugin Name:       OneSearch
+ * Plugin URI:        https://github.com/rtCamp/onesearch
  * Description:       This plugin allows you to run multi-index, multi-site searches seamlessly, without duplicate or missing results.
  * Author:            rtCamp
- * Plugin URI:        https://rtcamp.com
  * Author URI:        https://rtcamp.com
- * License:           GPL2
+ * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       onesearch
  * Domain Path:       /languages
@@ -13,21 +20,24 @@
  * Requires PHP:      8.0
  * Requires at least: 6.8
  * Tested up to:      6.9
- *
- * @package OneSearch
  */
 
-declare (strict_types = 1);
+declare( strict_types = 1 );
 
 namespace OneSearch;
 
 // Exit if accessed directly.
-defined( 'ABSPATH' ) || exit();
+defined( 'ABSPATH' ) || exit;
 
 /**
  * Define the plugin constants.
  */
 function constants(): void {
+	/**
+	 * File path to the plugin's main file.
+	 */
+	define( 'ONESEARCH_FILE', __FILE__ );
+
 	/**
 	 * Version of the plugin.
 	 */
@@ -51,7 +61,7 @@ function constants(): void {
 
 constants();
 
-// If autoloader failed, we cannot proceed.
+// If autoloader fails, we cannot proceed.
 require_once __DIR__ . '/inc/Autoloader.php';
 if ( ! \OneSearch\Autoloader::autoload() ) {
 	return;

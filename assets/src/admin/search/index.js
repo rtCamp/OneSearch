@@ -77,7 +77,7 @@ const OneSearchSettingsPage = () => {
 								label: String( label || s ),
 								restBase: String( restBase || s ),
 							};
-						},
+						}
 					);
 				} );
 			}
@@ -103,7 +103,10 @@ const OneSearchSettingsPage = () => {
 			} catch ( e ) {
 				setNotice( {
 					type: 'error',
-					message: __( 'Error fetching post types from sites.', 'onesearch' ),
+					message: __(
+						'Error fetching post types from sites.',
+						'onesearch'
+					),
 				} );
 			}
 		};
@@ -143,7 +146,10 @@ const OneSearchSettingsPage = () => {
 			} catch {
 				setNotice( {
 					type: 'error',
-					message: __( 'Error fetching site type or Brand sites.', 'onesearch' ),
+					message: __(
+						'Error fetching site type or Brand sites.',
+						'onesearch'
+					),
 				} );
 			}
 		};
@@ -160,7 +166,9 @@ const OneSearchSettingsPage = () => {
 	const handleFormSubmit = async () => {
 		const updated =
 			editingIndex !== null
-				? sites.map( ( item, i ) => ( i === editingIndex ? formData : item ) )
+				? sites.map( ( item, i ) =>
+						i === editingIndex ? formData : item
+				  )
 				: [ ...sites, formData ];
 
 		const token = NONCE;
@@ -174,7 +182,10 @@ const OneSearchSettingsPage = () => {
 				body: JSON.stringify( { sites_data: updated } ),
 			} );
 			if ( ! response.ok ) {
-				console.error( 'Error saving Brand site:', response.statusText ); // eslint-disable-line no-console
+				console.error(
+					'Error saving Brand site:',
+					response.statusText
+				); // eslint-disable-line no-console
 				return response;
 			}
 
@@ -192,7 +203,7 @@ const OneSearchSettingsPage = () => {
 				type: 'error',
 				message: __(
 					'Error saving Brand site. Please try again later.',
-					'onesearch',
+					'onesearch'
 				),
 			} );
 		}
@@ -209,7 +220,7 @@ const OneSearchSettingsPage = () => {
 				{ notice?.message?.length > 0 && (
 					<Snackbar
 						status={ notice?.type ?? 'success' }
-						isDismissible={ true }
+						isDismissible
 						onRemove={ () => setNotice( null ) }
 						className={
 							notice?.type === 'error'

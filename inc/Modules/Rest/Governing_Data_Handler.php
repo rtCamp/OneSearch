@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types = 1);
+
 /**
  * Handles cross-site requests for governing brand data.
  *
@@ -317,7 +320,6 @@ class Governing_Data_Handler {
 	 *
 	 * @param array<string,mixed> $config The site configuration.
 	 * @phpstan-param SiteConfig $config
-	 * @return void
 	 */
 	private static function set_brand_config_cache( array $config ): void {
 		// Encrypt the algolia keys before caching.

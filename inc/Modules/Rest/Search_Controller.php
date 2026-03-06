@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types = 1);
+
 /**
  * Routes for Search-related operations.
  *
@@ -18,7 +21,6 @@ use WP_REST_Server;
  * Class Search_Controller
  */
 class Search_Controller extends Abstract_REST_Controller {
-
 	/**
 	 * {@inheritDoc}
 	 */
@@ -99,8 +101,6 @@ class Search_Controller extends Abstract_REST_Controller {
 
 	/**
 	 * Get Algolia credentials from governing site.
-	 *
-	 * @return \WP_REST_Response
 	 */
 	public function get_algolia_credentials(): WP_REST_Response {
 		$creds = Search_Settings::get_algolia_credentials();
@@ -167,8 +167,6 @@ class Search_Controller extends Abstract_REST_Controller {
 
 	/**
 	 * Get the stored indexable entities map (governing only).
-	 *
-	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_indexable_entities(): \WP_REST_Response|\WP_Error {
 		$indexable_entities = Search_Settings::get_indexable_entities();

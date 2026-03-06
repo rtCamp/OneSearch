@@ -73,9 +73,15 @@ const SiteIndexableEntities = ( {
 
 	const getIndexableEntities = useCallback( async () => {
 		try {
-			const response = await fetch( `${ API_NAMESPACE }/indexable-entities`, {
-				headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': NONCE },
-			} );
+			const response = await fetch(
+				`${ API_NAMESPACE }/indexable-entities`,
+				{
+					headers: {
+						'Content-Type': 'application/json',
+						'X-WP-Nonce': NONCE,
+					},
+				}
+			);
 
 			const data = await response.json();
 			const incoming = data.indexableEntities.entities;
@@ -84,7 +90,10 @@ const SiteIndexableEntities = ( {
 		} catch {
 			setNotice( {
 				type: 'error',
-				message: __( 'Error fetching indexable entities.', 'onesearch' ),
+				message: __(
+					'Error fetching indexable entities.',
+					'onesearch'
+				),
 			} );
 		}
 	}, [] );
@@ -106,17 +115,22 @@ const SiteIndexableEntities = ( {
 	const handleSelectedEntitiesSave = async ( entities ) => {
 		try {
 			setSaving( true );
-			const response = await fetch( `${ API_NAMESPACE }/indexable-entities`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-WP-Nonce': NONCE,
-				},
-				body: JSON.stringify( { entities } ),
-			} );
+			const response = await fetch(
+				`${ API_NAMESPACE }/indexable-entities`,
+				{
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-WP-Nonce': NONCE,
+					},
+					body: JSON.stringify( { entities } ),
+				}
+			);
 
 			if ( ! response.ok ) {
-				throw new Error( __( 'Network response was not ok.', 'onesearch' ) );
+				throw new Error(
+					__( 'Network response was not ok.', 'onesearch' )
+				);
 			}
 
 			const data = await response.json();
@@ -186,7 +200,9 @@ const SiteIndexableEntities = ( {
 		}
 	};
 
-	const isDirty = JSON.stringify( normalizeEntities( selectedEntities ) ) !== JSON.stringify( savedEntities );
+	const isDirty =
+		JSON.stringify( normalizeEntities( selectedEntities ) ) !==
+		JSON.stringify( savedEntities );
 
 	return (
 		<>
@@ -201,23 +217,36 @@ const SiteIndexableEntities = ( {
 								variant="secondary"
 								onClick={ () => setShowReindexingModal( true ) }
 								isBusy={ reindexing }
-								disabled={ reindexing || isEmptySavedEntities() }
+								disabled={
+									reindexing || isEmptySavedEntities()
+								}
 								className="onesearch-btn-reindex"
 							>
-								{ reindexing ? __( 'Re-indexing…', 'onesearch' ) : __( 'Re-index', 'onesearch' ) }
+								{ reindexing
+									? __( 'Re-indexing…', 'onesearch' )
+									: __( 'Re-index', 'onesearch' ) }
 							</Button>
 							<Button
 								variant="primary"
-								onClick={ () => handleSelectedEntitiesSave( selectedEntities ) }
+								onClick={ () =>
+									handleSelectedEntitiesSave(
+										selectedEntities
+									)
+								}
 								disabled={ ! isDirty || saving }
 								isBusy={ saving }
 								className="onesearch-btn-save-entities"
 							>
-								{ saving ? __( 'Saving…', 'onesearch' ) : __( 'Save Changes', 'onesearch' ) }
+								{ saving
+									? __( 'Saving…', 'onesearch' )
+									: __( 'Save Changes', 'onesearch' ) }
 							</Button>
 						</div>
 						<p className="onesearch-entities-info">
-							{ __( 'Saving changes will automatically re-index the data.', 'onesearch' ) }
+							{ __(
+								'Saving changes will automatically re-index the data.',
+								'onesearch'
+							) }
 						</p>
 					</div>
 				</CardHeader>
@@ -235,10 +264,22 @@ const SiteIndexableEntities = ( {
 						</div>
 						<div className="onesearch-entity-selector">
 							<MultiSelectChips
-								placeholder={ __( 'Select entities…', 'onesearch' ) }
-								options={ allPostTypes?.[ currentSiteUrl ] || [] }
-								value={ selectedEntities?.[ currentSiteUrl ] || [] }
-								onChange={ ( next ) => handleSelectedEntitiesChange( next, currentSiteUrl ) }
+								placeholder={ __(
+									'Select entities…',
+									'onesearch'
+								) }
+								options={
+									allPostTypes?.[ currentSiteUrl ] || []
+								}
+								value={
+									selectedEntities?.[ currentSiteUrl ] || []
+								}
+								onChange={ ( next ) =>
+									handleSelectedEntitiesChange(
+										next,
+										currentSiteUrl
+									)
+								}
 								valueField="slug"
 								labelField="label"
 								disabled={ controlsDisabled }
@@ -248,7 +289,10 @@ const SiteIndexableEntities = ( {
 
 					{ /* Brand Sites */ }
 					{ sites?.map( ( site, index ) => (
-						<div key={ index } className="onesearch-entity-site onesearch-entity-brand">
+						<div
+							key={ index }
+							className="onesearch-entity-site onesearch-entity-brand"
+						>
 							<div className="onesearch-entity-site-header">
 								<h3 className="onesearch-entity-site-name">
 									{ site.name }
@@ -257,25 +301,39 @@ const SiteIndexableEntities = ( {
 									{ site.url }
 								</p>
 							</div>
-							{
-								! allPostTypes?.[ site?.url ] ? (
-									<Text variant="muted">
-										{ __( 'No entities to select. Please check site configuration', 'onesearch' ) }
-									</Text>
-								) : (
-									<div className="onesearch-entity-selector">
-										<MultiSelectChips
-											placeholder={ __( 'Select entities…', 'onesearch' ) }
-											options={ allPostTypes?.[ site?.url ] || [] }
-											value={ selectedEntities?.[ site?.url ] || [] }
-											onChange={ ( next ) => handleSelectedEntitiesChange( next, site?.url ) }
-											valueField="slug"
-											labelField="label"
-											disabled={ controlsDisabled }
-										/>
-									</div>
-								)
-							}
+							{ ! allPostTypes?.[ site?.url ] ? (
+								<Text variant="muted">
+									{ __(
+										'No entities to select. Please check site configuration',
+										'onesearch'
+									) }
+								</Text>
+							) : (
+								<div className="onesearch-entity-selector">
+									<MultiSelectChips
+										placeholder={ __(
+											'Select entities…',
+											'onesearch'
+										) }
+										options={
+											allPostTypes?.[ site?.url ] || []
+										}
+										value={
+											selectedEntities?.[ site?.url ] ||
+											[]
+										}
+										onChange={ ( next ) =>
+											handleSelectedEntitiesChange(
+												next,
+												site?.url
+											)
+										}
+										valueField="slug"
+										labelField="label"
+										disabled={ controlsDisabled }
+									/>
+								</div>
+							) }
 						</div>
 					) ) }
 				</CardBody>
@@ -287,12 +345,18 @@ const SiteIndexableEntities = ( {
 					shouldCloseOnClickOutside={ false }
 					size="medium"
 				>
-					<p>{ __( 'Re-indexing will only index the entities you have previously saved. To re-index modified entities, please make sure you have saved them.', 'onesearch' ) }</p>
-					<div style={ {
-						display: 'flex',
-						justifyContent: 'flex-end',
-						marginTop: '24px',
-					} }
+					<p>
+						{ __(
+							'Re-indexing will only index the entities you have previously saved. To re-index modified entities, please make sure you have saved them.',
+							'onesearch'
+						) }
+					</p>
+					<div
+						style={ {
+							display: 'flex',
+							justifyContent: 'flex-end',
+							marginTop: '24px',
+						} }
 					>
 						<Button
 							variant="secondary"
@@ -308,7 +372,9 @@ const SiteIndexableEntities = ( {
 							isBusy={ reindexing }
 							disabled={ reindexing }
 						>
-							{ reindexing ? __( 'Re-indexing…', 'onesearch' ) : __( 'Re-index', 'onesearch' ) }
+							{ reindexing
+								? __( 'Re-indexing…', 'onesearch' )
+								: __( 'Re-index', 'onesearch' ) }
 						</Button>
 					</div>
 				</Modal>
