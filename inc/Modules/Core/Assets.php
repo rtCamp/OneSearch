@@ -134,10 +134,8 @@ final class Assets implements Registrable {
 
 	/**
 	 * Add scripts and styles to the page.
-	 *
-	 * @param string $hook_suffix Admin page name.
 	 */
-	public function enqueue_scripts( $hook_suffix ): void {
+	public function enqueue_scripts(): void {
 		// @todo Only enqueue on OneSearch admin pages.
 		wp_enqueue_style( self::ADMIN_STYLES_HANDLE );
 	}
