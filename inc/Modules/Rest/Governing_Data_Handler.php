@@ -7,6 +7,8 @@
  * @package OneSearch\Modules\Rest
  */
 
+declare(strict_types = 1);
+
 namespace OneSearch\Modules\Rest;
 
 use OneSearch\Encryptor;
@@ -317,7 +319,6 @@ class Governing_Data_Handler {
 	 *
 	 * @param array<string,mixed> $config The site configuration.
 	 * @phpstan-param SiteConfig $config
-	 * @return void
 	 */
 	private static function set_brand_config_cache( array $config ): void {
 		// Encrypt the algolia keys before caching.

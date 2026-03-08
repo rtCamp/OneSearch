@@ -1,7 +1,11 @@
 /**
- * WordPress dependencies
+ * External dependencies
  */
 import { useState, useEffect } from 'react';
+
+/**
+ * WordPress dependencies
+ */
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import {
@@ -23,16 +27,22 @@ interface NoticeState {
 	message: string;
 }
 
-// WordPress provides snake_case keys here. Using them intentionally.
-// eslint-disable-next-line camelcase
-const { nonce, setup_url, site_type } = window.OneSearchOnboarding;
+// WordPress provides snake_case keys here. Rename to camelCase for local use.
+const {
+	nonce,
+	setup_url: setupUrl,
+	site_type: initialSiteType,
+} = window.OneSearchOnboarding;
 
 /**
  * Create NONCE middleware for apiFetch
  */
 apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
 
-const SiteTypeSelector = ( { value, setSiteType }: {
+const SiteTypeSelector = ( {
+	value,
+	setSiteType,
+}: {
 	value: SiteType | '';
 	setSiteType: ( v: SiteType | '' ) => void;
 } ) => (
@@ -41,7 +51,7 @@ const SiteTypeSelector = ( { value, setSiteType }: {
 		value={ value }
 		help={ __(
 			"Choose your site's primary purpose. This setting cannot be changed later and affects available features and configurations.",
-			'onesearch',
+			'onesearch'
 		) }
 		onChange={ ( v: SiteType | '' ) => {
 			setSiteType( v );
@@ -49,18 +59,25 @@ const SiteTypeSelector = ( { value, setSiteType }: {
 		options={ [
 			{ label: __( 'Select…', 'onesearch' ), value: '' },
 			{ label: __( 'Brand Site', 'onesearch' ), value: BRAND_SITE },
-			{ label: __( 'Governing site', 'onesearch' ), value: GOVERNING_SITE },
+			{
+				label: __( 'Governing site', 'onesearch' ),
+				value: GOVERNING_SITE,
+			},
 		] }
 	/>
 );
 
 const OnboardingScreen = () => {
-	const [ siteType, setSiteType ] = useState<SiteType | ''>( site_type || '' );
-	const [ notice, setNotice ] = useState<NoticeState | null>( null );
+	const [ siteType, setSiteType ] = useState< SiteType | '' >(
+		initialSiteType || ''
+	);
+	const [ notice, setNotice ] = useState< NoticeState | null >( null );
 	const [ isSaving, setIsSaving ] = useState( false );
 
 	useEffect( () => {
-		apiFetch<{ onesearch_site_type?: SiteType }>( { path: '/wp/v2/settings' } )
+		apiFetch< { onesearch_site_type?: SiteType } >( {
+			path: '/wp/v2/settings',
+		} )
 			.then( ( settings ) => {
 				if ( settings?.onesearch_site_type ) {
 					setSiteType( settings.onesearch_site_type );
@@ -80,7 +97,7 @@ const OnboardingScreen = () => {
 		setIsSaving( true );
 
 		try {
-			await apiFetch<{ onesearch_site_type?: SiteType }>( {
+			await apiFetch< { onesearch_site_type?: SiteType } >( {
 				path: '/wp/v2/settings',
 				method: 'POST',
 				data: { onesearch_site_type: value },
@@ -92,8 +109,8 @@ const OnboardingScreen = () => {
 				setSiteType( settings.onesearch_site_type );
 
 				// Redirect user to setup page.
-				if ( setup_url ) {
-					window.location.href = setup_url;
+				if ( setupUrl ) {
+					window.location.href = setupUrl;
 				}
 			} );
 		} catch {
@@ -111,7 +128,7 @@ const OnboardingScreen = () => {
 			{ !! notice?.message && (
 				<Notice
 					status={ notice?.type ?? 'success' }
-					isDismissible={ true }
+					isDismissible
 					onRemove={ () => setNotice( null ) }
 				>
 					{ notice?.message }

@@ -1,0 +1,39 @@
+{
+	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"meta": {
+		"title": "OneSearch Demo",
+		"description": "Cross-site, brand-aware search across a multi-brand WordPress network, powered by Algolia.",
+		"author": "rtCamp",
+		"categories": [
+			"plugin",
+			"search",
+			"multisite",
+			"algolia",
+			"enterprise"
+		]
+	},
+	"landingPage": "/wp-admin/plugins.php",
+	"preferredVersions": {
+		"php": "8.4",
+		"wp": "latest"
+	},
+	"features": {
+		"networking": true
+	},
+	"steps": [
+		{
+			"step": "login",
+			"username": "admin"
+		},
+		{
+			"step": "installPlugin",
+			"pluginData": {
+				"resource": "url",
+				"url": "https://github.com/rtCamp/OneSearch/releases/latest/download/onesearch.zip"
+			},
+			"options": {
+				"activate": true
+			}
+		}
+	]
+}
