@@ -17,7 +17,7 @@
  * Text Domain:       onesearch
  * Domain Path:       /languages
  * Version:           1.0.1
- * Requires PHP:      8.0
+ * Requires PHP:      8.2
  * Requires at least: 6.8
  * Tested up to:      6.9
  */

@@ -49,7 +49,7 @@ Managing content across multiple brands, regions, or business units often result
 | Requirement   | Version  |
 |---------------|----------|
 | WordPress     | >= 6.8   |
-| PHP           | >= 8.0   |
+| PHP           | >= 8.2   |
 
 ---
 
