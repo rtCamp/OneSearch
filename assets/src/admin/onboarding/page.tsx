@@ -17,10 +17,16 @@ import {
 	SelectControl,
 } from '@wordpress/components';
 
-const BRAND_SITE = 'brand-site';
-const GOVERNING_SITE = 'governing-site';
+/**
+ * Internal dependencies
+ */
+import type { SiteType } from '../../types/global';
 
-export type SiteType = typeof BRAND_SITE | typeof GOVERNING_SITE;
+// Re-export for backward compatibility
+export type { SiteType } from '../../types/global';
+
+const BRAND_SITE = 'brand-site' as const;
+const GOVERNING_SITE = 'governing-site' as const;
 
 interface NoticeState {
 	type: 'success' | 'error' | 'warning' | 'info';
@@ -43,8 +49,8 @@ const SiteTypeSelector = ( {
 	value,
 	setSiteType,
 }: {
-	value: SiteType | '';
-	setSiteType: ( v: SiteType | '' ) => void;
+	value: SiteType;
+	setSiteType: ( v: SiteType ) => void;
 } ) => (
 	<SelectControl
 		label={ __( 'Site Type', 'onesearch' ) }
@@ -53,9 +59,11 @@ const SiteTypeSelector = ( {
 			"Choose your site's primary purpose. This setting cannot be changed later and affects available features and configurations.",
 			'onesearch'
 		) }
-		onChange={ ( v: SiteType | '' ) => {
+		onChange={ ( v: SiteType ) => {
 			setSiteType( v );
 		} }
+		__nextHasNoMarginBottom
+		__next40pxDefaultSize
 		options={ [
 			{ label: __( 'Select…', 'onesearch' ), value: '' },
 			{ label: __( 'Brand Site', 'onesearch' ), value: BRAND_SITE },
@@ -68,7 +76,7 @@ const SiteTypeSelector = ( {
 );
 
 const OnboardingScreen = () => {
-	const [ siteType, setSiteType ] = useState< SiteType | '' >(
+	const [ siteType, setSiteType ] = useState< SiteType >(
 		initialSiteType || ''
 	);
 	const [ notice, setNotice ] = useState< NoticeState | null >( null );
@@ -91,7 +99,7 @@ const OnboardingScreen = () => {
 			} );
 	}, [] ); // for initial component mount
 
-	const handleSiteTypeChange = async ( value: SiteType | '' ) => {
+	const handleSiteTypeChange = async ( value: SiteType ) => {
 		// Optimistically set site type.
 		setSiteType( value );
 		setIsSaving( true );
