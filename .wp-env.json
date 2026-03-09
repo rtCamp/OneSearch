@@ -18,11 +18,11 @@
 				"FS_METHOD": "direct"
 			},
 			"mappings": {
-				"/wp-content/plugins/onesearch": "."
+				"wp-content/plugins/onesearch": "."
 			}
 		}
 	},
 	"lifecycleScripts": {
-		"afterStart": "wp-env run cli wp rewrite structure /%postname%/ --hard"
+		"afterStart": "wp-env run cli wp rewrite structure /%postname%/ --hard && wp-env run tests-cli wp rewrite structure /%postname%/ --hard"
 	}
 }

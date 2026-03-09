@@ -34,15 +34,13 @@ module.exports = {
 		...defaultConfig.moduleNameMapper,
 		// Path alias for assets/src directory
 		'^@/(.*)$': '<rootDir>/assets/src/$1',
-		// Mock for WordPress Interactivity API (not available in test environment)
-		'^@wordpress/interactivity$':
-			'<rootDir>/tests/js/__mocks__/wordpress-interactivity.ts',
 	},
 
 	// Directories to ignore when searching for tests
 	testPathIgnorePatterns: [
 		'/node_modules/',
 		'/build/',
+		'/inc',
 		'/vendor/',
 		'/tests/e2e/',
 		'/tests/php/',
@@ -56,14 +54,13 @@ module.exports = {
 
 	// Files to include in coverage reports
 	collectCoverageFrom: [
-		'assets/src/**/*.{ts,tsx}',
+		'assets/src/**/*.{js,jsx,ts,tsx}',
 		// Exclude type definition files
 		'!assets/src/**/*.d.ts',
 		// Exclude barrel exports
-		'!assets/src/**/index.ts',
+		'!assets/src/**/index.{js,tsx,jsx}',
 		// Exclude style files
-		'!assets/src/**/*.scss',
-		'!assets/src/**/*.css',
+		'!assets/src/**/*.{css,scss}',
 	],
 
 	// Coverage output directory
