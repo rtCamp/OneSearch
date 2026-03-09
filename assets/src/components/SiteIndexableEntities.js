@@ -96,7 +96,7 @@ const SiteIndexableEntities = ( {
 				),
 			} );
 		}
-	}, [] );
+	}, [ setNotice ] );
 
 	useEffect( () => {
 		getIndexableEntities();

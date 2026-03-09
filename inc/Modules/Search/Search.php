@@ -38,7 +38,7 @@ final class Search implements Registrable {
 	 *
 	 * @var bool|null
 	 */
-	private ?bool $is_search_enabled;
+	private ?bool $is_search_enabled = null;
 
 	/**
 	 * {@inheritDoc}
