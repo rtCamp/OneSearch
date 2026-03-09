@@ -29,11 +29,13 @@ final class Watcher implements Registrable {
 	/**
 	 * Triggered when a post's status changes (e.g., publish, update, trash, etc.)
 	 *
+	 * @internal Hook callback
+	 *
 	 * @param string   $new_status The new post status.
 	 * @param string   $old_status The previous post status.
 	 * @param \WP_Post $post       The post object.
 	 */
-	public function on_post_transition( $new_status, $old_status, $post ): void {
+	public function on_post_transition( $new_status, $old_status, $post ): void { // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter
 		if ( ! $post instanceof \WP_Post || ! $this->is_post_type_indexable( (string) $post->post_type ) ) {
 			return;
 		}

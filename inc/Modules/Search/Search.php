@@ -38,7 +38,7 @@ final class Search implements Registrable {
 	 *
 	 * @var bool|null
 	 */
-	private ?bool $is_search_enabled;
+	private ?bool $is_search_enabled = null;
 
 	/**
 	 * {@inheritDoc}
@@ -56,7 +56,7 @@ final class Search implements Registrable {
 
 		// Author data.
 		add_filter( 'get_the_author_display_name', [ $this, 'get_post_author' ], 10 );
-		add_filter( 'author_link', [ $this, 'get_post_author_link' ], 10, 3 );
+		add_filter( 'author_link', [ $this, 'get_post_author_link' ], 10 );
 		add_filter( 'get_avatar_url', [ $this, 'get_post_author_avatar' ], 10 );
 
 		// Term and taxonomy link handling for remote objects.
@@ -67,7 +67,7 @@ final class Search implements Registrable {
 		add_filter( 'wp_get_post_terms', [ $this, 'get_post_terms' ], 10, 3 );
 
 		// Block-theme compatibility: fix remote permalinks/excerpts in rendered blocks.
-		add_filter( 'render_block', [ $this, 'filter_render_block' ], 10, 3 );
+		add_filter( 'render_block', [ $this, 'filter_render_block' ], 10, 2 );
 	}
 
 	/**
@@ -166,13 +166,11 @@ final class Search implements Registrable {
 	/**
 	 * Author link mapping for remote posts.
 	 *
-	 * @param string      $author_link     Default author link.
-	 * @param int         $author_id       Author ID (negative for remote).
-	 * @param string|null $author_nicename The author's nicename if provided by the filter.
+	 * @param string $author_link      Default author link.
 	 *
 	 * @return string
 	 */
-	public function get_post_author_link( $author_link, $author_id, $author_nicename = null ) {
+	public function get_post_author_link( $author_link ) {
 		global $wp_query, $post;
 
 		if ( ! $this->is_search_enabled() || ! $wp_query instanceof \WP_Query || ! $this->should_filter_query( $wp_query ) ) {
@@ -325,11 +323,10 @@ final class Search implements Registrable {
 	 *
 	 * @param string              $block_content Rendered block HTML.
 	 * @param array<string,mixed> $block         Block data.
-	 * @param \WP_Block           $instance      Block instance.
 	 *
 	 * @return string
 	 */
-	public function filter_render_block( $block_content, $block, $instance ) {
+	public function filter_render_block( $block_content, $block ) {
 		global $post;
 
 		if ( ! $this->is_search_enabled() || ! $post instanceof \WP_Post || (int) $post->ID >= 0 || empty( $post->guid ) ) {

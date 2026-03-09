@@ -51,7 +51,7 @@ const SiteSettings = () => {
 			}
 			const data = await response.json();
 			setApiKey( data?.secret_key || '' );
-		} catch ( error ) {
+		} catch {
 			setNotice( {
 				type: 'error',
 				message: __(
@@ -96,7 +96,7 @@ const SiteSettings = () => {
 					),
 				} );
 			}
-		} catch ( error ) {
+		} catch {
 			setNotice( {
 				type: 'error',
 				message: __(
@@ -126,7 +126,7 @@ const SiteSettings = () => {
 			}
 			const data = await response.json();
 			setGoverningSite( data?.governing_site_url || '' );
-		} catch ( error ) {
+		} catch {
 			setNotice( {
 				type: 'error',
 				message: __(
@@ -160,7 +160,7 @@ const SiteSettings = () => {
 					'onesearch'
 				),
 			} );
-		} catch ( error ) {
+		} catch {
 			setNotice( {
 				type: 'error',
 				message: __(

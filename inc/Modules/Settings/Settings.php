@@ -165,10 +165,12 @@ final class Settings implements Registrable {
 	/**
 	 * Ensures the API key is generated when the site type changes to 'consumer'.
 	 *
+	 * @internal Hook callback
+	 *
 	 * @param mixed $old_value The old value.
 	 * @param mixed $new_value The new value.
 	 */
-	public function on_site_type_change( $old_value, $new_value ): void {
+	public function on_site_type_change( $old_value, $new_value ): void { // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter
 		if ( self::SITE_TYPE_CONSUMER !== $new_value ) {
 			return;
 		}

@@ -298,7 +298,7 @@ final class Post_Record {
 		$removed_filter = remove_filter( 'the_content', 'wptexturize', 10 );
 
 		try {
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHookname -- intentionally using the_content.
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- intentionally using the_content.
 			$content = (string) apply_filters( 'the_content', $post->post_content );
 		} catch ( \Throwable $e ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- @todo Surface this better with a Logger class.

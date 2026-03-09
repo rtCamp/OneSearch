@@ -179,7 +179,7 @@ const SiteModal = ( {
 				} );
 				setShowNotice( true );
 			}
-		} catch ( error ) {
+		} catch {
 			setErrors( {
 				...newErrors,
 				message: __(

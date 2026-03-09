@@ -21,6 +21,8 @@ parameters:
 		max: 80500
 	bootstrapFiles:
 		- onesearch.php
+	stubFiles:
+		- phpstan/stubs/wordpress-extended.php
 	paths:
 		- onesearch.php
 		- uninstall.php
