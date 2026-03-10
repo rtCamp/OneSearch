@@ -1,48 +1,46 @@
-name: "Copilot Setup Steps"
+# This workflow sets up the environment for GitHub Copilot coding agent.
+# It is triggered manually or when this file is modified.
+#
+# Copilot uses this to understand how to set up the development environment.
 
-# Automatically run the setup steps when they are changed to allow for easy validation, and
-# allow manual testing through the repository's "Actions" tab
+name: Copilot Setup Steps
+
 on:
   workflow_dispatch:
   push:
     paths:
-      - .github/workflows/copilot-setup-steps.yml
+      - '.github/workflows/copilot-setup-steps.yml'
   pull_request:
     paths:
       - .github/workflows/copilot-setup-steps.yml
 
+permissions:
+  contents: read
+
 jobs:
   # The job MUST be called `copilot-setup-steps` or it will not be picked up by Copilot.
   copilot-setup-steps:
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
+    name: Setup Copilot Environment
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           show-progress: ${{ runner.debug == '1' && 'true' || 'false' }}
           persist-credentials: false
 
-      ##
-      # This allows Composer dependencies to be installed using a single step.
-      #
-      # Since the tests are currently run within the Docker containers where the PHP version varies,
-      # the same PHP version needs to be configured for the action runner machine so that the correct
-      # dependency versions are installed and cached.
-      ##
       - name: Set up PHP
         uses: shivammathur/setup-php@44454db4f0199b8b9685a5d763dc37cbf79108e1 # v2.36.0
         with:
-          php-version: "8.3"
+          php-version: '8.3'
           coverage: none
 
       - name: Install Composer dependencies
-        uses: ramsey/composer-install@a2636af0004d1c0499ffca16ac0b4cc94df70565 # v3.1.0
+        uses: ramsey/composer-install@3cf229dc2919194e9e36783941438d17239e8520 # v3.1.1
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f3 # v6.1.0
         with:
           cache: 'npm'
@@ -53,5 +51,5 @@ jobs:
         env:
           CI: true
 
-      - name: Build assets for development
+      - name: Build development assets
         run: npm run build:dev

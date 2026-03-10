@@ -18,7 +18,6 @@ use OneSearch\Modules\Settings\Settings;
  * Class - Algolia
  */
 final class Algolia {
-
 	/**
 	 * Get the index object for the current site.
 	 */

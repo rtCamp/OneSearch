@@ -1,6 +1,9 @@
 /**
  * WordPress dependencies
  */
+/**
+ * External dependencies
+ */
 import { useState, useEffect } from 'react';
 import {
 	Button,
@@ -30,20 +33,20 @@ const EMPTY_CREDENTIALS: AlgoliaCredentials = {
 
 const CREDENTIALS_ENDPOINT = '/onesearch/v1/algolia-credentials';
 
-const AlgoliaSettings = (
-	{ setNotice } :
-	{
-		setNotice: ( notice: NoticeType ) => void;
-	},
-) => {
-	const [ algoliaCreds, setAlgoliaCreds ] = useState< AlgoliaCredentials >( EMPTY_CREDENTIALS );
-	const [ initial, setInitial ] = useState<AlgoliaCredentials | null>(
-		null,
+const AlgoliaSettings = ( {
+	setNotice,
+}: {
+	setNotice: ( notice: NoticeType ) => void;
+} ) => {
+	const [ algoliaCreds, setAlgoliaCreds ] =
+		useState< AlgoliaCredentials >( EMPTY_CREDENTIALS );
+	const [ initial, setInitial ] = useState< AlgoliaCredentials | null >(
+		null
 	);
 	const [ saving, setSaving ] = useState( false );
 
 	useEffect( () => {
-		apiFetch<AlgoliaCredentials>( {
+		apiFetch< AlgoliaCredentials >( {
 			path: CREDENTIALS_ENDPOINT,
 		} )
 			.then( ( data ) => {
@@ -63,7 +66,10 @@ const AlgoliaSettings = (
 			.catch( () => {
 				setNotice( {
 					type: 'error',
-					message: __( 'Error fetching Algolia credentials.', 'onesearch' ),
+					message: __(
+						'Error fetching Algolia credentials.',
+						'onesearch'
+					),
 				} );
 			} );
 	}, [ setNotice ] );
@@ -74,13 +80,15 @@ const AlgoliaSettings = (
 			algoliaCreds.write_key !== initial.write_key );
 
 	// Validate that required fields are filled
-	const isValid = !! ( algoliaCreds &&
+	const isValid = !! (
+		algoliaCreds &&
 		algoliaCreds.app_id !== '' &&
-		algoliaCreds.write_key !== '' );
+		algoliaCreds.write_key !== ''
+	);
 
 	const onSave = async () => {
 		setSaving( true );
-		apiFetch<{success:boolean}>( {
+		apiFetch< { success: boolean } >( {
 			path: CREDENTIALS_ENDPOINT,
 			method: 'POST',
 			data: algoliaCreds,
@@ -94,7 +102,10 @@ const AlgoliaSettings = (
 
 				setNotice( {
 					type: 'success',
-					message: __( 'Algolia credentials saved successfully.', 'onesearch' ),
+					message: __(
+						'Algolia credentials saved successfully.',
+						'onesearch'
+					),
 				} );
 			} )
 			.catch( () => {
@@ -102,7 +113,7 @@ const AlgoliaSettings = (
 					type: 'error',
 					message: __(
 						'Error saving Algolia credentials. Please try again later.',
-						'onesearch',
+						'onesearch'
 					),
 				} );
 			} )
@@ -118,7 +129,9 @@ const AlgoliaSettings = (
 				<Button
 					variant="primary"
 					onClick={ onSave }
-					disabled={ ! hasChanges || saving || ! initial || ! isValid }
+					disabled={
+						! hasChanges || saving || ! initial || ! isValid
+					}
 					isBusy={ saving }
 				>
 					{ __( 'Save Credentials', 'onesearch' ) }
@@ -128,10 +141,13 @@ const AlgoliaSettings = (
 				<Grid columns={ 2 }>
 					<TextControl
 						label={ __( 'Application ID*', 'onesearch' ) }
-						placeholder={ __( 'Enter your Algolia Application ID', 'onesearch' ) }
+						placeholder={ __(
+							'Enter your Algolia Application ID',
+							'onesearch'
+						) }
 						help={ __(
 							"It's used to identify your application when using Algolia API.",
-							'onesearch',
+							'onesearch'
 						) }
 						value={ algoliaCreds.app_id }
 						onChange={ ( value ) =>
@@ -145,10 +161,13 @@ const AlgoliaSettings = (
 					/>
 					<TextControl
 						label={ __( 'Write API Key*', 'onesearch' ) }
-						placeholder={ __( 'Enter your Algolia Write API Key', 'onesearch' ) }
+						placeholder={ __(
+							'Enter your Algolia Write API Key',
+							'onesearch'
+						) }
 						help={ __(
 							"This key is usable for write operations and it's also able to list the indices you've got access to.",
-							'onesearch',
+							'onesearch'
 						) }
 						type="password"
 						value={ algoliaCreds.write_key }

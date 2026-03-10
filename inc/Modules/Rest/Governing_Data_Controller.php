@@ -5,6 +5,8 @@
  * @package OneSearch
  */
 
+declare(strict_types = 1);
+
 namespace OneSearch\Modules\Rest;
 
 use OneSearch\Modules\Search\Settings as Search_Settings;
@@ -17,7 +19,6 @@ use WP_REST_Server;
  * Class Governing_Data_Controller
  */
 class Governing_Data_Controller extends Abstract_REST_Controller {
-
 	/**
 	 * {@inheritDoc}
 	 */

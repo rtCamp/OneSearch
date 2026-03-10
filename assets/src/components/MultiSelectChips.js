@@ -36,7 +36,13 @@ function MultiSelectChips( {
 	const getVal = ( val ) =>
 		String( val?.[ valueField ] ?? val?.slug ?? val?.id ?? val?.key ?? '' );
 	const getLabel = ( val ) =>
-		String( val?.[ labelField ] ?? val?.label ?? val?.name ?? val?.slug ?? getVal( val ) );
+		String(
+			val?.[ labelField ] ??
+				val?.label ??
+				val?.name ??
+				val?.slug ??
+				getVal( val )
+		);
 
 	// Change the set based on toggled values.
 	const toggleValue = ( val ) => {
@@ -77,7 +83,11 @@ function MultiSelectChips( {
 				aria-haspopup="listbox"
 				aria-expanded={ open }
 			>
-				<div className={ `msc-chips ${ disabled ? 'msc--disabled' : '' }` }>
+				<div
+					className={ `msc-chips ${
+						disabled ? 'msc--disabled' : ''
+					}` }
+				>
 					{ selected.length === 0 ? (
 						<span className="msc-placeholder">{ placeholder }</span>
 					) : (
@@ -92,7 +102,9 @@ function MultiSelectChips( {
 
 							return (
 								<span key={ itemValue } className="msc-chip">
-									<span className="msc-chip-label">{ itemLabel }</span>
+									<span className="msc-chip-label">
+										{ itemLabel }
+									</span>
 									<span
 										role="button"
 										tabIndex={ disabled ? -1 : 0 }
@@ -102,7 +114,10 @@ function MultiSelectChips( {
 											if ( disabled ) {
 												return;
 											}
-											if ( e.key === 'Enter' || e.key === ' ' ) {
+											if (
+												e.key === 'Enter' ||
+												e.key === ' '
+											) {
 												e.preventDefault();
 												handleRemove( e );
 											}
@@ -110,7 +125,11 @@ function MultiSelectChips( {
 										aria-label={ `Remove ${ itemLabel }` }
 										aria-disabled={ disabled }
 									>
-										<Icon icon={ closeSmall } aria-hidden={ false } aria-disabled={ disabled } />
+										<Icon
+											icon={ closeSmall }
+											aria-hidden={ false }
+											aria-disabled={ disabled }
+										/>
 									</span>
 								</span>
 							);
@@ -121,7 +140,10 @@ function MultiSelectChips( {
 			</button>
 
 			{ open && (
-				<Popover anchor={ anchorRef.current } onClose={ () => setOpen( false ) }>
+				<Popover
+					anchor={ anchorRef.current }
+					onClose={ () => setOpen( false ) }
+				>
 					<div
 						className="msc-menu"
 						role="listbox"
@@ -133,7 +155,9 @@ function MultiSelectChips( {
 							{ options.map( ( item ) => {
 								const val = getVal( item );
 								const itemLabel = getLabel( item );
-								const id = `msc-opt-${ encodeURIComponent( val ) };`;
+								const id = `msc-opt-${ encodeURIComponent(
+									val
+								) };`;
 								const checked = valueSet.has( val );
 								return (
 									<li
@@ -142,15 +166,22 @@ function MultiSelectChips( {
 										role="option"
 										aria-selected={ checked }
 									>
-										<label htmlFor={ id } className="msc-row-label">
+										<label
+											htmlFor={ id }
+											className="msc-row-label"
+										>
 											<input
 												id={ id }
 												type="checkbox"
 												checked={ checked }
-												onChange={ () => toggleValue( val ) }
+												onChange={ () =>
+													toggleValue( val )
+												}
 												disabled={ disabled }
 											/>
-											<span className="msc-row-text">{ itemLabel }</span>
+											<span className="msc-row-text">
+												{ itemLabel }
+											</span>
 										</label>
 									</li>
 								);
