@@ -32,7 +32,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@44454db4f0199b8b9685a5d763dc37cbf79108e1 # v2.36.0
+        uses: shivammathur/setup-php@ec406be512d7077f68eed36e63f4d91bc006edc4 # v2.35.4
         with:
           php-version: '8.3'
           coverage: none
@@ -43,10 +43,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f3 # v6.1.0
         with:
-          cache: 'npm'
           node-version-file: '.nvmrc'
+          cache: 'npm'
 
-      - name: Install NPM dependencies
+      - name: Install npm dependencies
         run: npm ci
         env:
           CI: true

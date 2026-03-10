@@ -17,7 +17,7 @@ parameters:
 	# Configuration
 	level: 8
 	phpVersion:
-		min: 80000
+		min: 80200
 		max: 80500
 	bootstrapFiles:
 		- onesearch.php

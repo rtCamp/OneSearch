@@ -1,11 +1,4 @@
 /**
- * Helper function to validate if a string is a well-formed URL.
- *
- * @param {string} str - The string to validate as a URL.
- *
- * @return {boolean} True if the string is a valid URL, false otherwise.
- */
-/**
  * Validates if a given string is a valid URL.
  *
  * @param {string} url - The URL string to validate.
