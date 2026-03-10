@@ -41,19 +41,19 @@ jobs:
           echo "PHP_FPM_GID=$(id -g)" >> "$GITHUB_ENV"
 
       - name: Checkout repository
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           show-progress: ${{ runner.debug == '1' && 'true' || 'false' }}
           persist-credentials: false
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@ec406be512d7077f68eed36e63f4d91bc006edc4 # v2.35.4
+        uses: shivammathur/setup-php@44454db4f0199b8b9685a5d763dc37cbf79108e1 # v2.36.0
         with:
           php-version: ${{ inputs.php-version }}
           coverage: ${{ inputs.coverage && 'xdebug' || 'none' }}
 
       - name: Install Composer dependencies
-        uses: ramsey/composer-install@3cf229dc2919194e9e36783941438d17239e8520 # v3.1.1
+        uses: ramsey/composer-install@a35c6ebd3d08125aaf8852dff361e686a1a67947 # v3.2.0
 
       - name: Setup Node.js
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
@@ -89,7 +89,7 @@ jobs:
 
       - name: Upload code coverage report
         if: ${{ inputs.coverage }}
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: tests/_output/php-coverage.xml
@@ -98,7 +98,7 @@ jobs:
 
       - name: Upload HTML coverage report as artifact
         if: ${{ inputs.coverage }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: wp-code-coverage-${{ inputs.php-version }}-${{ inputs.wp-version }}
           path: tests/_output/html
