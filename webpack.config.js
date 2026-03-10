@@ -71,7 +71,7 @@ const scripts = {
 			'assets',
 			'src',
 			'admin/search',
-			'index.js'
+			'index.tsx'
 		),
 		onboarding: path.resolve(
 			process.cwd(),

@@ -58,10 +58,10 @@ Code contributions, bug reports, and feature requests are welcome! The following
 │       │   └── settings/   # Plugin settings.
 │       ├── components/
 │       │   ├── AlgoliaSettings.tsx
-│       │   ├── MultiSelectChips.js
-│       │   ├── SiteIndexableEntities.js
+│       │   ├── MultiSelectChips.tsx
+│       │   ├── SiteIndexableEntities.tsx
 │       │   ├── SiteModal.tsx
-│       │   ├── SiteSearchSettings.js
+│       │   ├── SiteSearchSettings.tsx
 │       │   ├── SiteSettings.tsx
 │       │   └── SiteTable.tsx
 │       ├── css/

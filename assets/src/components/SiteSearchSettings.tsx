@@ -1,4 +1,3 @@
-/* global OneSearchSettings */
 /**
  * WordPress dependencies
  */
@@ -17,44 +16,73 @@ import { __ } from '@wordpress/i18n';
 /**
  * External dependencies
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 /**
  * Internal dependencies
  */
-import { NONCE } from '../js/utils';
+import { NONCE, withTrailingSlash } from '../js/utils';
+import type { NoticeType } from '@/admin/settings/page';
 
 /**
  * Create NONCE middleware for apiFetch
  */
 apiFetch.use( apiFetch.createNonceMiddleware( NONCE ) );
 
+export interface PostTypeOption {
+	slug: string;
+	label?: string;
+	restBase?: string;
+}
+
+interface SiteSearchSetting {
+	algolia_enabled: boolean;
+	searchable_sites: string[];
+}
+
+interface SiteInfo {
+	name: string;
+	url: string;
+	isGoverning: boolean;
+}
+
+interface LocalNoticeType {
+	type: 'success' | 'error' | 'warning';
+	message: string;
+}
+
 const SiteSearchSettings = ( {
 	indexableEntities,
 	setNotice,
 	allPostTypes,
 	isIndexableEntitiesSaving,
+}: {
+	indexableEntities: Record< string, string[] >;
+	setNotice: ( notice: NoticeType | null ) => void;
+	allPostTypes: Record< string, PostTypeOption[] >;
+	isIndexableEntitiesSaving: boolean;
 } ) => {
-	const [ searchSettings, setSearchSettings ] = useState( {} );
+	const [ searchSettings, setSearchSettings ] = useState<
+		Record< string, SiteSearchSetting >
+	>( {} );
 	const [ loading, setLoading ] = useState( true );
 	const [ saving, setSaving ] = useState( false );
-	const [ localNotice, setLocalNotice ] = useState( null );
+	const [ localNotice, setLocalNotice ] = useState< LocalNoticeType | null >(
+		null
+	);
 	const [ reloadKey, setReloadKey ] = useState( 0 );
+	const prevIndexableEntitiesRef = useRef< Record< string, string[] > >( {} );
 
 	// Get all sites from sharedSites and governing site
-	const sharedSites = OneSearchSettings?.sharedSites || [];
-	const currentSiteUrl = OneSearchSettings?.currentSiteUrl || '';
-	const [ initialSettings, setInitialSettings ] = useState( {} );
+	const sharedSites = window.OneSearchSettings?.sharedSites || [];
+	const currentSiteUrl = window.OneSearchSettings?.currentSiteUrl || '';
+	const [ initialSettings, setInitialSettings ] = useState<
+		Record< string, SiteSearchSetting >
+	>( {} );
 
-	const trailingslashit = ( url ) => {
-		return typeof url === 'string' && url.endsWith( '/' )
-			? url
-			: `${ url }/`;
-	};
-
-	const brandSites = sharedSites
+	const brandSites: SiteInfo[] = sharedSites
 		.filter( ( site ) => {
-			const url = trailingslashit( site.url );
+			const url = withTrailingSlash( site.url );
 			const types = allPostTypes?.[ url ];
 			return Array.isArray( types ) ? types.length > 0 : false;
 		} )
@@ -65,7 +93,7 @@ const SiteSearchSettings = ( {
 		} ) );
 
 	// Combine shared sites and governing site
-	const allSites = [
+	const allSites: SiteInfo[] = [
 		// Governing site
 		{
 			name: __( 'Governing Site', 'onesearch' ),
@@ -78,8 +106,8 @@ const SiteSearchSettings = ( {
 
 	//  Check if site has indexable entities.
 	const siteHasEntities = useCallback(
-		( url ) => {
-			const normalizedUrl = trailingslashit( url );
+		( url: string ): boolean => {
+			const normalizedUrl = withTrailingSlash( url );
 			const entities = indexableEntities[ normalizedUrl ] || [];
 			return Array.isArray( entities ) && entities.length > 0;
 		},
@@ -95,8 +123,19 @@ const SiteSearchSettings = ( {
 			return;
 		}
 
+		// Only run if indexableEntities changed
+		if (
+			JSON.stringify( prevIndexableEntitiesRef.current ) ===
+			JSON.stringify( indexableEntities )
+		) {
+			return;
+		}
+		prevIndexableEntitiesRef.current = indexableEntities;
+
 		let hasChanges = false;
-		const updatedSettings = { ...searchSettings };
+		const updatedSettings: Record< string, SiteSearchSetting > = {
+			...searchSettings,
+		};
 
 		Object.keys( searchSettings ).forEach( ( url ) => {
 			const currentSetting = searchSettings[ url ];
@@ -115,7 +154,12 @@ const SiteSearchSettings = ( {
 		if ( hasChanges ) {
 			setSearchSettings( updatedSettings );
 
-			apiFetch( {
+			apiFetch< {
+				onesearch_sites_search_settings: Record<
+					string,
+					SiteSearchSetting
+				>;
+			} >( {
 				path: '/wp/v2/settings',
 				method: 'POST',
 				data: {
@@ -147,12 +191,16 @@ const SiteSearchSettings = ( {
 					} );
 				} );
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [ indexableEntities, setNotice, siteHasEntities ] );
+	}, [ indexableEntities, setNotice, siteHasEntities, searchSettings ] );
 
 	// Load existing search settings
 	useEffect( () => {
-		apiFetch( {
+		apiFetch< {
+			onesearch_sites_search_settings: Record<
+				string,
+				SiteSearchSetting
+			>;
+		} >( {
 			path: '/wp/v2/settings',
 		} )
 			.then( ( settings ) => {
@@ -181,7 +229,7 @@ const SiteSearchSettings = ( {
 	}, [ reloadKey, setNotice ] );
 
 	// Toggle Algolia for a site
-	const handleSiteToggle = ( url, enabled ) => {
+	const handleSiteToggle = ( url: string, enabled: boolean ) => {
 		if ( enabled && ! siteHasEntities( url ) ) {
 			setLocalNotice( {
 				type: 'warning',
@@ -193,10 +241,9 @@ const SiteSearchSettings = ( {
 			return;
 		}
 
-		setSearchSettings( ( prev ) => ( {
+		setSearchSettings( ( prev: Record< string, SiteSearchSetting > ) => ( {
 			...prev,
 			[ url ]: {
-				...( prev[ url ] || {} ),
 				algolia_enabled: enabled,
 				searchable_sites: enabled ? [ url ] : [],
 			},
@@ -205,13 +252,13 @@ const SiteSearchSettings = ( {
 
 	// Toggle searchable sites for a site
 	const handleSearchableSiteToggle = (
-		parentSiteUrl,
-		targetSiteUrl,
-		checked
+		parentSiteUrl: string,
+		targetSiteUrl: string,
+		checked: boolean
 	) => {
 		const isSelf =
-			trailingslashit( targetSiteUrl ) ===
-			trailingslashit( parentSiteUrl );
+			withTrailingSlash( targetSiteUrl ) ===
+			withTrailingSlash( parentSiteUrl );
 
 		if ( isSelf && ! checked ) {
 			setLocalNotice( {
@@ -224,17 +271,22 @@ const SiteSearchSettings = ( {
 			return;
 		}
 
-		setSearchSettings( ( prev ) => {
-			const currentSearchables =
-				prev[ parentSiteUrl ]?.searchable_sites || [];
+		setSearchSettings( ( prev: Record< string, SiteSearchSetting > ) => {
+			const prevSetting = prev[ parentSiteUrl ] || {
+				algolia_enabled: false,
+				searchable_sites: [],
+			};
+			const currentSearchables = prevSetting.searchable_sites;
 			const newSearchables = checked
 				? [ ...currentSearchables, targetSiteUrl ]
-				: currentSearchables.filter( ( url ) => url !== targetSiteUrl );
+				: currentSearchables.filter(
+						( url: string ) => url !== targetSiteUrl
+				  );
 
 			return {
 				...prev,
 				[ parentSiteUrl ]: {
-					...( prev[ parentSiteUrl ] || {} ),
+					...prevSetting,
 					searchable_sites: newSearchables,
 				},
 			};
@@ -242,12 +294,12 @@ const SiteSearchSettings = ( {
 	};
 
 	// Handling bulk toggles.
-	const handleBulkToggle = ( enable ) => {
-		const newSettings = {};
+	const handleBulkToggle = ( enable: boolean ) => {
+		const newSettings: Record< string, SiteSearchSetting > = {};
 		let skippedCount = 0;
 
 		allSites.forEach( ( site ) => {
-			const url = trailingslashit( site.url );
+			const url = withTrailingSlash( site.url );
 
 			// Only enable sites that have entities.
 			const canEnable = enable ? siteHasEntities( url ) : true;
@@ -257,15 +309,18 @@ const SiteSearchSettings = ( {
 			}
 
 			// Preserve previous searchable_sites when enabling.
-			const prev = searchSettings[ url ] || {};
+			const prev = searchSettings[ url ] || {
+				algolia_enabled: false,
+				searchable_sites: [],
+			};
 			const prevSites = Array.isArray( prev?.searchable_sites )
 				? // Keep only targets that still have entities.
-				  prev.searchable_sites.filter( ( targetUrl ) =>
+				  prev.searchable_sites.filter( ( targetUrl: string ) =>
 						siteHasEntities( targetUrl )
 				  )
 				: [];
 
-			let sitesToReturn = [];
+			let sitesToReturn: string[] = [];
 
 			if ( enable && canEnable ) {
 				sitesToReturn = prevSites.length > 0 ? prevSites : [ url ];
@@ -294,7 +349,12 @@ const SiteSearchSettings = ( {
 	// Save the settings.
 	const handleSave = async () => {
 		setSaving( true );
-		await apiFetch( {
+		await apiFetch< {
+			onesearch_sites_search_settings: Record<
+				string,
+				SiteSearchSetting
+			>;
+		} >( {
 			path: '/wp/v2/settings',
 			method: 'POST',
 			data: {
@@ -326,8 +386,26 @@ const SiteSearchSettings = ( {
 			} );
 	};
 
+	// Stable comparison for dirty check
+	const normalizeSettings = (
+		settings: Record< string, SiteSearchSetting >
+	): string => {
+		const keys = Object.keys( settings ).sort();
+		const normalized: Record< string, SiteSearchSetting > = {};
+		keys.forEach( ( key ) => {
+			normalized[ key ] = {
+				algolia_enabled: settings[ key ]?.algolia_enabled ?? false,
+				searchable_sites: [
+					...( settings[ key ]?.searchable_sites ?? [] ),
+				].sort(),
+			};
+		} );
+		return JSON.stringify( normalized );
+	};
+
 	const isDirty =
-		JSON.stringify( searchSettings ) !== JSON.stringify( initialSettings );
+		normalizeSettings( searchSettings ) !==
+		normalizeSettings( initialSettings );
 
 	if ( loading ) {
 		return <Spinner />;
@@ -348,7 +426,7 @@ const SiteSearchSettings = ( {
 							allSites.length === 0 ||
 							isIndexableEntitiesSaving ||
 							allSites.every( ( site ) => {
-								const url = trailingslashit( site.url );
+								const url = withTrailingSlash( site.url );
 								return (
 									searchSettings[ url ]?.algolia_enabled ||
 									! siteHasEntities( url )
@@ -367,7 +445,7 @@ const SiteSearchSettings = ( {
 							allSites.length === 0 ||
 							isIndexableEntitiesSaving ||
 							allSites.every( ( site ) => {
-								const url = trailingslashit( site.url );
+								const url = withTrailingSlash( site.url );
 								return ! searchSettings[ url ]?.algolia_enabled;
 							} )
 						}
@@ -409,8 +487,10 @@ const SiteSearchSettings = ( {
 					</p>
 				) : (
 					allSites.map( ( site ) => {
-						const url = trailingslashit( site.url );
-						const siteSettings = searchSettings[ url ] || {
+						const url = withTrailingSlash( site.url );
+						const siteSettings: SiteSearchSetting = searchSettings[
+							url
+						] || {
 							algolia_enabled: false,
 							searchable_sites: [],
 						};
@@ -462,6 +542,7 @@ const SiteSearchSettings = ( {
 
 									<div className="onesearch-site-toggle">
 										<ToggleControl
+											label=""
 											checked={
 												siteSettings.algolia_enabled
 											}
@@ -492,9 +573,10 @@ const SiteSearchSettings = ( {
 										{ allSites
 											.slice()
 											.filter( ( singleSite ) => {
-												const siteURL = trailingslashit(
-													singleSite.url
-												);
+												const siteURL =
+													withTrailingSlash(
+														singleSite.url
+													);
 												const ents =
 													indexableEntities[
 														siteURL
@@ -505,14 +587,14 @@ const SiteSearchSettings = ( {
 												);
 											} )
 											.sort( ( a, b ) => {
-												const aUrl = trailingslashit(
+												const aUrl = withTrailingSlash(
 													a.url
 												);
-												const bUrl = trailingslashit(
+												const bUrl = withTrailingSlash(
 													b.url
 												);
 												const currentUrl =
-													trailingslashit( url );
+													withTrailingSlash( url );
 
 												// Put current site first.
 												if (
@@ -535,7 +617,7 @@ const SiteSearchSettings = ( {
 											} )
 											.map( ( targetSite ) => {
 												const targetSiteUrl =
-													trailingslashit(
+													withTrailingSlash(
 														targetSite.url
 													);
 												const isChecked =
