@@ -38,7 +38,7 @@
 		}
 	],
 	"require": {
-		"php": "^8",
+		"php": "^8.2",
 		"algolia/algoliasearch-client-php": "^3.0"
 	},
 	"require-dev": {
