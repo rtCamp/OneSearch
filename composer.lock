@@ -1887,6 +1887,60 @@
             "time": "2026-02-23T14:26:19+00:00"
         },
         {
+            "name": "rtcamp/coding-standards-d",
+            "version": "v0.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/rtCamp/coding-standards-d.git",
+                "reference": "82cfbdab0aeb4ff2d5784d6c32e70fcc30f17f49"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/rtCamp/coding-standards-d/zipball/82cfbdab0aeb4ff2d5784d6c32e70fcc30f17f49",
+                "reference": "82cfbdab0aeb4ff2d5784d6c32e70fcc30f17f49",
+                "shasum": ""
+            },
+            "require": {
+                "automattic/vipwpcs": "^3.0",
+                "php": ">=7.4",
+                "phpcompatibility/phpcompatibility-wp": "^3.0.0-alpha",
+                "slevomat/coding-standard": "^8.12"
+            },
+            "require-dev": {
+                "php-parallel-lint/php-console-highlighter": "^1.0.0",
+                "php-parallel-lint/php-parallel-lint": "^1.3.2",
+                "phpcsstandards/phpcsdevtools": "^1.0"
+            },
+            "type": "phpcodesniffer-standard",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "rtCamp",
+                    "homepage": "https://rtCamp.com"
+                },
+                {
+                    "name": "David Levine",
+                    "email": "david.levine@rtcamp.com"
+                }
+            ],
+            "description": "PHP_CodeSniffer rules (sniffs) for Enterprise WordPress.",
+            "keywords": [
+                "WordPress",
+                "phpcs",
+                "standards",
+                "static analysis",
+                "vipcs",
+                "wpcs"
+            ],
+            "support": {
+                "issues": "https://github.com/rtCamp/coding-standards-d/issues",
+                "source": "https://github.com/rtCamp/coding-standards-d/"
+            },
+            "time": "2026-02-23T14:26:19+00:00"
+        },
+        {
             "name": "sebastian/cli-parser",
             "version": "3.0.2",
             "source": {

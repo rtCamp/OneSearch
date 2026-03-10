@@ -35,9 +35,9 @@
 		"prepare": "lefthook install",
 		"start:js": "wp-scripts start --experimental-modules --blocks-manifest",
 		"test:e2e": "wp-scripts test-playwright",
-		"test:js": "wp-scripts test-unit-js --passWithNoTests",
+		"test:js": "wp-scripts test-unit-js",
 		"test:js:watch": "wp-scripts test-unit-js --watch",
-		"test:js:coverage": "wp-scripts test-unit-js --coverage --passWithNoTests",
+		"test:js:coverage": "wp-scripts test-unit-js --coverage",
 		"test:php": "wp-env run tests-cli --env-cwd=wp-content/plugins/onesearch vendor/bin/phpunit -c phpunit.xml.dist",
 		"wp-env": "wp-env",
 		"wp-env:cli": "wp-env run cli --env-cwd=wp-content/plugins/$(basename \"$(pwd)\")/"

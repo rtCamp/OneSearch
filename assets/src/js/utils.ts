@@ -1,20 +1,4 @@
 /**
- * Helper function to validate if a string is a well-formed URL.
- *
- * @param {string} str - The string to validate as a URL.
- *
- * @return {boolean} True if the string is a valid URL, false otherwise.
- */
-const isURL = ( str: string ): boolean => {
-	try {
-		new URL( str );
-		return true;
-	} catch {
-		return false;
-	}
-};
-
-/**
  * Validates if a given string is a valid URL.
  *
  * @param {string} url - The URL string to validate.
@@ -23,8 +7,8 @@ const isURL = ( str: string ): boolean => {
  */
 export const isValidUrl = ( url: string ): boolean => {
 	try {
-		const parsedUrl = new URL( url );
-		return isURL( parsedUrl.href );
+		new URL( url );
+		return true;
 	} catch {
 		return false;
 	}
