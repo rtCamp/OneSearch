@@ -2,21 +2,15 @@
 	"$schema": "https://json.schemastore.org/tsconfig.json",
 	"extends": "../../tsconfig.json",
 	"compilerOptions": {
-		"outDir": "../_output/js",
 		"noEmit": true,
-		"types": [ "jest", "node", "@testing-library/jest-dom" ],
-		"esModuleInterop": true,
-		"allowSyntheticDefaultImports": true
+		"baseUrl": "../../",
+		"types": [ "jest", "node", "@testing-library/jest-dom" ]
 	},
 	"include": [
-		"./**/*.ts",
-		"./**/*.tsx",
-		"../../assets/src/**/__tests__/**/*.ts",
-		"../../assets/src/**/__tests__/**/*.tsx",
-		"../../assets/src/**/*.test.ts",
-		"../../assets/src/**/*.test.tsx",
-		"../../assets/src/**/*.spec.ts",
-		"../../assets/src/**/*.spec.tsx"
+		"./*.ts",
+		"./*.tsx",
+		"../../assets/src/**/*.ts",
+		"../../assets/src/**/*.tsx"
 	],
 	"exclude": [ "../../node_modules", "../../build", "../../vendor" ]
 }

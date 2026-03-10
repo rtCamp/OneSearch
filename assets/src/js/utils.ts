@@ -5,15 +5,6 @@
  *
  * @return {boolean} True if the string is a valid URL, false otherwise.
  */
-const isURL = ( str: string ): boolean => {
-	try {
-		new URL( str );
-		return true;
-	} catch {
-		return false;
-	}
-};
-
 /**
  * Validates if a given string is a valid URL.
  *
@@ -23,8 +14,8 @@ const isURL = ( str: string ): boolean => {
  */
 export const isValidUrl = ( url: string ): boolean => {
 	try {
-		const parsedUrl = new URL( url );
-		return isURL( parsedUrl.href );
+		new URL( url );
+		return true;
 	} catch {
 		return false;
 	}
