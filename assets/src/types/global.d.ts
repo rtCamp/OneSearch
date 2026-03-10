@@ -14,16 +14,14 @@ export interface OneSearchSharedSite {
 
 export interface OneSearchSettings {
 	restUrl: string;
-	restNonce: string;
+	nonce: string;
 	api_key: string;
-	settingsLink: string;
+	setupUrl: string;
 	siteType: SiteType;
 	sharedSites?: OneSearchSharedSite[];
-
-	// @todo legacy - to be removed later
-	restNamespace?: string;
-	nonce?: string;
-	currentSiteUrl?: string;
+	restNamespace: string;
+	currentSiteUrl: string;
+	indexableEntities?: Record< string, string[] >;
 }
 
 export interface OneSearchOnboarding {

@@ -17,12 +17,11 @@ Object.defineProperty( window, 'OneSearchSettings', {
 	value: {
 		restUrl: 'https://example.com/wp-json/',
 		restNamespace: 'onesearch/v1',
-		restNonce: 'rest-nonce',
 		nonce: 'nonce',
 		api_key: 'api-key',
 		currentSiteUrl: 'https://governing.example.com/',
 		siteType: 'governing-site',
-		settingsLink: '/wp-admin/admin.php?page=onesearch',
+		setupUrl: '/wp-admin/admin.php?page=onesearch-settings',
 	},
 	writable: true,
 } );

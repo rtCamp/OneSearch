@@ -12,6 +12,8 @@ import OnboardingScreen from '@/admin/onboarding/page';
 const mockedApiFetch = apiFetch as jest.MockedFunction< typeof apiFetch >;
 
 describe( 'OnboardingScreen', () => {
+	let consoleWarnSpy: jest.SpyInstance;
+
 	beforeEach( () => {
 		mockedApiFetch.mockReset();
 		window.OneSearchOnboarding = {
@@ -19,12 +21,17 @@ describe( 'OnboardingScreen', () => {
 			site_type: '',
 			setup_url: '',
 		};
+		// Suppress WordPress component deprecation warnings (outside our control)
+		consoleWarnSpy = jest
+			.spyOn( console, 'warn' )
+			.mockImplementation( () => {} );
+	} );
+
+	afterEach( () => {
+		consoleWarnSpy.mockRestore();
 	} );
 
 	it( 'loads the current site type from settings', async () => {
-		// Suppress WordPress component deprecation warnings (outside our control)
-		jest.spyOn( console, 'warn' ).mockImplementation( () => {} );
-
 		mockedApiFetch.mockResolvedValueOnce( {
 			onesearch_site_type: 'brand-site',
 		} );
@@ -39,9 +46,6 @@ describe( 'OnboardingScreen', () => {
 	} );
 
 	it( 'shows an error notice when loading fails', async () => {
-		// Suppress WordPress component deprecation warnings (outside our control)
-		jest.spyOn( console, 'warn' ).mockImplementation( () => {} );
-
 		mockedApiFetch.mockRejectedValueOnce( new Error( 'load failed' ) );
 
 		render( <OnboardingScreen /> );
@@ -53,9 +57,6 @@ describe( 'OnboardingScreen', () => {
 	} );
 
 	it( 'saves the chosen site type', async () => {
-		// Suppress WordPress component deprecation warnings (outside our control)
-		jest.spyOn( console, 'warn' ).mockImplementation( () => {} );
-
 		mockedApiFetch.mockResolvedValueOnce( {} ).mockResolvedValueOnce( {
 			onesearch_site_type: 'governing-site',
 		} );
@@ -79,9 +80,6 @@ describe( 'OnboardingScreen', () => {
 	} );
 
 	it( 'shows an error notice when saving fails', async () => {
-		// Suppress WordPress component deprecation warnings (outside our control)
-		jest.spyOn( console, 'warn' ).mockImplementation( () => {} );
-
 		mockedApiFetch
 			.mockResolvedValueOnce( {} )
 			.mockRejectedValueOnce( new Error( 'save failed' ) );
