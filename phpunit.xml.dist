@@ -21,7 +21,6 @@
 	<testsuites>
 		<testsuite name="unit">
 			<directory suffix=".php">tests/php/Unit</directory>
-			<file>tests/php/Framework/RegistrableTest.php</file>
 		</testsuite>
 	</testsuites>
 	<source>
