@@ -20,11 +20,46 @@ import { __ } from '@wordpress/i18n';
  * Internal dependencies
  */
 import MultiSelectChips from './MultiSelectChips';
+import { API_NAMESPACE, NONCE, withTrailingSlash } from '@/js/utils';
+import type { NoticeType } from '@/admin/settings/page';
+import type { OneSearchSharedSite } from '@/types/global';
+import type { PostTypeOption } from './SiteSearchSettings';
 
-/**
- * Internal dependencies
- */
-import { API_NAMESPACE, NONCE } from '../js/utils';
+interface EntitiesMap {
+	[ siteUrl: string ]: string[];
+}
+
+interface SiteIndexableEntitiesProps {
+	sites: OneSearchSharedSite[];
+	allPostTypes: Record< string, PostTypeOption[] >;
+	currentSiteUrl: string;
+	setNotice: ( notice: NoticeType | null ) => void;
+	onEntitiesSaved?: () => void;
+	saving: boolean;
+	setSaving: ( saving: boolean ) => void;
+}
+
+interface IndexableEntitiesResponse {
+	indexableEntities: {
+		entities: EntitiesMap;
+	};
+}
+
+interface SaveEntitiesResponse {
+	success: boolean;
+	message?: string;
+	data?: {
+		status?: number;
+	};
+}
+
+interface ReIndexResponse {
+	success: boolean;
+	message?: string;
+	data?: {
+		status?: number;
+	};
+}
 
 const SiteIndexableEntities = ( {
 	sites,
@@ -34,16 +69,18 @@ const SiteIndexableEntities = ( {
 	onEntitiesSaved,
 	saving,
 	setSaving,
-} ) => {
-	const [ selectedEntities, setSelectedEntities ] = useState( [] );
-	const [ savedEntities, setSavedEntities ] = useState( {} );
+}: SiteIndexableEntitiesProps ) => {
+	const [ selectedEntities, setSelectedEntities ] = useState< EntitiesMap >(
+		{}
+	);
+	const [ savedEntities, setSavedEntities ] = useState< EntitiesMap >( {} );
 	const [ reindexing, setReindexing ] = useState( false );
 	const [ showReindexingModal, setShowReindexingModal ] = useState( false );
 
 	const controlsDisabled = saving || reindexing;
 
-	const normalizeEntities = ( map = {} ) => {
-		const results = {};
+	const normalizeEntities = ( map: EntitiesMap = {} ): EntitiesMap => {
+		const results: EntitiesMap = {};
 		Object.keys( map || {} )
 			.sort()
 			.forEach( ( site ) => {
@@ -55,7 +92,7 @@ const SiteIndexableEntities = ( {
 		return results;
 	};
 
-	const isEmptySavedEntities = () => {
+	const isEmptySavedEntities = (): boolean => {
 		if ( ! savedEntities || typeof savedEntities !== 'object' ) {
 			return true;
 		}
@@ -83,8 +120,9 @@ const SiteIndexableEntities = ( {
 				}
 			);
 
-			const data = await response.json();
-			const incoming = data.indexableEntities.entities;
+			const data: IndexableEntitiesResponse = await response.json();
+			const incoming: EntitiesMap =
+				data.indexableEntities?.entities || {};
 			setSelectedEntities( incoming );
 			setSavedEntities( normalizeEntities( incoming ) );
 		} catch {
@@ -102,17 +140,22 @@ const SiteIndexableEntities = ( {
 		getIndexableEntities();
 	}, [ getIndexableEntities ] );
 
-	const handleSelectedEntitiesChange = ( selected, url ) => {
+	const handleSelectedEntitiesChange = (
+		selected: string[],
+		url: string
+	) => {
 		if ( controlsDisabled ) {
 			return;
 		}
-		setSelectedEntities( ( prev ) => ( {
+		setSelectedEntities( ( prev: EntitiesMap ) => ( {
 			...prev,
 			[ url ]: selected,
 		} ) );
 	};
 
-	const handleSelectedEntitiesSave = async ( entities ) => {
+	const handleSelectedEntitiesSave = async (
+		entities: EntitiesMap
+	): Promise< boolean > => {
 		try {
 			setSaving( true );
 			const response = await fetch(
@@ -133,13 +176,14 @@ const SiteIndexableEntities = ( {
 				);
 			}
 
-			const data = await response.json();
+			const data: SaveEntitiesResponse = await response.json();
 
 			if ( data.success ) {
 				setSavedEntities( normalizeEntities( entities ) );
 				onEntitiesSaved?.();
 				// Re-index selected entities.
 				await handleReIndex();
+				return true;
 			} else if ( data.data?.status === 500 ) {
 				setNotice( {
 					message: __( 'Internal server error.', 'onesearch' ),
@@ -147,23 +191,28 @@ const SiteIndexableEntities = ( {
 				} );
 			} else {
 				setNotice( {
-					message: data.message,
+					message:
+						data.message || __( 'Unknown error.', 'onesearch' ),
 					type: 'error',
 				} );
 			}
-		} catch ( error ) {
+		} catch ( error: unknown ) {
+			const message =
+				error instanceof Error ? error.message : String( error );
 			setNotice( {
-				message: error.message,
+				message,
 				type: 'error',
 			} );
 		} finally {
 			setSaving( false );
 		}
+		return false;
 	};
 
-	const handleReIndex = async () => {
+	const handleReIndex = async (): Promise< boolean > => {
 		try {
 			setReindexing( true );
+			// @todo use @wordpress/api-fetch everywhere internal.
 			const response = await fetch( `${ API_NAMESPACE }/re-index`, {
 				method: 'POST',
 				headers: {
@@ -172,12 +221,15 @@ const SiteIndexableEntities = ( {
 				},
 			} );
 
-			const data = await response.json();
+			const data: ReIndexResponse = await response.json();
 			if ( data.success ) {
 				setNotice( {
-					message: data.message,
+					message:
+						data.message ||
+						__( 'Re-indexing complete.', 'onesearch' ),
 					type: 'success',
 				} );
+				return true;
 			} else if ( data.data?.status === 500 ) {
 				setNotice( {
 					message: __( 'Internal server error.', 'onesearch' ),
@@ -185,24 +237,39 @@ const SiteIndexableEntities = ( {
 				} );
 			} else {
 				setNotice( {
-					message: data.message,
+					message:
+						data.message || __( 'Unknown error.', 'onesearch' ),
 					type: 'error',
 				} );
 			}
-		} catch ( error ) {
+		} catch ( error: unknown ) {
+			const message =
+				error instanceof Error ? error.message : String( error );
 			setNotice( {
-				message: error.message,
+				message,
 				type: 'error',
 			} );
 		} finally {
 			setReindexing( false );
 			setShowReindexingModal( false );
 		}
+		return false;
 	};
 
 	const isDirty =
 		JSON.stringify( normalizeEntities( selectedEntities ) ) !==
 		JSON.stringify( savedEntities );
+
+	// Convert PostTypeOption to the format expected by MultiSelectChips
+	const toMultiSelectOptions = (
+		options: PostTypeOption[]
+	): Array< { slug: string; label: string; restBase: string } > => {
+		return options.map( ( opt ) => ( {
+			slug: opt.slug,
+			label: opt.label ?? opt.slug,
+			restBase: opt.restBase ?? opt.slug,
+		} ) );
+	};
 
 	return (
 		<>
@@ -268,13 +335,13 @@ const SiteIndexableEntities = ( {
 									'Select entities…',
 									'onesearch'
 								) }
-								options={
+								options={ toMultiSelectOptions(
 									allPostTypes?.[ currentSiteUrl ] || []
-								}
+								) }
 								value={
 									selectedEntities?.[ currentSiteUrl ] || []
 								}
-								onChange={ ( next ) =>
+								onChange={ ( next: string[] ) =>
 									handleSelectedEntitiesChange(
 										next,
 										currentSiteUrl
@@ -288,9 +355,9 @@ const SiteIndexableEntities = ( {
 					</div>
 
 					{ /* Brand Sites */ }
-					{ sites?.map( ( site, index ) => (
+					{ sites?.map( ( site: OneSearchSharedSite ) => (
 						<div
-							key={ index }
+							key={ withTrailingSlash( site.url ) }
 							className="onesearch-entity-site onesearch-entity-brand"
 						>
 							<div className="onesearch-entity-site-header">
@@ -315,14 +382,14 @@ const SiteIndexableEntities = ( {
 											'Select entities…',
 											'onesearch'
 										) }
-										options={
+										options={ toMultiSelectOptions(
 											allPostTypes?.[ site?.url ] || []
-										}
+										) }
 										value={
 											selectedEntities?.[ site?.url ] ||
 											[]
 										}
-										onChange={ ( next ) =>
+										onChange={ ( next: string[] ) =>
 											handleSelectedEntitiesChange(
 												next,
 												site?.url
@@ -368,7 +435,7 @@ const SiteIndexableEntities = ( {
 						</Button>
 						<Button
 							variant="primary"
-							onClick={ handleReIndex }
+							onClick={ () => handleReIndex() }
 							isBusy={ reindexing }
 							disabled={ reindexing }
 						>

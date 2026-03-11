@@ -2,14 +2,30 @@
  * WordPress dependencies
  */
 import { Popover, Icon } from '@wordpress/components';
-
 import { chevronDown, closeSmall } from '@wordpress/icons';
+import { __, sprintf } from '@wordpress/i18n';
 
 /**
  * External dependencies
  */
-import { useState, useRef, useEffect } from 'react';
-import { __ } from '@wordpress/i18n';
+import {
+	useState,
+	useRef,
+	useEffect,
+	type MouseEvent,
+	type KeyboardEvent,
+} from 'react';
+
+interface MultiSelectChipsProps {
+	label?: string;
+	placeholder?: string;
+	options: Array< Record< string, string | number > >;
+	value?: string[];
+	onChange?: ( selected: string[] ) => void;
+	disabled?: boolean;
+	valueField?: string;
+	labelField?: string;
+}
 
 function MultiSelectChips( {
 	label,
@@ -20,9 +36,9 @@ function MultiSelectChips( {
 	disabled = false,
 	valueField = 'value',
 	labelField = 'label',
-} ) {
+}: MultiSelectChipsProps ) {
 	const [ open, setOpen ] = useState( false );
-	const anchorRef = useRef( null );
+	const anchorRef = useRef< HTMLDivElement >( null );
 
 	// If the parent disables the control while the menu is open, close it.
 	useEffect( () => {
@@ -33,19 +49,34 @@ function MultiSelectChips( {
 
 	const valueSet = new Set( ( value || [] ).map( String ) );
 
-	const getVal = ( val ) =>
-		String( val?.[ valueField ] ?? val?.slug ?? val?.id ?? val?.key ?? '' );
-	const getLabel = ( val ) =>
-		String(
-			val?.[ labelField ] ??
-				val?.label ??
-				val?.name ??
-				val?.slug ??
-				getVal( val )
+	const getVal = ( item: Record< string, unknown > | string ): string => {
+		if ( typeof item === 'string' ) {
+			return item;
+		}
+		return String(
+			item[ valueField ] ??
+				item[ 'slug' ] ??
+				item[ 'id' ] ??
+				item[ 'key' ] ??
+				''
 		);
+	};
+
+	const getLabel = ( item: Record< string, unknown > | string ): string => {
+		if ( typeof item === 'string' ) {
+			return item;
+		}
+		return String(
+			item[ labelField ] ??
+				item[ 'label' ] ??
+				item[ 'name' ] ??
+				item[ 'slug' ] ??
+				getVal( item )
+		);
+	};
 
 	// Change the set based on toggled values.
-	const toggleValue = ( val ) => {
+	const toggleValue = ( val: string ) => {
 		if ( disabled ) {
 			return;
 		}
@@ -61,7 +92,7 @@ function MultiSelectChips( {
 		onChange( Array.from( set ) );
 	};
 
-	const removeValue = ( val ) => {
+	const removeValue = ( val: string ) => {
 		if ( disabled ) {
 			return;
 		}
@@ -69,17 +100,34 @@ function MultiSelectChips( {
 		onChange( ( value || [] ).filter( ( v ) => String( v ) !== key ) );
 	};
 
-	const selected = options.filter( ( val ) => valueSet.has( getVal( val ) ) );
+	const selected = options.filter( ( item ) =>
+		valueSet.has( getVal( item ) )
+	);
+
+	const handleToggleOpen = () => {
+		if ( ! disabled ) {
+			setOpen( ( v ) => ! v );
+		}
+	};
 
 	return (
-		<div className="msc" aria-disabled={ disabled }>
+		// @todo Semantic classname.
+		<div className="msc" aria-disabled={ disabled } ref={ anchorRef }>
 			{ label && <span className="msc-label">{ label }</span> }
-			<button
-				ref={ anchorRef }
-				type="button"
+			<div
+				role="button"
+				tabIndex={ disabled ? -1 : 0 }
 				className="msc-control"
-				onClick={ () => ! disabled && setOpen( ( v ) => ! v ) }
-				disabled={ disabled }
+				onClick={ handleToggleOpen }
+				onKeyDown={ ( e: KeyboardEvent< HTMLDivElement > ) => {
+					if ( disabled ) {
+						return;
+					}
+					if ( e.key === 'Enter' || e.key === ' ' ) {
+						e.preventDefault();
+						handleToggleOpen();
+					}
+				} }
 				aria-haspopup="listbox"
 				aria-expanded={ open }
 			>
@@ -95,9 +143,24 @@ function MultiSelectChips( {
 							const itemValue = getVal( item );
 							const itemLabel = getLabel( item );
 
-							const handleRemove = ( e ) => {
+							const handleRemove = (
+								e: MouseEvent< HTMLButtonElement >
+							) => {
 								e.stopPropagation();
 								removeValue( itemValue );
+							};
+
+							const handleKeyDown = (
+								e: KeyboardEvent< HTMLButtonElement >
+							) => {
+								if ( disabled ) {
+									return;
+								}
+								if ( e.key === 'Enter' || e.key === ' ' ) {
+									e.preventDefault();
+									e.stopPropagation();
+									removeValue( itemValue );
+								}
 							};
 
 							return (
@@ -105,39 +168,31 @@ function MultiSelectChips( {
 									<span className="msc-chip-label">
 										{ itemLabel }
 									</span>
-									<span
-										role="button"
+									<button
+										type="button"
 										tabIndex={ disabled ? -1 : 0 }
 										className="msc-chip-close"
 										onClick={ handleRemove }
-										onKeyDown={ ( e ) => {
-											if ( disabled ) {
-												return;
-											}
-											if (
-												e.key === 'Enter' ||
-												e.key === ' '
-											) {
-												e.preventDefault();
-												handleRemove( e );
-											}
-										} }
-										aria-label={ `Remove ${ itemLabel }` }
-										aria-disabled={ disabled }
+										onKeyDown={ handleKeyDown }
+										aria-label={ sprintf(
+											/* translators: %s: item label */
+											__( 'Remove %s', 'onesearch' ),
+											itemLabel
+										) }
+										disabled={ disabled }
 									>
 										<Icon
 											icon={ closeSmall }
 											aria-hidden={ false }
-											aria-disabled={ disabled }
 										/>
-									</span>
+									</button>
 								</span>
 							);
 						} )
 					) }
 				</div>
 				<Icon icon={ chevronDown } />
-			</button>
+			</div>
 
 			{ open && (
 				<Popover
@@ -157,7 +212,7 @@ function MultiSelectChips( {
 								const itemLabel = getLabel( item );
 								const id = `msc-opt-${ encodeURIComponent(
 									val
-								) };`;
+								) }`;
 								const checked = valueSet.has( val );
 								return (
 									<li
