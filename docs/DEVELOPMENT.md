@@ -207,24 +207,35 @@ You can use Docker and the `wp-env` tool to set up a local development environme
    npm install
    ```
 
-3. Start the local development environments (governing and brand sites):
+3. Start the local development environment:
 
    ```bash
    npm run wp-env start
    npm run wp-env:child start
+   npm run wp-env:test start
    ```
 
-   This will start local WordPress environments with the plugin installed and the following default configurations:
+   This will start a local WordPress environment with the plugin installed and the following default configuration:
 
    **Governing Site (wp-env):**
+
    - Site URL: <http://localhost:8888>
    - WP Admin URL: <http://localhost:8888/wp-admin/>
      - WP Admin Username: `admin`
      - WP Admin Password: `password`
 
    **Brand Site (wp-env:child):**
+
    - Site URL: <http://localhost:8890>
    - WP Admin URL: <http://localhost:8890/wp-admin/>
+
+     - WP Admin Username: `admin`
+     - WP Admin Password: `password`
+
+     **Test Environment (wp-env:test):**
+
+   - Site URL: <http://localhost:8889>
+   - WP Admin URL: <http://localhost:8889/wp-admin/>
      - WP Admin Username: `admin`
      - WP Admin Password: `password`
 
@@ -233,7 +244,7 @@ You can use Docker and the `wp-env` tool to set up a local development environme
    ```bash
 
    # With wp-env:
-   npm run wp-env run cli -- composer install
+   npm run wp-env:cli -- composer install
 
    # Or with local Composer:
    composer install
@@ -247,7 +258,7 @@ You should now have a fully functional local development environment with the pl
 
 - `npm install`: Install JavaScript dependencies.
 - `composer install`: Install PHP dependencies.
-  - To use wp-env's built-in Composer, you can run `npm run wp-env run cli -- composer install` to run the command in the local environment.
+  - To use wp-env's built-in Composer, you can run `npm run wp-env:cli -- composer install` to run the command in the local environment.
 
 #### Accessing the Local Environment
 
@@ -470,7 +481,7 @@ To build the plugin for distribution, you can use the following commands:
 nvm use && npm ci
 
 # Only install production dependencies with Composer:
-npm run wp-env run cli -- composer install --optimize-autoloader --no-dev
+npm run wp-env:cli -- composer install --optimize-autoloader --no-dev
 
 # Create a production-ready build:
 npm run build:prod
