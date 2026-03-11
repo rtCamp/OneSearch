@@ -28,9 +28,9 @@
 		"lint:js:fix": "wp-scripts lint-js --fix",
 		"lint:js:types": "tsc --noEmit",
 		"lint:js": "wp-scripts lint-js",
-		"lint:php:fix": "wp-env run tests-cli --env-cwd=wp-content/plugins/$(basename \"$(pwd)\")/ composer run-script format",
-		"lint:php:stan": "wp-env run tests-cli --env-cwd=wp-content/plugins/$(basename \"$(pwd)\")/ composer run-script phpstan",
-		"lint:php": "wp-env run tests-cli --env-cwd=wp-content/plugins/$(basename \"$(pwd)\")/ composer run-script lint",
+		"lint:php:fix": "wp-env run cli --env-cwd=wp-content/plugins/$(basename \"$(pwd)\")/ composer run-script format",
+		"lint:php:stan": "wp-env run cli --env-cwd=wp-content/plugins/$(basename \"$(pwd)\")/ composer run-script phpstan",
+		"lint:php": "wp-env run cli --env-cwd=wp-content/plugins/$(basename \"$(pwd)\")/ composer run-script lint",
 		"plugin-zip": "wp-scripts plugin-zip",
 		"prepare": "lefthook install",
 		"start:js": "wp-scripts start --experimental-modules --blocks-manifest",
@@ -38,8 +38,10 @@
 		"test:js": "wp-scripts test-unit-js",
 		"test:js:watch": "wp-scripts test-unit-js --watch",
 		"test:js:coverage": "wp-scripts test-unit-js --coverage",
-		"test:php": "wp-env run tests-cli --env-cwd=wp-content/plugins/$(basename \"$(pwd)\")/ vendor/bin/phpunit -c phpunit.xml.dist",
+		"test:php": "npm run wp-env:test -- run cli --env-cwd=wp-content/plugins/$(basename \"$(pwd)\")/ vendor/bin/phpunit -c phpunit.xml.dist",
 		"wp-env": "wp-env",
+		"wp-env:child": "wp-env --config=.wp-env.child.json",
+		"wp-env:test": "wp-env --config=.wp-env.test.json",
 		"wp-env:cli": "wp-env run cli --env-cwd=wp-content/plugins/$(basename \"$(pwd)\")/"
 	},
 	"dependencies": {
@@ -64,7 +66,7 @@
 		"@typescript-eslint/parser": "^8.57.0",
 		"@wordpress/babel-preset-default": "^8.41.0",
 		"@wordpress/e2e-test-utils-playwright": "^1.41.0",
-		"@wordpress/env": "^10.39.0",
+		"@wordpress/env": "^11.1.0",
 		"@wordpress/eslint-plugin": "^24.3.0",
 		"@wordpress/prettier-config": "^4.41.0",
 		"@wordpress/scripts": "^31.6.0",
@@ -81,6 +83,7 @@
 		"webpack-remove-empty-scripts": "^1.1.1"
 	},
 	"overrides": {
+		"@wordpress/env": "^11.1.0",
 		"fast-xml-parser": ">5.3.0",
 		"react": "^18.3.1",
 		"react-dom": "^18.3.1",
