@@ -458,6 +458,8 @@ To run Playwright tests with UI mode enabled (which opens the browser and shows 
 npm run test:e2e -- --ui
 ```
 
+**Note:** Ensure both the test environment and child environment are running (`npm run wp-env:test start` and `npm run wp-env:child start`) before executing the E2E tests, as some tests require both sites to be active.
+
 ### GitHub Workflows
 
 GitHub workflows are set up to run tests on pull requests and on the `main` branch. The workflow files are located in the `.github/workflows/` directory, and each workflow has its own documentation in the relative [README.md](../.github/workflows/README.md) file.
