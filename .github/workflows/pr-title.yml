@@ -4,7 +4,6 @@ on:
   pull_request_target:
     branches:
       - main
-      - develop
       - release/**
     types: [opened, synchronize, edited, reopened, ready_for_review]
 
