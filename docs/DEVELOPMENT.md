@@ -157,7 +157,9 @@ Code contributions, bug reports, and feature requests are welcome! The following
 ├── .release-please-manifest.json # Release Please manifest file.
 ├── .stylelint.config.js          # Stylelint configuration.
 ├── .stylelintignore              # Stylelint ignore patterns.
-├── .wp-env.json                  # wp-env configuration.
+├── .wp-env.json                  # wp-env configuration (governing site).
+├── .wp-env.child.json            # wp-env configuration (brand site).
+├── .wp-env.test.json             # wp-env configuration (test site).
 ├── blueprint.json                # WordPress Playground blueprint configuration.
 ├── babel.config.js               # Babel configuration.
 ├── composer.json                 # PHP dependencies.
@@ -205,16 +207,24 @@ You can use Docker and the `wp-env` tool to set up a local development environme
    npm install
    ```
 
-3. Start the local development environment:
+3. Start the local development environments (governing and brand sites):
 
    ```bash
    npm run wp-env start
+   npm run wp-env:child start
    ```
 
-   This will start a local WordPress environment with the plugin installed and the following default configuration:
+   This will start local WordPress environments with the plugin installed and the following default configurations:
 
+   **Governing Site (wp-env):**
    - Site URL: <http://localhost:8888>
    - WP Admin URL: <http://localhost:8888/wp-admin/>
+     - WP Admin Username: `admin`
+     - WP Admin Password: `password`
+
+   **Brand Site (wp-env:child):**
+   - Site URL: <http://localhost:8890>
+   - WP Admin URL: <http://localhost:8890/wp-admin/>
      - WP Admin Username: `admin`
      - WP Admin Password: `password`
 
@@ -223,7 +233,7 @@ You can use Docker and the `wp-env` tool to set up a local development environme
    ```bash
 
    # With wp-env:
-   npm run wp-env:cli -- composer install
+   npm run wp-env run cli -- composer install
 
    # Or with local Composer:
    composer install
@@ -237,14 +247,16 @@ You should now have a fully functional local development environment with the pl
 
 - `npm install`: Install JavaScript dependencies.
 - `composer install`: Install PHP dependencies.
-  - To use wp-env's built-in Composer, you can run `npm run wp-env:cli -- composer install` to run the command in the local environment.
+  - To use wp-env's built-in Composer, you can run `npm run wp-env run cli -- composer install` to run the command in the local environment.
 
 #### Accessing the Local Environment
 
-- `npm run wp-env start`: Start the local development environment.
+- `npm run wp-env start`: Start the local development environment (governing site on port 8888).
+- `npm run wp-env:child start`: Start the local development environment (brand site on port 8890).
+- `npm run wp-env:test start`: Start the local test environment (on port 8889).
 - `npm run wp-env stop`: Stop the local development environment.
 - `npm run wp-env run cli -- --env-cwd=wp-content/plugins/onesearch {YOUR_CMD_HERE}`: Run WP-CLI commands in the local environment.
-- `npm run wp-env run tests-cli -- --env-cwd=wp-content/plugins/onesearch {YOUR_CMD_HERE}`: Run Composer/PHP tooling in the tests container.
+- `npm run wp-env:test run cli -- --env-cwd=wp-content/plugins/onesearch {YOUR_CMD_HERE}`: Run Composer/PHP tooling in the tests container.
 
 For more information on using `wp-env`, see the [wp-env documentation](https://developer.wordpress.org/block-editor/packages/packages-env/).
 
@@ -458,7 +470,7 @@ To build the plugin for distribution, you can use the following commands:
 nvm use && npm ci
 
 # Only install production dependencies with Composer:
-npm run wp-env:cli -- composer install --optimize-autoloader --no-dev
+npm run wp-env run cli -- composer install --optimize-autoloader --no-dev
 
 # Create a production-ready build:
 npm run build:prod
