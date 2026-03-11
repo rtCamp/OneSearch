@@ -74,15 +74,15 @@ jobs:
           max_attempts: 3
           command: |
             if [ "${{ inputs.coverage }}" == "true" ]; then
-              WP_ENV_PORT=8889 WP_ENV_TESTS_PORT=8891 npm run wp-env:test start -- --xdebug=coverage
+              npm run wp-env:test start -- --xdebug=coverage
             else
-              WP_ENV_PORT=8889 WP_ENV_TESTS_PORT=8891 npm run wp-env:test start
+              npm run wp-env:test start
             fi
 
       - name: Log versions
         run: |
-          WP_ENV_PORT=8889 WP_ENV_TESTS_PORT=8891 npm run wp-env:test -- run cli php -- -v
-          WP_ENV_PORT=8889 WP_ENV_TESTS_PORT=8891 npm run wp-env:test -- run cli wp core version
+          npm run wp-env:test -- run cli php -- -v
+          npm run wp-env:test -- run cli wp core version
 
       - name: Run PHPUnit tests${{ inputs.coverage && ' with coverage report' || '' }}
         run: npm run test:php ${{ !inputs.coverage && '-- --no-coverage' || '' }}
