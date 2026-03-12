@@ -7,8 +7,8 @@
 		"types": [ "jest", "node", "@testing-library/jest-dom" ]
 	},
 	"include": [
-		"./*.ts",
-		"./*.tsx",
+		"./**/*.ts",
+		"./**/*.tsx",
 		"../../assets/src/**/*.ts",
 		"../../assets/src/**/*.tsx"
 	],
