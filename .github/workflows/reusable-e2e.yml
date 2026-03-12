@@ -53,14 +53,7 @@ jobs:
         with:
           timeout_minutes: 10
           max_attempts: 3
-          command: npm run wp-env:test start
-
-      - name: Start the child site Docker testing environment
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run wp-env:child start
+          command: WP_ENV_PORT=8889 WP_ENV_TESTS_PORT=8891 npm run wp-env:test start && npm run wp-env:child start
 
       - name: Run E2E tests
         run: npm run test:e2e
