@@ -55,22 +55,20 @@ test.describe( 'plugin activation', () => {
 		).toBeVisible();
 
 		// Reset settings option via WP API to ensure clean state for retries
-		await page.evaluate( async () => {
-			const nonce =
-				// @ts-ignore
-				window.OneSearchSettings?.nonce ||
-				// @ts-ignore
-				window.OneSearchOnboarding?.nonce;
-			if ( nonce ) {
-				await fetch( '/wp-json/wp/v2/settings', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'X-WP-Nonce': nonce,
-					},
-					body: JSON.stringify( { onesearch_site_type: '' } ),
-				} );
-			}
+		// We use Playwright's built-in fetch on the authenticated context.
+		await page.request.post( '/wp-json/wp/v2/settings', {
+			data: { onesearch_site_type: '' },
+			headers: {
+				'X-WP-Nonce': ( await page.evaluate(
+					() =>
+						// @ts-ignore
+						window.wpApiSettings?.nonce ||
+						// @ts-ignore
+						window.OneSearchSettings?.nonce ||
+						// @ts-ignore
+						window.OneSearchOnboarding?.nonce
+				) ) as string,
+			},
 		} );
 
 		// Cleanup: deactivate
