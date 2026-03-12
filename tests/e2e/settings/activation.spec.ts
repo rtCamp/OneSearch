@@ -27,7 +27,7 @@ test.describe( 'plugin activation', () => {
 			} );
 			await Promise.all( [
 				page.waitForURL( /plugins.php/ ),
-				deactivateLink.click(),
+				deactivateLink.click( { force: true } ),
 			] );
 		}
 
@@ -42,14 +42,14 @@ test.describe( 'plugin activation', () => {
 		const modal = page.locator( '#onesearch-site-selection-modal' );
 		await expect( modal ).toBeVisible();
 
-		// Select Governing Site in the onboarding modal
-		const governingSiteButton = modal.locator( 'button', {
-			hasText: 'Governing Site',
-		} );
-		await governingSiteButton.click();
+		// Select Governing Site in the onboarding modal via SelectControl
+		await modal.locator( 'select' ).selectOption( 'governing-site' );
+		await modal
+			.locator( 'button', { hasText: 'Select Current Site Type' } )
+			.click();
 
-		// Verify we are redirected and modal is dismissed
-		await expect( modal ).toBeHidden();
+		// Verify we are redirected to settings page
+		await page.waitForURL( /onesearch-settings/ );
 		await expect(
 			page.locator( 'h1', { hasText: 'OneSearch' } )
 		).toBeVisible();

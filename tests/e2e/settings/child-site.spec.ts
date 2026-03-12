@@ -37,28 +37,38 @@ test.describe( 'plugin activation', () => {
 		);
 		await expect( governingPluginRow ).toBeVisible();
 
+		// Deactivate first if already active to ensure clean state
 		if (
 			await governingPluginRow
-				.locator( 'a', { hasText: 'Activate' } )
+				.locator( 'a', { hasText: 'Deactivate' } )
 				.isVisible()
 		) {
-			const activateLink = governingPluginRow.locator( 'a', {
-				hasText: 'Activate',
+			const deactivateLink = governingPluginRow.locator( 'a', {
+				hasText: 'Deactivate',
 			} );
 			await Promise.all( [
 				pageGoverning.waitForURL( /plugins.php/ ),
-				activateLink.click( { force: true } ),
+				deactivateLink.click( { force: true } ),
 			] );
-
-			const modal = pageGoverning.locator(
-				'#onesearch-site-selection-modal'
-			);
-			await expect( modal ).toBeVisible();
-			await modal
-				.locator( 'button', { hasText: 'Governing Site' } )
-				.click();
-			await expect( modal ).toBeHidden();
 		}
+
+		const activateLink = governingPluginRow.locator( 'a', {
+			hasText: 'Activate',
+		} );
+		await Promise.all( [
+			pageGoverning.waitForURL( /plugins.php/ ),
+			activateLink.click( { force: true } ),
+		] );
+
+		const modal = pageGoverning.locator(
+			'#onesearch-site-selection-modal'
+		);
+		await expect( modal ).toBeVisible();
+		await modal.locator( 'select' ).selectOption( 'governing-site' );
+		await modal
+			.locator( 'button', { hasText: 'Select Current Site Type' } )
+			.click();
+		await pageGoverning.waitForURL( /onesearch-settings/ );
 
 		// Step 2: Setup Child Site
 		await pageChild.goto( '/wp-admin/plugins.php' );
@@ -96,8 +106,11 @@ test.describe( 'plugin activation', () => {
 		);
 		await expect( childModal ).toBeVisible();
 
-		await childModal.locator( 'button', { hasText: 'Brand Site' } ).click();
-		await expect( childModal ).toBeHidden();
+		await childModal.locator( 'select' ).selectOption( 'brand-site' );
+		await childModal
+			.locator( 'button', { hasText: 'Select Current Site Type' } )
+			.click();
+		await pageChild.waitForURL( /onesearch-settings/ );
 
 		// Step 3: Get API Key from Child Site
 		const apiKeyInput = pageChild.locator( 'textarea' );
