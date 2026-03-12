@@ -51,8 +51,27 @@ test.describe( 'plugin activation', () => {
 		// Verify we are redirected to settings page
 		await page.waitForURL( /onesearch-settings/ );
 		await expect(
-			page.locator( 'h1', { hasText: 'OneSearch' } )
+			page.locator( 'h1', { hasText: 'Settings' } )
 		).toBeVisible();
+
+		// Reset settings option via WP API to ensure clean state for retries
+		await page.evaluate( async () => {
+			const nonce =
+				// @ts-ignore
+				window.OneSearchSettings?.nonce ||
+				// @ts-ignore
+				window.OneSearchOnboarding?.nonce;
+			if ( nonce ) {
+				await fetch( '/wp-json/wp/v2/settings', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-WP-Nonce': nonce,
+					},
+					body: JSON.stringify( { onesearch_site_type: '' } ),
+				} );
+			}
+		} );
 
 		// Cleanup: deactivate
 		await admin.visitAdminPage( '/plugins.php' );

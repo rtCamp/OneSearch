@@ -124,7 +124,7 @@ test.describe( 'plugin activation', () => {
 		);
 
 		await expect(
-			pageGoverning.locator( 'h1', { hasText: 'OneSearch' } )
+			pageGoverning.locator( 'h1', { hasText: 'Settings' } )
 		).toBeVisible();
 
 		const addSiteButton = pageGoverning.locator( 'button', {
@@ -151,6 +151,44 @@ test.describe( 'plugin activation', () => {
 		await expect(
 			siteList.locator( 'td', { hasText: 'Child Site' } )
 		).toBeVisible();
+
+		// Reset settings option via WP API to ensure clean state for retries (Governing)
+		await pageGoverning.evaluate( async () => {
+			const nonce =
+				// @ts-ignore
+				window.OneSearchSettings?.nonce ||
+				// @ts-ignore
+				window.OneSearchOnboarding?.nonce;
+			if ( nonce ) {
+				await fetch( '/wp-json/wp/v2/settings', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-WP-Nonce': nonce,
+					},
+					body: JSON.stringify( { onesearch_site_type: '' } ),
+				} );
+			}
+		} );
+
+		// Reset settings option via WP API to ensure clean state for retries (Child)
+		await pageChild.evaluate( async () => {
+			const nonce =
+				// @ts-ignore
+				window.OneSearchSettings?.nonce ||
+				// @ts-ignore
+				window.OneSearchOnboarding?.nonce;
+			if ( nonce ) {
+				await fetch( '/wp-json/wp/v2/settings', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-WP-Nonce': nonce,
+					},
+					body: JSON.stringify( { onesearch_site_type: '' } ),
+				} );
+			}
+		} );
 
 		// Cleanup: contexts
 		await contextGoverning.close();
