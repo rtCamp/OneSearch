@@ -1,18 +1,29 @@
 /**
  * WordPress dependencies
  */
-import { expect, test } from '@wordpress/e2e-test-utils-playwright';
+import {
+	expect,
+	test,
+	RequestUtils,
+} from '@wordpress/e2e-test-utils-playwright';
 
 test.describe( 'plugin activation', () => {
+	test.beforeEach( async ( { requestUtils } ) => {
+		// Ensure environment is clean before test starts for Governing Site
+		await requestUtils.rest( {
+			method: 'POST',
+			path: '/wp/v2/settings',
+			data: { onesearch_site_type: '' },
+		} );
+	} );
+
 	test( 'should activate the child site and add to governing site', async ( {
+		page,
+		admin,
 		browser,
 	} ) => {
-		// Context 1: Governing Site
-		const contextGoverning = await browser.newContext( {
-			baseURL: 'http://localhost:8889',
-			storageState: 'tests/_output/e2e/storage-states/admin.json',
-		} );
-		const pageGoverning = await contextGoverning.newPage();
+		// Use the default page/admin fixtures for Governing Site (port 8889) to ensure auth and storage states are correct.
+		const pageGoverning = page;
 
 		// Context 2: Brand/Child Site
 		const contextChild = await browser.newContext( {
@@ -29,8 +40,19 @@ test.describe( 'plugin activation', () => {
 		// Wait for login to complete
 		await expect( pageChild.locator( '#wpadminbar' ) ).toBeVisible();
 
+		// Reset Child Site environment via Playwright RequestUtils
+		const childRequestUtils = new RequestUtils( contextChild.request, {
+			baseURL: 'http://localhost:8890',
+		} );
+		await childRequestUtils.setupRest();
+		await childRequestUtils.rest( {
+			method: 'POST',
+			path: '/wp/v2/settings',
+			data: { onesearch_site_type: '' },
+		} );
+
 		// Step 1: Ensure Governing Site is setup
-		await pageGoverning.goto( '/wp-admin/plugins.php' );
+		await admin.visitAdminPage( '/plugins.php' );
 
 		const governingPluginRow = pageGoverning.locator(
 			'tr[data-plugin="onesearch/onesearch.php"]'
@@ -46,18 +68,23 @@ test.describe( 'plugin activation', () => {
 			const deactivateLink = governingPluginRow.locator( 'a', {
 				hasText: 'Deactivate',
 			} );
+
 			await Promise.all( [
-				pageGoverning.waitForURL( /plugins.php/ ),
-				deactivateLink.click( { force: true } ),
+				pageGoverning.waitForNavigation(),
+				deactivateLink.click(),
 			] );
+			await expect(
+				governingPluginRow.locator( 'a', { hasText: 'Activate' } )
+			).toBeVisible();
 		}
 
 		const activateLink = governingPluginRow.locator( 'a', {
 			hasText: 'Activate',
 		} );
+
 		await Promise.all( [
-			pageGoverning.waitForURL( /plugins.php/ ),
-			activateLink.click( { force: true } ),
+			pageGoverning.waitForNavigation(),
+			activateLink.click(),
 		] );
 
 		const modal = pageGoverning.locator(
@@ -68,7 +95,10 @@ test.describe( 'plugin activation', () => {
 		await modal
 			.locator( 'button', { hasText: 'Select Current Site Type' } )
 			.click();
-		await pageGoverning.waitForURL( /onesearch-settings/ );
+
+		await expect(
+			pageGoverning.locator( 'h1', { hasText: 'Settings' } )
+		).toBeVisible();
 
 		// Step 2: Setup Child Site
 		await pageChild.goto( '/wp-admin/plugins.php' );
@@ -87,18 +117,23 @@ test.describe( 'plugin activation', () => {
 			const deactivateLink = childPluginRow.locator( 'a', {
 				hasText: 'Deactivate',
 			} );
+
 			await Promise.all( [
-				pageChild.waitForURL( /plugins.php/ ),
-				deactivateLink.click( { force: true } ),
+				pageChild.waitForNavigation(),
+				deactivateLink.click(),
 			] );
+			await expect(
+				childPluginRow.locator( 'a', { hasText: 'Activate' } )
+			).toBeVisible();
 		}
 
 		const childActivateLink = childPluginRow.locator( 'a', {
 			hasText: 'Activate',
 		} );
+
 		await Promise.all( [
-			pageChild.waitForURL( /plugins.php/ ),
-			childActivateLink.click( { force: true } ),
+			pageChild.waitForNavigation(),
+			childActivateLink.click(),
 		] );
 
 		const childModal = pageChild.locator(
@@ -110,10 +145,13 @@ test.describe( 'plugin activation', () => {
 		await childModal
 			.locator( 'button', { hasText: 'Select Current Site Type' } )
 			.click();
-		await pageChild.waitForURL( /onesearch-settings/ );
+
+		await expect(
+			pageChild.locator( 'h1', { hasText: 'Settings' } )
+		).toBeVisible();
 
 		// Step 3: Get API Key from Child Site
-		const apiKeyInput = pageChild.locator( 'textarea' );
+		const apiKeyInput = pageChild.getByLabel( 'API Key' );
 		await expect( apiKeyInput ).toBeVisible();
 		const apiKey = await apiKeyInput.inputValue();
 		expect( apiKey.length ).toBeGreaterThan( 0 );
@@ -152,40 +190,7 @@ test.describe( 'plugin activation', () => {
 			siteList.locator( 'td', { hasText: 'Child Site' } )
 		).toBeVisible();
 
-		// Reset settings option via WP API to ensure clean state for retries (Governing)
-		await pageGoverning.request.post( '/wp-json/wp/v2/settings', {
-			data: { onesearch_site_type: '' },
-			headers: {
-				'X-WP-Nonce': ( await pageGoverning.evaluate(
-					() =>
-						// @ts-ignore
-						window.wpApiSettings?.nonce ||
-						// @ts-ignore
-						window.OneSearchSettings?.nonce ||
-						// @ts-ignore
-						window.OneSearchOnboarding?.nonce
-				) ) as string,
-			},
-		} );
-
-		// Reset settings option via WP API to ensure clean state for retries (Child)
-		await pageChild.request.post( '/wp-json/wp/v2/settings', {
-			data: { onesearch_site_type: '' },
-			headers: {
-				'X-WP-Nonce': ( await pageChild.evaluate(
-					() =>
-						// @ts-ignore
-						window.wpApiSettings?.nonce ||
-						// @ts-ignore
-						window.OneSearchSettings?.nonce ||
-						// @ts-ignore
-						window.OneSearchOnboarding?.nonce
-				) ) as string,
-			},
-		} );
-
 		// Cleanup: contexts
-		await contextGoverning.close();
 		await contextChild.close();
 	} );
 } );
