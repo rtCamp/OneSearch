@@ -157,7 +157,9 @@ Code contributions, bug reports, and feature requests are welcome! The following
 ├── .release-please-manifest.json # Release Please manifest file.
 ├── .stylelint.config.js          # Stylelint configuration.
 ├── .stylelintignore              # Stylelint ignore patterns.
-├── .wp-env.json                  # wp-env configuration.
+├── .wp-env.json                  # wp-env configuration (governing site).
+├── .wp-env.child.json            # wp-env configuration (brand site).
+├── .wp-env.test.json             # wp-env configuration (test site).
 ├── blueprint.json                # WordPress Playground blueprint configuration.
 ├── babel.config.js               # Babel configuration.
 ├── composer.json                 # PHP dependencies.
@@ -209,12 +211,31 @@ You can use Docker and the `wp-env` tool to set up a local development environme
 
    ```bash
    npm run wp-env start
+   npm run wp-env:child start
+   npm run wp-env:test start
    ```
 
    This will start a local WordPress environment with the plugin installed and the following default configuration:
 
+   **Governing Site (wp-env):**
+
    - Site URL: <http://localhost:8888>
    - WP Admin URL: <http://localhost:8888/wp-admin/>
+     - WP Admin Username: `admin`
+     - WP Admin Password: `password`
+
+   **Brand Site (wp-env:child):**
+
+   - Site URL: <http://localhost:8890>
+   - WP Admin URL: <http://localhost:8890/wp-admin/>
+
+     - WP Admin Username: `admin`
+     - WP Admin Password: `password`
+
+     **Test Environment (wp-env:test):**
+
+   - Site URL: <http://localhost:8889>
+   - WP Admin URL: <http://localhost:8889/wp-admin/>
      - WP Admin Username: `admin`
      - WP Admin Password: `password`
 
@@ -241,10 +262,12 @@ You should now have a fully functional local development environment with the pl
 
 #### Accessing the Local Environment
 
-- `npm run wp-env start`: Start the local development environment.
+- `npm run wp-env start`: Start the local development environment (governing site on port 8888).
+- `npm run wp-env:child start`: Start the local development environment (brand site on port 8890).
+- `npm run wp-env:test start`: Start the local test environment (on port 8889).
 - `npm run wp-env stop`: Stop the local development environment.
 - `npm run wp-env run cli -- --env-cwd=wp-content/plugins/onesearch {YOUR_CMD_HERE}`: Run WP-CLI commands in the local environment.
-- `npm run wp-env run tests-cli -- --env-cwd=wp-content/plugins/onesearch {YOUR_CMD_HERE}`: Run Composer/PHP tooling in the tests container.
+- `npm run wp-env:test run cli -- --env-cwd=wp-content/plugins/onesearch {YOUR_CMD_HERE}`: Run Composer/PHP tooling in the tests container.
 
 For more information on using `wp-env`, see the [wp-env documentation](https://developer.wordpress.org/block-editor/packages/packages-env/).
 
