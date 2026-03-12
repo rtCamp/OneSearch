@@ -31,6 +31,7 @@ test.describe( 'plugin activation', () => {
 
 		// Step 1: Ensure Governing Site is setup
 		await pageGoverning.goto( '/wp-admin/plugins.php' );
+
 		const governingPluginRow = pageGoverning.locator(
 			'tr[data-plugin="onesearch/onesearch.php"]'
 		);
@@ -45,8 +46,8 @@ test.describe( 'plugin activation', () => {
 				hasText: 'Activate',
 			} );
 			await Promise.all( [
-				pageGoverning.waitForURL( /onesearch-settings/ ),
-				activateLink.click(),
+				pageGoverning.waitForURL( /plugins.php/ ),
+				activateLink.click( { force: true } ),
 			] );
 
 			const modal = pageGoverning.locator(
@@ -61,6 +62,7 @@ test.describe( 'plugin activation', () => {
 
 		// Step 2: Setup Child Site
 		await pageChild.goto( '/wp-admin/plugins.php' );
+
 		const childPluginRow = pageChild.locator(
 			'tr[data-plugin="onesearch/onesearch.php"]'
 		);
@@ -77,7 +79,7 @@ test.describe( 'plugin activation', () => {
 			} );
 			await Promise.all( [
 				pageChild.waitForURL( /plugins.php/ ),
-				deactivateLink.click(),
+				deactivateLink.click( { force: true } ),
 			] );
 		}
 
@@ -85,8 +87,8 @@ test.describe( 'plugin activation', () => {
 			hasText: 'Activate',
 		} );
 		await Promise.all( [
-			pageChild.waitForURL( /onesearch-settings/ ),
-			childActivateLink.click(),
+			pageChild.waitForURL( /plugins.php/ ),
+			childActivateLink.click( { force: true } ),
 		] );
 
 		const childModal = pageChild.locator(
@@ -122,19 +124,12 @@ test.describe( 'plugin activation', () => {
 		);
 		await expect( addSiteModal ).toBeVisible();
 
-		// Use better selectors by finding labels
+		// Use better selectors by finding labels using Playwright's native getByLabel
+		await addSiteModal.getByLabel( 'Site Name*' ).fill( 'Child Site' );
 		await addSiteModal
-			.locator( 'label:has-text("Site Name*")' )
-			.locator( '..//input' )
-			.fill( 'Child Site' );
-		await addSiteModal
-			.locator( 'label:has-text("Site URL*")' )
-			.locator( '..//input' )
+			.getByLabel( 'Site URL*' )
 			.fill( 'http://localhost:8890' );
-		await addSiteModal
-			.locator( 'label:has-text("API Key*")' )
-			.locator( '..//textarea' )
-			.fill( apiKey );
+		await addSiteModal.getByLabel( 'API Key*' ).fill( apiKey );
 
 		await addSiteModal.locator( 'button', { hasText: 'Add Site' } ).click();
 

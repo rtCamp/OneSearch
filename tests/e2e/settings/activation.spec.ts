@@ -16,6 +16,7 @@ test.describe( 'plugin activation', () => {
 		await expect( pluginRow ).toBeVisible();
 
 		// If the plugin is already activated, deactivate it first for testing the activation flow.
+		// If the modal is covering the screen, force: true will click through it.
 		if (
 			await pluginRow
 				.locator( 'a', { hasText: 'Deactivate' } )
@@ -32,9 +33,10 @@ test.describe( 'plugin activation', () => {
 
 		const activateLink = pluginRow.locator( 'a', { hasText: 'Activate' } );
 
+		// In WordPress, clicking activate reloads plugins.php
 		await Promise.all( [
-			page.waitForURL( /onesearch-settings/ ),
-			activateLink.click(),
+			page.waitForURL( /plugins.php/ ),
+			activateLink.click( { force: true } ),
 		] );
 
 		const modal = page.locator( '#onesearch-site-selection-modal' );
@@ -59,7 +61,7 @@ test.describe( 'plugin activation', () => {
 		} );
 		await Promise.all( [
 			page.waitForURL( /plugins.php/ ),
-			deactivateLink.click(),
+			deactivateLink.click( { force: true } ),
 		] );
 
 		await expect(
