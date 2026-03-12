@@ -4,64 +4,74 @@
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
 
 test.describe( 'plugin activation', () => {
+	test.beforeEach( async ( { requestUtils } ) => {
+		// Ensure environment is clean before test starts.
+		await requestUtils.rest( {
+			method: 'POST',
+			path: '/wp/v2/settings',
+			data: { onesearch_site_type: '' },
+		} );
+	} );
+
 	test( 'should activate and deactivate the plugin', async ( {
 		admin,
 		page,
 	} ) => {
 		await admin.visitAdminPage( '/plugins.php' );
 
-		// Helper to dismiss the onboarding modal if present.
-		const dismissOnboardingModal = async () => {
-			const modal = page.locator( '#onesearch-site-selection-modal' );
-			const backdrop = page.locator(
-				'body.onesearch-site-selection-modal'
-			);
-
-			if ( await modal.isVisible() ) {
-				await modal.evaluate( ( el ) => {
-					el.remove();
-				} );
-			}
-
-			if ( await backdrop.isVisible() ) {
-				await backdrop.evaluate( ( el ) => {
-					el.classList.remove( 'onesearch-site-selection-modal' );
-				} );
-			}
-		};
-
 		const pluginRow = page.locator(
 			'tr[data-plugin="onesearch/onesearch.php"]'
 		);
 		await expect( pluginRow ).toBeVisible();
 
-		// Dismiss modal before interacting with plugin row.
-		await dismissOnboardingModal();
+		// If the plugin is already activated, deactivate it first for testing the activation flow.
+		if (
+			await pluginRow
+				.locator( 'a', { hasText: 'Deactivate' } )
+				.isVisible()
+		) {
+			const deactivateLink = pluginRow.locator( 'a', {
+				hasText: 'Deactivate',
+			} );
+
+			await Promise.all( [
+				page.waitForNavigation(),
+				deactivateLink.click(),
+			] );
+			await expect(
+				pluginRow.locator( 'a', { hasText: 'Activate' } )
+			).toBeVisible();
+		}
 
 		const activateLink = pluginRow.locator( 'a', { hasText: 'Activate' } );
+		await Promise.all( [ page.waitForNavigation(), activateLink.click() ] );
 
-		await Promise.all( [
-			page.waitForURL( /plugins.php/ ),
-			activateLink.click(),
-		] );
+		const modal = page.locator( '#onesearch-site-selection-modal' );
+		await expect( modal ).toBeVisible();
 
+		// Select Governing Site in the onboarding modal via SelectControl
+		await modal.locator( 'select' ).selectOption( 'governing-site' );
+		await modal
+			.locator( 'button', { hasText: 'Select Current Site Type' } )
+			.click();
+
+		// Verify we are redirected to settings page
 		await expect(
-			pluginRow.locator( 'a', { hasText: 'Deactivate' } )
-		).toBeVisible( { timeout: 10000 } );
+			page.locator( 'h1', { hasText: 'Settings' } )
+		).toBeVisible();
 
-		// Dismiss modal again after activation.
-		await dismissOnboardingModal();
-
+		// Cleanup: deactivate
+		await admin.visitAdminPage( '/plugins.php' );
 		const deactivateLink = pluginRow.locator( 'a', {
 			hasText: 'Deactivate',
 		} );
+
 		await Promise.all( [
-			page.waitForURL( /plugins.php/ ),
+			page.waitForNavigation(),
 			deactivateLink.click(),
 		] );
-
 		await expect(
 			pluginRow.locator( 'a', { hasText: 'Activate' } )
-		).toBeVisible( { timeout: 10000 } );
+		).toBeVisible();
 	} );
 } );
