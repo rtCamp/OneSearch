@@ -166,10 +166,12 @@ final class Settings implements Registrable {
 	/**
 	 * Deletes Algolia index when site type is changed to consumer.
 	 *
+	 * @internal Hook callback
+	 *
 	 * @param mixed $old_value The old value.
 	 * @param mixed $new_value The new value.
 	 */
-	public function on_site_type_change( $old_value, $new_value ): void {
+	public function on_site_type_change( $old_value, $new_value ): void { // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter
 		if ( Admin_Settings::SITE_TYPE_CONSUMER !== $new_value ) {
 			return;
 		}
@@ -252,11 +254,13 @@ final class Settings implements Registrable {
 	/**
 	 * Purges the Governing_Data_Handler cache when a setting update triggers.
 	 *
+	 * @internal Hook callback
+	 *
 	 * @param mixed  $old_value The old value.
 	 * @param mixed  $new_value The new value.
 	 * @param string $option    The option name.
 	 */
-	public function purge_cache_on_update( $old_value, $new_value, $option ): void {
+	public function purge_cache_on_update( $old_value, $new_value, $option ): void { // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter
 		match ( $option ) {
 			self::OPTION_GOVERNING_ALGOLIA_CREDENTIALS,
 			self::OPTION_GOVERNING_SEARCH_SETTINGS,

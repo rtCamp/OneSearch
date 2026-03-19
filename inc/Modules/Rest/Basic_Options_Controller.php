@@ -5,6 +5,8 @@
  * @package OneSearch
  */
 
+declare(strict_types = 1);
+
 namespace OneSearch\Modules\Rest;
 
 use OneSearch\Modules\Settings\Settings;
@@ -16,7 +18,6 @@ use WP_REST_Server;
  * Class Basic_Options_Controller
  */
 class Basic_Options_Controller extends Abstract_REST_Controller {
-
 	/**
 	 * {@inheritDoc}
 	 */
@@ -252,8 +253,6 @@ class Basic_Options_Controller extends Abstract_REST_Controller {
 
 	/**
 	 * Get the secret key.
-	 *
-	 * @return \WP_REST_Response| \WP_Error
 	 */
 	public function get_secret_key(): \WP_REST_Response|\WP_Error {
 		$secret_key = Settings::get_api_key();
@@ -268,8 +267,6 @@ class Basic_Options_Controller extends Abstract_REST_Controller {
 
 	/**
 	 * Regenerate the secret key.
-	 *
-	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function regenerate_secret_key(): \WP_REST_Response|\WP_Error {
 

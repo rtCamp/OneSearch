@@ -4,42 +4,85 @@
 import { useState, useEffect, createRoot } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { Snackbar } from '@wordpress/components';
-/**
- * Internal dependencies
- */
-import SiteModal from '../../components/SiteModal';
-import SiteIndexableEntities from '../../components/SiteIndexableEntities';
-import SiteSearchSettings from '../../components/SiteSearchSettings';
 
 /**
- * Internal dependencies
+ * External dependencies
  */
-import { API_NAMESPACE, NONCE, CURRENT_SITE_URL } from '../../js/utils';
+import SiteIndexableEntities from '@/components/SiteIndexableEntities';
+import SiteModal from '@/components/SiteModal';
+import SiteSearchSettings, {
+	type PostTypeOption,
+} from '@/components/SiteSearchSettings';
+import {
+	API_NAMESPACE,
+	NONCE,
+	CURRENT_SITE_URL,
+	withTrailingSlash,
+} from '@/js/utils';
+import type {
+	BrandSite,
+	defaultBrandSite,
+	NoticeType,
+} from '@/admin/settings/page';
+import type { SiteType } from '@/types/global';
+
+type BrandSiteFormData = typeof defaultBrandSite;
+
+interface AllPostTypesMap {
+	[ siteUrl: string ]: PostTypeOption[];
+}
+
+interface IndexableEntitiesMap {
+	[ siteUrl: string ]: string[];
+}
+
+interface FetchAllPostTypesResponse {
+	sites: {
+		[ url: string ]: {
+			post_types?: Array< {
+				slug?: string;
+				label?: string;
+				restBase?: string;
+			} >;
+		};
+	};
+}
 
 const OneSearchSettingsPage = () => {
-	const [ siteType, setSiteType ] = useState( '' );
+	const [ siteType, setSiteType ] = useState< SiteType >( '' );
 	const [ showModal, setShowModal ] = useState( false );
-	const [ editingIndex, setEditingIndex ] = useState( null );
-	const [ sites, setSites ] = useState( [] );
-	const [ formData, setFormData ] = useState( {
+	const [ editingIndex, setEditingIndex ] = useState< number | null >( null );
+	const [ sites, setSites ] = useState< BrandSite[] >( [] );
+	const [ formData, setFormData ] = useState< BrandSiteFormData >( {
 		name: '',
 		url: '',
 		api_key: '',
 	} );
-	const [ notice, setNotice ] = useState( {
-		type: 'success',
-		message: '',
-	} );
-	const [ allPostTypes, setAllPostTypes ] = useState( {} );
-	const [ indexableEntities, setIndexableEntities ] = useState( {} );
+	const [ notice, setNotice ] = useState< NoticeType | null >( null );
+	const [ allPostTypes, setAllPostTypes ] = useState< AllPostTypesMap >( {} );
+	const [ indexableEntities, setIndexableEntities ] =
+		useState< IndexableEntitiesMap >( {} );
 	const [ saving, setSaving ] = useState( false );
 
 	const fetchEntities = async () => {
-		const res = await fetch( `${ API_NAMESPACE }/indexable-entities`, {
-			headers: { 'X-WP-Nonce': NONCE },
-		} );
-		const data = await res.json();
-		setIndexableEntities( data.indexableEntities?.entities || {} );
+		try {
+			const res = await fetch( `${ API_NAMESPACE }/indexable-entities`, {
+				headers: { 'X-WP-Nonce': NONCE },
+			} );
+			if ( ! res.ok ) {
+				throw new Error( `HTTP ${ res.status }` );
+			}
+			const data = await res.json();
+			setIndexableEntities( data.indexableEntities?.entities || {} );
+		} catch {
+			setNotice( {
+				type: 'error',
+				message: __(
+					'Error fetching indexable entities.',
+					'onesearch'
+				),
+			} );
+		}
 	};
 
 	useEffect( () => {
@@ -54,11 +97,10 @@ const OneSearchSettingsPage = () => {
 	useEffect( () => {
 		const token = NONCE;
 
-		const ensureSlash = ( url ) =>
-			typeof url === 'string' && url.endsWith( '/' ) ? url : `${ url }/`;
-
-		const toEntitiesMap = ( data ) => {
-			const results = {};
+		const toEntitiesMap = (
+			data: FetchAllPostTypesResponse
+		): AllPostTypesMap => {
+			const results: AllPostTypesMap = {};
 			if ( data && data.sites && typeof data.sites === 'object' ) {
 				Object.keys( data.sites ).forEach( ( url ) => {
 					const payload = data.sites[ url ] || {};
@@ -69,7 +111,7 @@ const OneSearchSettingsPage = () => {
 						: [];
 
 					// Map out post types for each site.
-					results[ ensureSlash( url ) ] = ( list || [] ).map(
+					results[ withTrailingSlash( url ) ] = ( list || [] ).map(
 						( { slug = '', label, restBase } = {} ) => {
 							const s = String( slug );
 							return {
@@ -77,7 +119,7 @@ const OneSearchSettingsPage = () => {
 								label: String( label || s ),
 								restBase: String( restBase || s ),
 							};
-						},
+						}
 					);
 				} );
 			}
@@ -97,13 +139,16 @@ const OneSearchSettingsPage = () => {
 				if ( ! res.ok ) {
 					throw new Error( `HTTP ${ res.status }` );
 				}
-				const data = await res.json();
+				const data: FetchAllPostTypesResponse = await res.json();
 				const mapped = toEntitiesMap( data );
 				setAllPostTypes( mapped );
-			} catch ( e ) {
+			} catch {
 				setNotice( {
 					type: 'error',
-					message: __( 'Error fetching post types from sites.', 'onesearch' ),
+					message: __(
+						'Error fetching post types from sites.',
+						'onesearch'
+					),
 				} );
 			}
 		};
@@ -131,19 +176,24 @@ const OneSearchSettingsPage = () => {
 					} ),
 				] );
 
-				const siteTypeData = await siteTypeRes.json();
-				const sitesData = await sitesRes.json();
+				const siteTypeData: { site_type?: SiteType } =
+					await siteTypeRes.json();
+				const sitesData: { shared_sites?: BrandSite[] } =
+					await sitesRes.json();
 
 				if ( siteTypeData?.site_type ) {
 					setSiteType( siteTypeData.site_type );
 				}
 				if ( Array.isArray( sitesData?.shared_sites ) ) {
-					setSites( sitesData?.shared_sites );
+					setSites( sitesData.shared_sites );
 				}
 			} catch {
 				setNotice( {
 					type: 'error',
-					message: __( 'Error fetching site type or Brand sites.', 'onesearch' ),
+					message: __(
+						'Error fetching site type or Brand sites.',
+						'onesearch'
+					),
 				} );
 			}
 		};
@@ -157,10 +207,12 @@ const OneSearchSettingsPage = () => {
 		}
 	}, [ sites, siteType ] );
 
-	const handleFormSubmit = async () => {
-		const updated =
+	const handleFormSubmit = async (): Promise< boolean > => {
+		const updated: BrandSite[] =
 			editingIndex !== null
-				? sites.map( ( item, i ) => ( i === editingIndex ? formData : item ) )
+				? sites.map( ( item, i ) =>
+						i === editingIndex ? formData : item
+				  )
 				: [ ...sites, formData ];
 
 		const token = NONCE;
@@ -174,12 +226,17 @@ const OneSearchSettingsPage = () => {
 				body: JSON.stringify( { sites_data: updated } ),
 			} );
 			if ( ! response.ok ) {
-				console.error( 'Error saving Brand site:', response.statusText ); // eslint-disable-line no-console
-				return response;
+				/* eslint-disable-next-line no-console */
+				console.error(
+					'Error saving Brand site:',
+					response.statusText
+				);
+				return false;
 			}
 
 			if ( sites.length === 0 ) {
 				window.location.reload();
+				return true;
 			}
 
 			setSites( updated );
@@ -187,32 +244,41 @@ const OneSearchSettingsPage = () => {
 				type: 'success',
 				message: __( 'Brand Site saved successfully.', 'onesearch' ),
 			} );
+
+			setFormData( { name: '', url: '', api_key: '' } );
+			setShowModal( false );
+			setEditingIndex( null );
+			window.location.reload();
+			return true;
 		} catch {
 			setNotice( {
 				type: 'error',
 				message: __(
 					'Error saving Brand site. Please try again later.',
-					'onesearch',
+					'onesearch'
 				),
 			} );
+			return false;
 		}
+	};
 
-		setFormData( { name: '', url: '', api_key: '' } );
-		setShowModal( false );
-		setEditingIndex( null );
-		window.location.reload();
+	// Get status for Notice - map our types to Notice's expected types
+	const getNoticeStatus = (
+		type: NoticeType[ 'type' ] | undefined
+	): 'success' | 'error' | 'warning' => {
+		if ( type === 'success' || type === 'error' ) {
+			return type;
+		}
+		return 'warning';
 	};
 
 	return (
 		<>
 			<>
-				{ notice?.message?.length > 0 && (
+				{ notice?.message?.length && (
 					<Snackbar
-						status={ notice?.type ?? 'success' }
-						isDismissible={ true }
-						onRemove={ () => setNotice( null ) }
 						className={
-							notice?.type === 'error'
+							getNoticeStatus( notice.type ) === 'error'
 								? 'onesearch-error-notice'
 								: 'onesearch-success-notice'
 						}
@@ -226,7 +292,7 @@ const OneSearchSettingsPage = () => {
 				<SiteIndexableEntities
 					sites={ sites }
 					allPostTypes={ allPostTypes }
-					currentSiteUrl={ CURRENT_SITE_URL }
+					currentSiteUrl={ withTrailingSlash( CURRENT_SITE_URL ) }
 					setNotice={ setNotice }
 					onEntitiesSaved={ handleEntitiesSaved }
 					saving={ saving }
@@ -254,6 +320,12 @@ const OneSearchSettingsPage = () => {
 						setFormData( { name: '', url: '', api_key: '' } );
 					} }
 					editing={ editingIndex !== null }
+					sites={ sites }
+					originalData={
+						editingIndex !== null
+							? sites[ editingIndex ]
+							: undefined
+					}
 				/>
 			) }
 		</>
