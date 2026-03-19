@@ -50,7 +50,7 @@
 		"phpstan/phpstan-phpunit": "^2.0.3",
 		"rtcamp/coding-standards-d": "^0.1.0",
 		"szepeviktor/phpstan-wordpress": "^2.0.2",
-		"wp-phpunit/wp-phpunit": "^6.5",
+		"wp-phpunit/wp-phpunit": "^6.9",
 		"yoast/phpunit-polyfills": "^4.0"
 	},
 	"scripts": {
