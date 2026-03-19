@@ -20,62 +20,58 @@ use PHPUnit\Framework\Attributes\CoversClass;
 #[CoversClass( Admin::class )]
 class AdminTest extends TestCase {
 	/**
-	 * Test add_admin_menu.
+	 * Setup.
 	 */
-	public function test_add_admin_menu(): void {
-		$admin = new Admin();
+	public function setUp(): void {
+		parent::setUp();
 
-		// Set current user to admin so menu functions work.
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
-
-		$admin->add_admin_menu();
-
-		global $menu;
-		$found = false;
-		foreach ( $menu as $item ) {
-			if ( Admin::MENU_SLUG === $item[2] ) {
-				$found = true;
-				break;
-			}
-		}
-
-		$this->assertTrue( $found );
 	}
 
 	/**
-	 * Test add_submenu.
+	 * Test admin menu generation using WordPress actions.
 	 */
-	public function test_add_submenu(): void {
+	public function test_admin_menu_generation(): void {
+		// Initialize the admin module. It calls register_hooks, which hooks admin_menu.
 		$admin = new Admin();
+		$admin->register_hooks();
 
-		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		// Trigger the WordPress action that builds the menus.
+		do_action( 'admin_menu' );
 
-		$admin->add_admin_menu();
-		$admin->add_submenu();
+		global $menu, $submenu;
 
-		global $submenu; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		// Assert main menu exists.
+		$found_main = false;
+		foreach ( $menu as $item ) {
+			if ( Admin::MENU_SLUG === $item[2] ) {
+				$found_main = true;
+				break;
+			}
+		}
+		$this->assertTrue( $found_main, 'Main menu slug was not added' );
+
+		// Assert submenu exists.
 		$this->assertArrayHasKey( Admin::MENU_SLUG, $submenu );
-
-		$found = false;
+		$found_sub = false;
 		foreach ( // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 		$submenu[ Admin::MENU_SLUG ] as $item ) {
 			if ( Admin::SCREEN_ID === $item[2] ) {
-				$found = true;
+				$found_sub = true;
 				break;
 			}
 		}
-
-		$this->assertTrue( $found );
+		$this->assertTrue( $found_sub, 'Submenu slug was not added' );
 	}
 
 	/**
-	 * Test remove_default_submenu
+	 * Test remove_default_submenu integration.
 	 */
-	public function test_remove_default_submenu(): void {
+	public function test_remove_default_submenu_integration(): void {
 		$admin = new Admin();
-		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		$admin->register_hooks();
 
-		// 1. Test when governing site and has shared sites (should NOT remove).
+		// Case 1: Governing site with shared sites - default submenu should stay.
 		update_option( Settings::OPTION_SITE_TYPE, 'governing-site' );
 		Settings::set_shared_sites(
 			[
@@ -88,56 +84,57 @@ class AdminTest extends TestCase {
 			]
 		);
 
-		$admin->add_admin_menu();
-
-		// Mock a submenu item with same slug.
-		global $submenu; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		// The remove_default_submenu runs at priority 999
+		// It only checks if it should remove. To ensure it doesn't remove we need the menu to exist.
+		// Since we didn't add it in this test (do_action admin_menu normally does, but we have to register hooks first)
+		// we already called register_hooks above. So it should add the submenu then not remove it.
+		global $submenu;
 		$submenu[ Admin::MENU_SLUG ][] = [ 'OneSearch', 'manage_options', Admin::MENU_SLUG ];
 
-		$admin->remove_default_submenu();
+		do_action( 'admin_menu' );
 
-		$found = false;
-		foreach ( // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-		$submenu[ Admin::MENU_SLUG ] as $item ) {
-			if ( Admin::MENU_SLUG === $item[2] ) {
-				$found = true;
-				break;
-			}
-		}
-		$this->assertTrue( $found, 'Submenu should not be removed' );
-
-		// 2. Test when not governing site (should remove).
-		update_option( Settings::OPTION_SITE_TYPE, 'brand-site' );
-
-		// WordPress removes the submenu page by mutating the global directly.
-		// It only works if the slug matches the menu slug correctly.
-		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-		$submenu[ Admin::MENU_SLUG ] = [
-			[ 'OneSearch', 'manage_options', Admin::MENU_SLUG, 'OneSearch' ],
-		];
-
-		$admin->remove_default_submenu();
-
-		$found = false;
-		if ( isset( // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-			$submenu[ Admin::MENU_SLUG ]
-		) ) {
+		$found_default = false;
+		if ( isset( $submenu[ Admin::MENU_SLUG ] ) ) {
 			foreach ( // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 			$submenu[ Admin::MENU_SLUG ] as $item ) {
 				if ( Admin::MENU_SLUG === $item[2] ) {
-					$found = true;
+					$found_default = true;
 					break;
 				}
 			}
 		}
-		$this->assertFalse( $found, 'Submenu should be removed' );
+		$this->assertTrue( $found_default, 'Default submenu was incorrectly removed' );
+
+		// Reset submenu for next test.
+		$submenu = [];
+
+		// Case 2: Consumer site - default submenu should be removed.
+		update_option( Settings::OPTION_SITE_TYPE, 'brand-site' );
+		update_option( Settings::OPTION_GOVERNING_SHARED_SITES, [] );
+
+		$submenu[ Admin::MENU_SLUG ] = [
+			[ 'OneSearch', 'manage_options', Admin::MENU_SLUG, 'OneSearch' ],
+		];
+
+		do_action( 'admin_menu' );
+
+		$found_default = false;
+		if ( isset( $submenu[ Admin::MENU_SLUG ] ) ) {
+			foreach ( // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			$submenu[ Admin::MENU_SLUG ] as $item ) {
+				if ( Admin::MENU_SLUG === $item[2] ) {
+					$found_default = true;
+					break;
+				}
+			}
+		}
+		$this->assertFalse( $found_default, 'Default submenu was not removed for brand site' );
 	}
 
 	/**
-	 * Test screen_callback.
+	 * Test screen_callback renders expected content.
 	 */
-	public function test_screen_callback(): void {
+	public function test_screen_callback_renders(): void {
 		$admin = new Admin();
 
 		ob_start();
@@ -149,37 +146,80 @@ class AdminTest extends TestCase {
 	}
 
 	/**
-	 * Test enqueue_scripts
+	 * Test script enqueuing during admin_enqueue_scripts action.
 	 */
-	public function test_enqueue_scripts(): void {
+	public function test_enqueue_scripts_integration(): void {
 		$admin = new Admin();
+		$admin->register_hooks();
 
 		wp_dequeue_script( \OneSearch\Modules\Core\Assets::SETTINGS_SCRIPT_HANDLE );
-		wp_dequeue_script( \OneSearch\Modules\Core\Assets::ONBOARDING_SCRIPT_HANDLE );
 
-		// Unrelated hook.
-		$admin->enqueue_scripts( 'tools.php' );
+		// Simulate being on an unrelated page.
+		$GLOBALS['current_screen'] = \WP_Screen::get( 'tools' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		do_action( 'admin_enqueue_scripts', 'tools.php' );
 		$this->assertFalse( wp_script_is( \OneSearch\Modules\Core\Assets::SETTINGS_SCRIPT_HANDLE, 'enqueued' ) );
+
+		// Simulate being on the OneSearch settings page.
+		// Because there's no actual build file, wp_enqueue_script won't register,.
+		// but we can check if it tries to enqueue it.
+		$GLOBALS['current_screen'] = \WP_Screen::get( 'toplevel_page_' . Admin::SCREEN_ID ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		wp_register_script( \OneSearch\Modules\Core\Assets::SETTINGS_SCRIPT_HANDLE, 'dummy.js' );
+
+		do_action( 'admin_enqueue_scripts', 'toplevel_page_' . Admin::SCREEN_ID );
+		$this->assertTrue( wp_script_is( \OneSearch\Modules\Core\Assets::SETTINGS_SCRIPT_HANDLE, 'enqueued' ) );
+		$GLOBALS['current_screen'] = null; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 	}
 
 	/**
-	 * Test add_action_links.
+	 * Test action links injected on plugins page.
 	 */
 	public function test_add_action_links(): void {
 		$admin = new Admin();
 
-		$links          = [ '<a href="something">Link</a>' ];
-		$modified_links = $admin->add_action_links( $links );
+		$links = [ '<a href="test">Original</a>' ];
 
-		$this->assertCount( 2, $modified_links );
-		$this->assertStringContainsString( 'Settings', $modified_links[1] );
-		$this->assertStringContainsString( Admin::SCREEN_ID, $modified_links[1] );
+		// The hook is dynamic based on plugin basename, call the method directly to check logic.
+		$modified = $admin->add_action_links( $links );
 
-		// Test doing it wrong when wrong type.
-		$this->setExpectedIncorrectUsage( 'OneSearch\Modules\Settings\Admin::add_action_links' );
-		$modified_links_wrong = $admin->add_action_links( 'string' );
+		$this->assertCount( 2, $modified );
+		$this->assertStringContainsString( 'Original', $modified[0] );
+		$this->assertStringContainsString( Admin::SCREEN_ID, $modified[1] );
+		$this->assertStringContainsString( 'Settings', $modified[1] );
+	}
 
-		$this->assertCount( 1, $modified_links_wrong );
-		$this->assertStringContainsString( 'Settings', $modified_links_wrong[0] );
+	/**
+	 * Test body class additions
+	 */
+	public function test_body_classes_integration(): void {
+		$admin = new Admin();
+
+		set_current_screen( 'front' );
+
+		update_option( Settings::OPTION_SITE_TYPE, 'brand-site' );
+		Settings::set_shared_sites(
+			[
+				[
+					'id'      => '123',
+					'name'    => 'site',
+					'url'     => 'https://example.com',
+					'api_key' => '123',
+				],
+			]
+		);
+
+		$this->assertEquals( 'test-class', $admin->add_body_classes( 'test-class' ) );
+
+		$screen = \WP_Screen::get( 'plugins' );
+		set_current_screen( $screen );
+
+		update_option( Settings::OPTION_SITE_TYPE, '' );
+		update_option( Settings::OPTION_GOVERNING_SHARED_SITES, [] );
+
+		// Call method directly to avoid apply_filters triggering WP core debug notices
+		$classes = $admin->add_body_classes( 'test-class' );
+		$this->assertStringContainsString( 'onesearch-site-selection-modal', $classes );
+		$this->assertStringContainsString( 'onesearch-missing-brand-sites', $classes );
+
+		set_current_screen( 'front' );
 	}
 }

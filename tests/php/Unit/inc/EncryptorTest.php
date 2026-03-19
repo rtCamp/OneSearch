@@ -31,4 +31,24 @@ class EncryptorTest extends TestCase {
 		$decrypted_value = Encryptor::decrypt( $encrypted_value );
 		$this->assertEquals( $original_value, $decrypted_value );
 	}
+
+	/**
+	 * Test decryption with invalid base64.
+	 */
+	public function test_decrypt_invalid_base64(): void {
+		$this->assertEquals( 'invalid_base64!!!', Encryptor::decrypt( 'invalid_base64!!!' ) );
+	}
+
+	/**
+	 * Test decryption failure when string is manipulated.
+	 */
+	public function test_decryption_failure(): void {
+		$encrypted_value = Encryptor::encrypt( 'test_string' );
+
+		// Change the encrypted string slightly so the salt check fails or decryption fails.
+		$decoded     = base64_decode( $encrypted_value, true );
+		$manipulated = base64_encode( substr( $decoded, 0, -5 ) . 'abcde' );
+
+		$this->assertFalse( Encryptor::decrypt( $manipulated ) );
+	}
 }
