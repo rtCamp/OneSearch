@@ -22,6 +22,7 @@ module.exports = {
 
 	// Root directory for tests
 	rootDir: '.',
+	roots: [ '<rootDir>', '<rootDir>/tests/js' ],
 
 	// Test setup files run after Jest environment is set up
 	setupFilesAfterEnv: [
