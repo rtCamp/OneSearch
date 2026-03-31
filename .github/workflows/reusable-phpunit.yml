@@ -68,7 +68,7 @@ jobs:
         run: npm run build:dev
 
       - name: Start the Docker testing environment
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
           timeout_minutes: 10
           max_attempts: 3
@@ -89,7 +89,7 @@ jobs:
 
       - name: Upload code coverage report
         if: ${{ inputs.coverage }}
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5.5.3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: tests/_output/php-coverage.xml
