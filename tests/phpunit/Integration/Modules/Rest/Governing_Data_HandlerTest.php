@@ -700,6 +700,106 @@ class Governing_Data_HandlerTest extends TestCase {
 	}
 
 	/**
+	 * A brand site that could not be reached is reported rather than dropped silently.
+	 *
+	 * The governing site discards the brand's API key along with its row, so it cannot
+	 * retry: the failure has to be surfaced for anyone to act on it.
+	 */
+	public function test_notify_brand_sites_of_disconnection_reports_unreachable_site(): void {
+		$filter = static function ( $preempt, $args, $url ) { // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter
+			if ( false === strpos( $url, 'a.example.com' ) ) {
+				return $preempt;
+			}
+
+			return new \WP_Error( 'http_request_failed', 'cURL error 6: Could not resolve host' );
+		};
+		add_filter( 'pre_http_request', $filter, 10, 3 );
+
+		$failures = [];
+		$listener = static function ( $site_url, $error ) use ( &$failures ): void {
+			$failures[ $site_url ] = $error;
+		};
+		add_action( 'onesearch_brand_disconnect_notice_failed', $listener, 10, 2 );
+
+		Governing_Data_Handler::notify_brand_sites_of_disconnection( [ 'https://a.example.com/' => 'key-a' ] );
+
+		remove_action( 'onesearch_brand_disconnect_notice_failed', $listener, 10 );
+		remove_filter( 'pre_http_request', $filter );
+
+		$this->assertSame( [ 'https://a.example.com/' => 'cURL error 6: Could not resolve host' ], $failures );
+	}
+
+	/**
+	 * A brand site that refuses the notice is reported with the status it returned.
+	 */
+	public function test_notify_brand_sites_of_disconnection_reports_refused_notice(): void {
+		$filter = static function ( $preempt, $args, $url ) { // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter
+			if ( false === strpos( $url, 'a.example.com' ) ) {
+				return $preempt;
+			}
+
+			return [
+				'response' => [
+					'code'    => 401,
+					'message' => 'Unauthorized',
+				],
+				'body'     => '{"code":"rest_forbidden"}',
+				'headers'  => [],
+				'cookies'  => [],
+			];
+		};
+		add_filter( 'pre_http_request', $filter, 10, 3 );
+
+		$failures = [];
+		$listener = static function ( $site_url, $error ) use ( &$failures ): void {
+			$failures[ $site_url ] = $error;
+		};
+		add_action( 'onesearch_brand_disconnect_notice_failed', $listener, 10, 2 );
+
+		Governing_Data_Handler::notify_brand_sites_of_disconnection( [ 'https://a.example.com/' => 'key-a' ] );
+
+		remove_action( 'onesearch_brand_disconnect_notice_failed', $listener, 10 );
+		remove_filter( 'pre_http_request', $filter );
+
+		$this->assertSame( [ 'https://a.example.com/' => 'HTTP 401' ], $failures );
+	}
+
+	/**
+	 * A notice that got through is not reported as a failure.
+	 */
+	public function test_notify_brand_sites_of_disconnection_reports_nothing_on_success(): void {
+		$filter = static function ( $preempt, $args, $url ) { // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter
+			if ( false === strpos( $url, 'a.example.com' ) ) {
+				return $preempt;
+			}
+
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => '{"success":true}',
+				'headers'  => [],
+				'cookies'  => [],
+			];
+		};
+		add_filter( 'pre_http_request', $filter, 10, 3 );
+
+		$failures = [];
+		$listener = static function ( $site_url ) use ( &$failures ): void {
+			$failures[] = $site_url;
+		};
+		add_action( 'onesearch_brand_disconnect_notice_failed', $listener, 10, 1 );
+
+		Governing_Data_Handler::notify_brand_sites_of_disconnection( [ 'https://a.example.com/' => 'key-a' ] );
+
+		remove_action( 'onesearch_brand_disconnect_notice_failed', $listener, 10 );
+		remove_filter( 'pre_http_request', $filter );
+
+		$this->assertEmpty( $failures );
+	}
+
+	/**
 	 * Sites without an API key cannot be authenticated against, so they are skipped.
 	 */
 	public function test_notify_brand_sites_of_disconnection_skips_sites_without_key(): void {

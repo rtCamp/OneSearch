@@ -329,6 +329,9 @@ class Governing_Data_Handler {
 	/**
 	 * Tells brand sites that they are no longer governed by this site.
 	 *
+	 * Best effort: the sites have already been dropped from the option by the time this
+	 * runs, so a notice that fails is reported rather than undone.
+	 *
 	 * @param array<string,string> $removed_sites Map of normalized brand site URL to its (decrypted) API key.
 	 */
 	public static function notify_brand_sites_of_disconnection( array $removed_sites ): void {
@@ -342,8 +345,37 @@ class Governing_Data_Handler {
 				continue;
 			}
 
-			self::request_disconnect( $site_url, $api_key );
+			$error = self::get_disconnect_error( self::request_disconnect( $site_url, $api_key ) );
+			if ( null === $error ) {
+				continue;
+			}
+
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- @todo Surface this better with a Logger class.
+			error_log(
+				sprintf(
+					'OneSearch: %1$s could not be told that it is no longer governed by this site: %2$s',
+					$site_url,
+					$error
+				)
+			);
+
+			do_action( 'onesearch_brand_disconnect_notice_failed', $site_url, $error );
 		}
+	}
+
+	/**
+	 * Describes why a disconnection notice failed, or null when it got through.
+	 *
+	 * @param array<string,mixed>|\WP_Error $response The response to the notice.
+	 */
+	private static function get_disconnect_error( $response ): ?string {
+		if ( is_wp_error( $response ) ) {
+			return $response->get_error_message();
+		}
+
+		$code = (int) wp_remote_retrieve_response_code( $response );
+
+		return 200 === $code ? null : sprintf( 'HTTP %d', $code );
 	}
 
 	/**
