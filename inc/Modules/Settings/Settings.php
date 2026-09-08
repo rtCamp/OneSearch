@@ -80,6 +80,11 @@ final class Settings implements Registrable {
 			return;
 		}
 
+		// Pairing with the same governing site again makes the recorded disconnect moot.
+		if ( Governing_Data_Handler::is_pending_governing_disconnect_stale( $pending['url'] ) ) {
+			return;
+		}
+
 		echo '<div class="notice notice-warning">';
 		self::render_disconnect_retry_row(
 			sprintf(
@@ -188,7 +193,7 @@ final class Settings implements Registrable {
 	 */
 	private static function handle_retry_action( string $nonce_action, callable $retry ): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You are not allowed to do this.', 'onesearch' ), 403 );
+			wp_die( esc_html__( 'You are not allowed to do this.', 'onesearch' ), '', [ 'response' => 403 ] );
 		}
 
 		check_admin_referer( $nonce_action );

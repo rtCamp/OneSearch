@@ -461,6 +461,17 @@ class Governing_Data_Handler {
 			return true;
 		}
 
+		/*
+		 * A notice outlives the disconnection it describes, so the brand may have been
+		 * added back since. Replaying the request then tears down that live pairing and
+		 * leaves it one-sided, which is the very thing this teardown exists to prevent.
+		 */
+		if ( null !== Settings::get_shared_site_by_url( $site_url ) ) {
+			unset( $pending[ $site_url ] );
+			update_option( self::OPTION_PENDING_DISCONNECT_NOTICES, $pending, false );
+			return true;
+		}
+
 		$notice  = $pending[ $site_url ];
 		$api_key = ! empty( $notice['api_key'] ) ? ( Encryptor::decrypt( $notice['api_key'] ) ?: '' ) : '';
 
@@ -490,9 +501,15 @@ class Governing_Data_Handler {
 	 * @return array<string,array{name:string,attempts:int,last_error:string,updated_at:int}>
 	 */
 	public static function get_pending_disconnect_notices(): array {
-		$notices = [];
+		$notices      = [];
+		$shared_sites = Settings::get_shared_sites();
 
 		foreach ( self::get_raw_pending_disconnect_notices() as $site_url => $notice ) {
+			// The brand was added back, so the disconnection this describes no longer holds.
+			if ( isset( $shared_sites[ $site_url ] ) ) {
+				continue;
+			}
+
 			$notices[ $site_url ] = [
 				'name'       => ! empty( $notice['name'] ) ? (string) $notice['name'] : $site_url,
 				'attempts'   => (int) $notice['attempts'],
@@ -565,6 +582,16 @@ class Governing_Data_Handler {
 			return true;
 		}
 
+		/*
+		 * This site has since paired with the same governing site again - by health check
+		 * or by hand - so replaying the request would tear down that live pairing and
+		 * leave it one-sided. A notice naming a different governing site still stands.
+		 */
+		if ( self::is_pending_governing_disconnect_stale( (string) $pending['url'] ) ) {
+			self::clear_pending_governing_disconnect();
+			return true;
+		}
+
 		$error = self::get_disconnect_error( self::request_disconnect( $pending['url'], $api_key ) );
 		if ( null === $error ) {
 			self::clear_pending_governing_disconnect();
@@ -596,6 +623,22 @@ class Governing_Data_Handler {
 			'last_error' => (string) $pending['last_error'],
 			'updated_at' => (int) $pending['updated_at'],
 		];
+	}
+
+	/**
+	 * Whether a pending governing-disconnect notice has been overtaken by a new pairing
+	 * with the same governing site, making the disconnect it describes no longer true.
+	 *
+	 * Only meaningful once the disconnection has run to completion: the parent option is
+	 * still in place while the notice is being recorded.
+	 *
+	 * @param string $pending_url The governing site URL the notice was recorded for.
+	 */
+	public static function is_pending_governing_disconnect_stale( string $pending_url ): bool {
+		$parent_url = Settings::get_parent_site_url();
+
+		return ! empty( $parent_url )
+			&& untrailingslashit( $parent_url ) === untrailingslashit( $pending_url );
 	}
 
 	/**

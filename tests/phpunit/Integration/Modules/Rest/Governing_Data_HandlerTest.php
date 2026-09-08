@@ -724,6 +724,13 @@ class Governing_Data_HandlerTest extends TestCase {
 		Governing_Data_Handler::deregister_from_governing_site();
 		remove_all_filters( 'pre_http_request' );
 
+		/*
+		 * The REST route drops the pairing locally right after deregistering, whether or not
+		 * the governing site could be told. Leaving it in place here would look exactly like
+		 * the brand having paired again, which the retry refuses to act on.
+		 */
+		delete_option( Settings::OPTION_CONSUMER_PARENT_SITE_URL );
+
 		add_filter(
 			'pre_http_request',
 			static fn () => [
@@ -755,6 +762,13 @@ class Governing_Data_HandlerTest extends TestCase {
 		add_filter( 'pre_http_request', static fn () => new \WP_Error( 'blocked', 'Still unreachable' ) );
 		Governing_Data_Handler::deregister_from_governing_site();
 
+		/*
+		 * The REST route drops the pairing locally right after deregistering, whether or not
+		 * the governing site could be told. Leaving it in place here would look exactly like
+		 * the brand having paired again, which the retry refuses to act on.
+		 */
+		delete_option( Settings::OPTION_CONSUMER_PARENT_SITE_URL );
+
 		$resolved = Governing_Data_Handler::retry_pending_governing_disconnect();
 
 		remove_all_filters( 'pre_http_request' );
@@ -770,6 +784,76 @@ class Governing_Data_HandlerTest extends TestCase {
 	 */
 	public function test_retry_pending_governing_disconnect_is_noop_when_nothing_pending(): void {
 		$this->assertTrue( Governing_Data_Handler::retry_pending_governing_disconnect() );
+	}
+
+	/**
+	 * Pairing with the same governing site again makes a pending notice moot: replaying it
+	 * would tear down the new pairing and leave it one-sided.
+	 */
+	public function test_retry_pending_governing_disconnect_refuses_after_repairing(): void {
+		update_option( Settings::OPTION_SITE_TYPE, Settings::SITE_TYPE_CONSUMER );
+		Settings::set_parent_site_url( 'https://governing.example.com' );
+
+		add_filter( 'pre_http_request', static fn () => new \WP_Error( 'http_request_failed', 'Could not resolve host' ) );
+		Governing_Data_Handler::deregister_from_governing_site();
+		remove_all_filters( 'pre_http_request' );
+
+		// The brand paired with the same governing site again before the admin retried.
+		Settings::set_parent_site_url( 'https://governing.example.com' );
+
+		$requested_urls = [];
+		$filter         = static function ( $preempt, $args, $url ) use ( &$requested_urls ) { // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter
+			$requested_urls[] = $url;
+			return new \WP_Error( 'blocked', 'Intercepted' );
+		};
+		add_filter( 'pre_http_request', $filter, 10, 3 );
+
+		$resolved = Governing_Data_Handler::retry_pending_governing_disconnect();
+
+		remove_filter( 'pre_http_request', $filter );
+
+		$this->assertTrue( $resolved );
+		$this->assertEmpty( $requested_urls, 'A live pairing must not be torn down by a stale retry.' );
+		$this->assertNull( Governing_Data_Handler::get_pending_governing_disconnect() );
+	}
+
+	/**
+	 * A notice naming a different governing site is still valid after re-pairing elsewhere.
+	 */
+	public function test_retry_pending_governing_disconnect_still_runs_for_a_different_governing_site(): void {
+		update_option( Settings::OPTION_SITE_TYPE, Settings::SITE_TYPE_CONSUMER );
+		Settings::set_parent_site_url( 'https://old-governing.example.com' );
+
+		add_filter( 'pre_http_request', static fn () => new \WP_Error( 'http_request_failed', 'Could not resolve host' ) );
+		Governing_Data_Handler::deregister_from_governing_site();
+		remove_all_filters( 'pre_http_request' );
+
+		Settings::set_parent_site_url( 'https://new-governing.example.com' );
+
+		$requested_urls = [];
+		$filter         = static function ( $preempt, $args, $url ) use ( &$requested_urls ) { // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter
+			$requested_urls[] = $url;
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => '{"success":true}',
+				'headers'  => [],
+				'cookies'  => [],
+			];
+		};
+		add_filter( 'pre_http_request', $filter, 10, 3 );
+
+		$resolved = Governing_Data_Handler::retry_pending_governing_disconnect();
+
+		remove_filter( 'pre_http_request', $filter );
+
+		$this->assertTrue( $resolved );
+		$this->assertSame(
+			[ 'https://old-governing.example.com/wp-json/onesearch/v1/connection' ],
+			$requested_urls
+		);
 	}
 
 	/**
@@ -986,6 +1070,77 @@ class Governing_Data_HandlerTest extends TestCase {
 		$this->assertFalse( $resolved );
 		$this->assertSame( 2, $pending['https://a.example.com/']['attempts'] );
 		$this->assertSame( 'Still unreachable', $pending['https://a.example.com/']['last_error'] );
+	}
+
+	/**
+	 * Adding a brand site back makes a pending notice for it moot: replaying the stored
+	 * disconnect would tear down the new pairing and leave it one-sided.
+	 */
+	public function test_retry_pending_disconnect_notice_refuses_after_the_brand_reconnects(): void {
+		update_option( Settings::OPTION_SITE_TYPE, Settings::SITE_TYPE_GOVERNING );
+
+		add_filter( 'pre_http_request', static fn () => new \WP_Error( 'blocked', 'Intercepted' ) );
+		Governing_Data_Handler::notify_brand_sites_of_disconnection( [ 'https://a.example.com/' => 'key-a' ] );
+		remove_all_filters( 'pre_http_request' );
+
+		// The brand was added back before the admin got around to retrying.
+		Settings::set_shared_sites(
+			[
+				[
+					'name'    => 'Brand A',
+					'url'     => 'https://a.example.com',
+					'api_key' => 'key-a',
+				],
+			]
+		);
+
+		$requested_urls = [];
+		$filter         = static function ( $preempt, $args, $url ) use ( &$requested_urls ) { // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter.UnusedParameter
+			$requested_urls[] = $url;
+			return new \WP_Error( 'blocked', 'Intercepted' );
+		};
+		add_filter( 'pre_http_request', $filter, 10, 3 );
+
+		$resolved = Governing_Data_Handler::retry_pending_disconnect_notice( 'https://a.example.com/' );
+
+		remove_filter( 'pre_http_request', $filter );
+
+		$this->assertTrue( $resolved );
+		$this->assertEmpty( $requested_urls, 'A live pairing must not be torn down by a stale retry.' );
+		$this->assertEmpty( Governing_Data_Handler::get_pending_disconnect_notices() );
+	}
+
+	/**
+	 * A reconnected brand's stale notice is not put in front of the admin either.
+	 */
+	public function test_get_pending_disconnect_notices_hides_reconnected_sites(): void {
+		update_option( Settings::OPTION_SITE_TYPE, Settings::SITE_TYPE_GOVERNING );
+
+		add_filter( 'pre_http_request', static fn () => new \WP_Error( 'blocked', 'Intercepted' ) );
+		Governing_Data_Handler::notify_brand_sites_of_disconnection(
+			[
+				'https://a.example.com/' => 'key-a',
+				'https://b.example.com/' => 'key-b',
+			]
+		);
+		remove_all_filters( 'pre_http_request' );
+
+		$this->assertCount( 2, Governing_Data_Handler::get_pending_disconnect_notices() );
+
+		Settings::set_shared_sites(
+			[
+				[
+					'name'    => 'Brand A',
+					'url'     => 'https://a.example.com',
+					'api_key' => 'key-a',
+				],
+			]
+		);
+
+		$this->assertSame(
+			[ 'https://b.example.com/' ],
+			array_keys( Governing_Data_Handler::get_pending_disconnect_notices() )
+		);
 	}
 
 	/**
