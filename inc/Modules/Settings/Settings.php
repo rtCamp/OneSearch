@@ -57,6 +57,146 @@ final class Settings implements Registrable {
 		// Listen to updates.
 		add_action( 'update_option_' . self::OPTION_SITE_TYPE, [ $this, 'on_site_type_change' ], 10, 2 );
 		add_action( 'update_option_' . self::OPTION_GOVERNING_SHARED_SITES, [ $this, 'notify_removed_brand_sites' ], 10, 2 );
+
+		// Surface pending disconnect notices in both directions, and let the admin retry them.
+		add_action( 'admin_notices', [ $this, 'render_pending_disconnect_notices' ] );
+		add_action( 'admin_post_onesearch_retry_disconnect_notices', [ $this, 'handle_retry_disconnect_notices' ] );
+		add_action( 'admin_notices', [ $this, 'render_pending_governing_disconnect_notice' ] );
+		add_action( 'admin_post_onesearch_retry_governing_disconnect', [ $this, 'handle_retry_governing_disconnect' ] );
+	}
+
+	/**
+	 * Warns the admin when the governing site could not be told this brand site disconnected,
+	 * with a button to retry - this is never retried automatically.
+	 */
+	public function render_pending_governing_disconnect_notice(): void {
+		if ( ! self::is_consumer_site() || ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$pending = Governing_Data_Handler::get_pending_governing_disconnect();
+
+		if ( null === $pending ) {
+			return;
+		}
+
+		echo '<div class="notice notice-warning">';
+		self::render_disconnect_retry_row(
+			sprintf(
+				/* translators: %s: governing site URL. */
+				__( 'The governing site "%s" could not be notified that this site disconnected, and may still list this site as connected.', 'onesearch' ),
+				$pending['url']
+			),
+			'onesearch_retry_governing_disconnect'
+		);
+		echo '</div>';
+	}
+
+	/**
+	 * Handles the "Retry" button on the pending-governing-disconnect admin notice.
+	 */
+	public function handle_retry_governing_disconnect(): void {
+		self::handle_retry_action(
+			'onesearch_retry_governing_disconnect',
+			[ Governing_Data_Handler::class, 'retry_pending_governing_disconnect' ]
+		);
+	}
+
+	/**
+	 * Warns the admin when a brand site could not be told it was disconnected, with a
+	 * button to retry - these are never retried automatically.
+	 */
+	public function render_pending_disconnect_notices(): void {
+		if ( ! self::is_governing_site() || ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$pending = Governing_Data_Handler::get_pending_disconnect_notices();
+
+		if ( empty( $pending ) ) {
+			return;
+		}
+
+		echo '<div class="notice notice-warning">';
+
+		foreach ( $pending as $site_url => $notice ) {
+			self::render_disconnect_retry_row(
+				sprintf(
+					/* translators: %s: brand site name. */
+					__( 'The "%s" couldn\'t be notified that it was disconnected.', 'onesearch' ),
+					$notice['name']
+				),
+				'onesearch_retry_disconnect_notices',
+				[ 'site_url' => $site_url ]
+			);
+		}
+
+		echo '</div>';
+	}
+
+	/**
+	 * Handles the "Retry" button on the pending-disconnect-notices admin notice.
+	 */
+	public function handle_retry_disconnect_notices(): void {
+		self::handle_retry_action(
+			'onesearch_retry_disconnect_notices',
+			static function (): void {
+				// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by handle_retry_action() before this runs.
+				$site_url = isset( $_POST['site_url'] ) ? Utils::normalize_url( esc_url_raw( wp_unslash( $_POST['site_url'] ) ) ) : '';
+
+				if ( ! empty( $site_url ) ) {
+					Governing_Data_Handler::retry_pending_disconnect_notice( $site_url );
+				}
+			}
+		);
+	}
+
+	/**
+	 * Renders one message-plus-Retry-button row for a pending-disconnect admin notice.
+	 *
+	 * @param string               $message      The (untranslated-escaped) notice text.
+	 * @param string               $nonce_action Nonce action, reused as the admin-post `action`.
+	 * @param array<string,string> $hidden_fields Extra hidden `<input>` fields the handler needs.
+	 */
+	private static function render_disconnect_retry_row( string $message, string $nonce_action, array $hidden_fields = [] ): void {
+		// A <p> auto-closes as soon as a <form> follows it, which would break the layout; use a <div> instead.
+		echo '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:1em 0;">';
+
+		printf( '<p style="margin:0;">%s</p>', esc_html( $message ) );
+
+		$hidden_inputs = sprintf( '<input type="hidden" name="action" value="%s" />', esc_attr( $nonce_action ) );
+		foreach ( $hidden_fields as $name => $value ) {
+			$hidden_inputs .= sprintf( '<input type="hidden" name="%s" value="%s" />', esc_attr( $name ), esc_attr( $value ) );
+		}
+
+		printf(
+			'<form method="post" action="%1$s" style="margin:0;">%2$s%3$s<button type="submit" class="button button-secondary">%4$s</button></form>',
+			esc_url( admin_url( 'admin-post.php' ) ),
+			wp_nonce_field( $nonce_action, '_wpnonce', true, false ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Core-generated markup, not user input.
+			$hidden_inputs, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from esc_attr()'d pieces above.
+			esc_html__( 'Retry', 'onesearch' )
+		);
+
+		echo '</div>';
+	}
+
+	/**
+	 * Shared guard/redirect scaffolding for the pending-disconnect "Retry" admin-post handlers.
+	 *
+	 * @param string   $nonce_action Nonce action to verify against the request.
+	 * @param callable $retry        Called with no arguments to perform the retry.
+	 */
+	private static function handle_retry_action( string $nonce_action, callable $retry ): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to do this.', 'onesearch' ), 403 );
+		}
+
+		check_admin_referer( $nonce_action );
+
+		$retry();
+
+		wp_safe_redirect( wp_get_referer() ?: admin_url() );
+		exit;
 	}
 
 	/**
@@ -207,6 +347,7 @@ final class Settings implements Registrable {
 
 		// The API keys of removed sites only exist in the old value.
 		$removed_sites = [];
+		$site_names    = [];
 		foreach ( $old_value as $site ) {
 			if ( empty( $site['url'] ) || empty( $site['api_key'] ) ) {
 				continue;
@@ -223,13 +364,14 @@ final class Settings implements Registrable {
 			}
 
 			$removed_sites[ $site_url ] = $api_key;
+			$site_names[ $site_url ]    = ! empty( $site['name'] ) ? (string) $site['name'] : $site_url;
 		}
 
 		if ( empty( $removed_sites ) ) {
 			return;
 		}
 
-		Governing_Data_Handler::notify_brand_sites_of_disconnection( $removed_sites );
+		Governing_Data_Handler::notify_brand_sites_of_disconnection( $removed_sites, $site_names );
 	}
 
 	/**
@@ -308,19 +450,8 @@ final class Settings implements Registrable {
 				continue;
 			}
 
-			$decrypted_api_key = ! empty( $brand['api_key'] ) ? Encryptor::decrypt( $brand['api_key'] ) : '';
-
-			// Always use a trailing-slash URL.
-			$url = trailingslashit( $brand['url'] );
-
-			$brands_to_return[ $url ] = [
-				'api_key' => $decrypted_api_key ?: '',
-				'id'      => $brand['id'] ?? '',
-				'logo'    => $brand['logo'] ?? '',
-				'logo_id' => $brand['logo_id'] ?? 0,
-				'name'    => $brand['name'] ?? '',
-				'url'     => $url,
-			];
+			$url                      = trailingslashit( $brand['url'] );
+			$brands_to_return[ $url ] = self::hydrate_shared_site( $brand, $url );
 		}
 
 		return $brands_to_return;
@@ -383,6 +514,121 @@ final class Settings implements Registrable {
 		}
 
 		return update_option( self::OPTION_GOVERNING_SHARED_SITES, array_values( $sites ), false );
+	}
+
+	/**
+	 * Atomically removes a single brand site from the shared-sites option.
+	 *
+	 * A plain get-modify-update round trip lets two concurrent disconnects each read the
+	 * same snapshot and overwrite each other, resurrecting whichever site the other request
+	 * removed. This instead compare-and-swaps the raw option value, retrying against a fresh
+	 * read whenever another process wrote in between.
+	 *
+	 * @param string $site_url           Brand site URL to remove.
+	 * @param bool   $is_self_disconnect Whether this site is disconnecting itself, so it
+	 *                                   should not be sent a disconnection notice back.
+	 *
+	 * @return array{api_key:string,id:string,logo:string,logo_id:int,name:string,url:string}|false|null
+	 *         The removed site's (decrypted) data, null if it was already absent, or false if
+	 *         the write could not be applied after retrying.
+	 */
+	public static function remove_shared_site( string $site_url, bool $is_self_disconnect = false ) {
+		$site_url = trailingslashit( $site_url );
+
+		for ( $attempt = 0; $attempt < 5; $attempt++ ) {
+			$raw_sites = get_option( self::OPTION_GOVERNING_SHARED_SITES, [] );
+			$raw_sites = is_array( $raw_sites ) ? $raw_sites : [];
+
+			$removed  = null;
+			$filtered = [];
+			foreach ( $raw_sites as $site ) {
+				if ( null === $removed && ! empty( $site['url'] ) && trailingslashit( $site['url'] ) === $site_url ) {
+					$removed = $site;
+					continue;
+				}
+				$filtered[] = $site;
+			}
+
+			if ( null === $removed ) {
+				return null;
+			}
+
+			/*
+			 * The removal below fires the shared-sites-changed notification synchronously,
+			 * so this has to be set immediately before it, not after.
+			 */
+			if ( $is_self_disconnect ) {
+				Governing_Data_Handler::suppress_disconnect_notice( $site_url );
+			}
+
+			if ( self::compare_and_swap_option( self::OPTION_GOVERNING_SHARED_SITES, $raw_sites, $filtered ) ) {
+				return self::hydrate_shared_site( $removed, $site_url );
+			}
+
+			// Another process wrote to the option first; back off briefly and retry against fresh data.
+			usleep( wp_rand( 1000, 5000 ) );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Builds a shared site's public shape from its raw stored row, decrypting its API key.
+	 *
+	 * @param array<string,mixed> $raw The raw stored site row.
+	 * @param string              $url The (already trailing-slashed) URL to record it under.
+	 *
+	 * @return array{api_key:string,id:string,logo:string,logo_id:int,name:string,url:string}
+	 */
+	private static function hydrate_shared_site( array $raw, string $url ): array {
+		return [
+			'api_key' => ! empty( $raw['api_key'] ) ? ( Encryptor::decrypt( $raw['api_key'] ) ?: '' ) : '',
+			'id'      => $raw['id'] ?? '',
+			'logo'    => $raw['logo'] ?? '',
+			'logo_id' => $raw['logo_id'] ?? 0,
+			'name'    => $raw['name'] ?? '',
+			'url'     => $url,
+		];
+	}
+
+	/**
+	 * Replaces an option's stored value only if it still matches the value read just before.
+	 *
+	 * @param string $option        Option name.
+	 * @param mixed  $expected      The value read immediately before this call.
+	 * @param mixed  $new_value     The value to write if nothing has changed since.
+	 */
+	private static function compare_and_swap_option( string $option, $expected, $new_value ): bool {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Compare-and-swap has no wpdb/options-API equivalent.
+		$updated = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s",
+				maybe_serialize( array_values( $new_value ) ),
+				$option,
+				maybe_serialize( $expected )
+			)
+		);
+
+		if ( ! $updated ) {
+			return false;
+		}
+
+		wp_cache_delete( $option, 'options' );
+
+		/*
+		 * update_option() fires these around its own write; other code (e.g. the brand-disconnect
+		 * notice and the search-settings cleanup) depends on them, so this has to replicate them
+		 * for a direct write to behave the same as going through the Options API.
+		 */
+		// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Replicating core's own update_option() hooks, not inventing new ones.
+		do_action( 'update_option', $option, $expected, $new_value );
+		do_action( "update_option_{$option}", $expected, $new_value, $option );
+		do_action( 'updated_option', $option, $expected, $new_value );
+		// phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+
+		return true;
 	}
 
 	/**

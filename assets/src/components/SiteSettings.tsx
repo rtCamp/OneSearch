@@ -152,29 +152,10 @@ const SiteSettings = () => {
 			if ( ! response.ok ) {
 				throw new Error( 'Network response was not ok' );
 			}
-			const data = await response.json();
-			setGoverningSite( '' );
 
-			// The local disconnection succeeded even when the governing site couldn't be reached.
-			setNotice(
-				data?.remote_disconnected === false
-					? {
-							type: 'warning',
-							message:
-								data?.message ||
-								__(
-									'Governing site disconnected on this site, but the governing site could not be notified and may still list this brand site.',
-									'onesearch'
-								),
-					  }
-					: {
-							type: 'success',
-							message: __(
-								'Governing site disconnected successfully.',
-								'onesearch'
-							),
-					  }
-			);
+			// Reload so the admin notice for an undelivered disconnection (rendered
+			// server-side) shows up immediately instead of only after a manual refresh.
+			window.location.reload();
 		} catch {
 			setNotice( {
 				type: 'error',
@@ -183,7 +164,6 @@ const SiteSettings = () => {
 					'onesearch'
 				),
 			} );
-		} finally {
 			setShowDisconnectionModal( false );
 		}
 	}, [ apiKey ] );

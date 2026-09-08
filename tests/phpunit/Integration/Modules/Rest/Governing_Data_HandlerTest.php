@@ -660,6 +660,119 @@ class Governing_Data_HandlerTest extends TestCase {
 	}
 
 	/**
+	 * When the governing site cannot be reached, the disconnect is recorded so the admin
+	 * can retry it later - otherwise the governing site is left listing a brand that has
+	 * already disconnected locally, with no way to reconcile it.
+	 */
+	public function test_deregister_from_governing_site_records_a_pending_notice_when_unreachable(): void {
+		update_option( Settings::OPTION_SITE_TYPE, Settings::SITE_TYPE_CONSUMER );
+		Settings::set_parent_site_url( 'https://governing.example.com' );
+
+		add_filter( 'pre_http_request', static fn () => new \WP_Error( 'http_request_failed', 'Could not resolve host' ) );
+
+		Governing_Data_Handler::deregister_from_governing_site();
+
+		remove_all_filters( 'pre_http_request' );
+
+		$pending = Governing_Data_Handler::get_pending_governing_disconnect();
+
+		$this->assertNotNull( $pending );
+		$this->assertSame( 'https://governing.example.com', $pending['url'] );
+		$this->assertSame( 1, $pending['attempts'] );
+		$this->assertSame( 'Could not resolve host', $pending['last_error'] );
+	}
+
+	/**
+	 * A successful deregistration leaves nothing pending.
+	 */
+	public function test_deregister_from_governing_site_clears_pending_notice_on_success(): void {
+		update_option( Settings::OPTION_SITE_TYPE, Settings::SITE_TYPE_CONSUMER );
+		Settings::set_parent_site_url( 'https://governing.example.com' );
+
+		add_filter( 'pre_http_request', static fn () => new \WP_Error( 'http_request_failed', 'Could not resolve host' ) );
+		Governing_Data_Handler::deregister_from_governing_site();
+		remove_all_filters( 'pre_http_request' );
+
+		add_filter(
+			'pre_http_request',
+			static fn () => [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => '{"success":true}',
+				'headers'  => [],
+				'cookies'  => [],
+			]
+		);
+
+		Governing_Data_Handler::deregister_from_governing_site();
+
+		remove_all_filters( 'pre_http_request' );
+
+		$this->assertNull( Governing_Data_Handler::get_pending_governing_disconnect() );
+	}
+
+	/**
+	 * A retry that succeeds clears the pending governing-disconnect notice.
+	 */
+	public function test_retry_pending_governing_disconnect_clears_notice_on_success(): void {
+		update_option( Settings::OPTION_SITE_TYPE, Settings::SITE_TYPE_CONSUMER );
+		Settings::set_parent_site_url( 'https://governing.example.com' );
+
+		add_filter( 'pre_http_request', static fn () => new \WP_Error( 'blocked', 'Intercepted' ) );
+		Governing_Data_Handler::deregister_from_governing_site();
+		remove_all_filters( 'pre_http_request' );
+
+		add_filter(
+			'pre_http_request',
+			static fn () => [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => '{"success":true}',
+				'headers'  => [],
+				'cookies'  => [],
+			]
+		);
+
+		$resolved = Governing_Data_Handler::retry_pending_governing_disconnect();
+
+		remove_all_filters( 'pre_http_request' );
+
+		$this->assertTrue( $resolved );
+		$this->assertNull( Governing_Data_Handler::get_pending_governing_disconnect() );
+	}
+
+	/**
+	 * A retry that fails again keeps the notice and bumps its attempt count.
+	 */
+	public function test_retry_pending_governing_disconnect_keeps_notice_on_continued_failure(): void {
+		update_option( Settings::OPTION_SITE_TYPE, Settings::SITE_TYPE_CONSUMER );
+		Settings::set_parent_site_url( 'https://governing.example.com' );
+
+		add_filter( 'pre_http_request', static fn () => new \WP_Error( 'blocked', 'Still unreachable' ) );
+		Governing_Data_Handler::deregister_from_governing_site();
+
+		$resolved = Governing_Data_Handler::retry_pending_governing_disconnect();
+
+		remove_all_filters( 'pre_http_request' );
+
+		$pending = Governing_Data_Handler::get_pending_governing_disconnect();
+		$this->assertFalse( $resolved );
+		$this->assertSame( 2, $pending['attempts'] );
+		$this->assertSame( 'Still unreachable', $pending['last_error'] );
+	}
+
+	/**
+	 * Retrying with nothing pending is a no-op success.
+	 */
+	public function test_retry_pending_governing_disconnect_is_noop_when_nothing_pending(): void {
+		$this->assertTrue( Governing_Data_Handler::retry_pending_governing_disconnect() );
+	}
+
+	/**
 	 * Each removed brand site gets an authenticated disconnection notice.
 	 */
 	public function test_notify_brand_sites_of_disconnection_notifies_each_site(): void {
@@ -797,6 +910,82 @@ class Governing_Data_HandlerTest extends TestCase {
 		remove_filter( 'pre_http_request', $filter );
 
 		$this->assertEmpty( $failures );
+	}
+
+	/**
+	 * A failed notice is kept around for the admin to retry manually - it is never
+	 * retried on its own. Without a display name it falls back to the URL.
+	 */
+	public function test_notify_brand_sites_of_disconnection_records_a_pending_notice(): void {
+		add_filter( 'pre_http_request', static fn () => new \WP_Error( 'blocked', 'Intercepted' ) );
+
+		Governing_Data_Handler::notify_brand_sites_of_disconnection( [ 'https://a.example.com/' => 'key-a' ] );
+
+		$pending = Governing_Data_Handler::get_pending_disconnect_notices();
+
+		$this->assertArrayHasKey( 'https://a.example.com/', $pending );
+		$this->assertSame( 'https://a.example.com/', $pending['https://a.example.com/']['name'] );
+		$this->assertSame( 1, $pending['https://a.example.com/']['attempts'] );
+		$this->assertSame( 'Intercepted', $pending['https://a.example.com/']['last_error'] );
+	}
+
+	/**
+	 * A pending notice carries the site's display name through, for the admin notice.
+	 */
+	public function test_notify_brand_sites_of_disconnection_records_the_site_name(): void {
+		add_filter( 'pre_http_request', static fn () => new \WP_Error( 'blocked', 'Intercepted' ) );
+
+		Governing_Data_Handler::notify_brand_sites_of_disconnection(
+			[ 'https://a.example.com/' => 'key-a' ],
+			[ 'https://a.example.com/' => 'Brand A' ]
+		);
+
+		$pending = Governing_Data_Handler::get_pending_disconnect_notices();
+
+		$this->assertSame( 'Brand A', $pending['https://a.example.com/']['name'] );
+	}
+
+	/**
+	 * A retry that succeeds clears the pending notice.
+	 */
+	public function test_retry_pending_disconnect_notice_clears_notice_on_success(): void {
+		add_filter( 'pre_http_request', static fn () => new \WP_Error( 'blocked', 'Intercepted' ) );
+		Governing_Data_Handler::notify_brand_sites_of_disconnection( [ 'https://a.example.com/' => 'key-a' ] );
+		remove_all_filters( 'pre_http_request' );
+
+		add_filter(
+			'pre_http_request',
+			static fn () => [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => '{"success":true}',
+				'headers'  => [],
+				'cookies'  => [],
+			]
+		);
+
+		$resolved = Governing_Data_Handler::retry_pending_disconnect_notice( 'https://a.example.com/' );
+
+		$this->assertTrue( $resolved );
+		$this->assertEmpty( Governing_Data_Handler::get_pending_disconnect_notices() );
+	}
+
+	/**
+	 * A retry that fails again keeps the notice and bumps its attempt count - there is no
+	 * cap, since it is only ever retried when the admin asks.
+	 */
+	public function test_retry_pending_disconnect_notice_keeps_notice_on_continued_failure(): void {
+		add_filter( 'pre_http_request', static fn () => new \WP_Error( 'blocked', 'Still unreachable' ) );
+		Governing_Data_Handler::notify_brand_sites_of_disconnection( [ 'https://a.example.com/' => 'key-a' ] );
+
+		$resolved = Governing_Data_Handler::retry_pending_disconnect_notice( 'https://a.example.com/' );
+
+		$pending = Governing_Data_Handler::get_pending_disconnect_notices();
+		$this->assertFalse( $resolved );
+		$this->assertSame( 2, $pending['https://a.example.com/']['attempts'] );
+		$this->assertSame( 'Still unreachable', $pending['https://a.example.com/']['last_error'] );
 	}
 
 	/**

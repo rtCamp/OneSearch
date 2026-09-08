@@ -225,6 +225,108 @@ final class SettingsTest extends TestCase {
 		$this->assertNull( Settings::get_shared_site_by_url( 'https://unknown.example' ) );
 	}
 
+	/** Removing a site returns its (decrypted) data and leaves the rest untouched. */
+	public function test_remove_shared_site_removes_only_the_target(): void {
+		Settings::set_shared_sites(
+			[
+				[
+					'id'      => 'brand-1',
+					'name'    => 'Brand One',
+					'url'     => 'https://brand-one.example',
+					'api_key' => 'brand-one-key',
+				],
+				[
+					'id'      => 'brand-2',
+					'name'    => 'Brand Two',
+					'url'     => 'https://brand-two.example',
+					'api_key' => 'brand-two-key',
+				],
+			]
+		);
+
+		$removed = Settings::remove_shared_site( 'https://brand-one.example' );
+
+		$this->assertSame(
+			[
+				'api_key' => 'brand-one-key',
+				'id'      => 'brand-1',
+				'logo'    => '',
+				'logo_id' => 0,
+				'name'    => 'Brand One',
+				'url'     => 'https://brand-one.example/',
+			],
+			$removed
+		);
+		$this->assertSame( [ 'https://brand-two.example/' ], array_keys( Settings::get_shared_sites() ) );
+	}
+
+	/** Removing a site that isn't there is a no-op, reported as such rather than as an error. */
+	public function test_remove_shared_site_returns_null_when_already_absent(): void {
+		Settings::set_shared_sites(
+			[
+				[
+					'id'      => 'brand-1',
+					'name'    => 'Brand One',
+					'url'     => 'https://brand-one.example',
+					'api_key' => 'brand-one-key',
+				],
+			]
+		);
+
+		$this->assertNull( Settings::remove_shared_site( 'https://unknown.example' ) );
+	}
+
+	/**
+	 * A concurrent write between the read and the write must not resurrect a site removed
+	 * by that other write, nor stop this removal from going through: it should retry
+	 * against fresh data instead of blindly overwriting.
+	 */
+	public function test_remove_shared_site_retries_past_a_concurrent_write(): void {
+		Settings::set_shared_sites(
+			[
+				[
+					'id'      => 'brand-1',
+					'name'    => 'Brand One',
+					'url'     => 'https://brand-one.example',
+					'api_key' => 'brand-one-key',
+				],
+				[
+					'id'      => 'brand-2',
+					'name'    => 'Brand Two',
+					'url'     => 'https://brand-two.example',
+					'api_key' => 'brand-two-key',
+				],
+			]
+		);
+
+		$reads  = 0;
+		$filter = static function ( $value ) use ( &$reads ) {
+			++$reads;
+
+			// Only the first read is stale, simulating another request's write landing in between.
+			if ( 1 === $reads && is_array( $value ) ) {
+				foreach ( $value as &$site ) {
+					if ( ( $site['url'] ?? '' ) === 'https://brand-one.example/' ) {
+						$site['name'] = 'Renamed-By-Concurrent-Write';
+					}
+				}
+				unset( $site );
+			}
+
+			return $value;
+		};
+		add_filter( 'option_' . Settings::OPTION_GOVERNING_SHARED_SITES, $filter );
+
+		$removed = Settings::remove_shared_site( 'https://brand-two.example' );
+
+		remove_filter( 'option_' . Settings::OPTION_GOVERNING_SHARED_SITES, $filter );
+
+		$this->assertIsArray( $removed );
+		$this->assertSame( 'https://brand-two.example/', $removed['url'] );
+		$this->assertGreaterThan( 1, $reads, 'Expected a retry after the simulated concurrent write.' );
+		$this->assertSame( [ 'https://brand-one.example/' ], array_keys( Settings::get_shared_sites() ) );
+	}
+
 	/** Ensures parent site URL can be stored and retrieved. */
 	public function test_set_parent_site_url_and_get(): void {
 		$this->assertTrue( Settings::set_parent_site_url( 'https://governing.example/' ) );

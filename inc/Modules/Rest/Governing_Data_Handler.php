@@ -31,6 +31,16 @@ class Governing_Data_Handler {
 	public const TRANSIENT_KEY = 'onesearch_brand_config_cache';
 
 	/**
+	 * Option storing brand-disconnect notices that couldn't be delivered, for the admin to retry.
+	 */
+	private const OPTION_PENDING_DISCONNECT_NOTICES = 'onesearch_pending_brand_disconnect_notices';
+
+	/**
+	 * Option storing a failed governing-site disconnect notice, for the admin to retry.
+	 */
+	private const OPTION_PENDING_GOVERNING_DISCONNECT = 'onesearch_pending_governing_disconnect_notice';
+
+	/**
 	 * Normalized brand site URLs that should not be sent a disconnection notice.
 	 *
 	 * Populated when a brand site deregisters itself: it has already disconnected.
@@ -307,23 +317,26 @@ class Governing_Data_Handler {
 
 		$response = self::request_disconnect( $parent_url, $our_public_key );
 
+		$error = self::get_disconnect_error( $response );
+		if ( null === $error ) {
+			self::clear_pending_governing_disconnect();
+			return true;
+		}
+
+		self::record_pending_governing_disconnect( $parent_url, $our_public_key, $error );
+
 		if ( is_wp_error( $response ) ) {
 			return $response;
 		}
 
-		$code = wp_remote_retrieve_response_code( $response );
-		if ( 200 !== $code ) {
-			return new \WP_Error(
-				'onesearch_rest_failed_to_connect',
-				__( 'The governing site could not be notified of the disconnection.', 'onesearch' ),
-				[
-					'status' => $code,
-					'body'   => wp_remote_retrieve_body( $response ),
-				]
-			);
-		}
-
-		return true;
+		return new \WP_Error(
+			'onesearch_rest_failed_to_connect',
+			__( 'The governing site could not be notified of the disconnection.', 'onesearch' ),
+			[
+				'status' => wp_remote_retrieve_response_code( $response ),
+				'body'   => wp_remote_retrieve_body( $response ),
+			]
+		);
 	}
 
 	/**
@@ -333,11 +346,15 @@ class Governing_Data_Handler {
 	 * runs, so a notice that fails is reported rather than undone.
 	 *
 	 * @param array<string,string> $removed_sites Map of normalized brand site URL to its (decrypted) API key.
+	 * @param array<string,string> $site_names    Map of normalized brand site URL to its display name,
+	 *                                             for the admin notice if the notice fails. Falls back
+	 *                                             to the URL for any site missing from this map.
 	 */
-	public static function notify_brand_sites_of_disconnection( array $removed_sites ): void {
+	public static function notify_brand_sites_of_disconnection( array $removed_sites, array $site_names = [] ): void {
 		foreach ( $removed_sites as $site_url => $api_key ) {
 			if ( isset( self::$suppressed_disconnect_notices[ $site_url ] ) ) {
 				unset( self::$suppressed_disconnect_notices[ $site_url ] );
+				self::clear_pending_disconnect_notice( $site_url );
 				continue;
 			}
 
@@ -347,6 +364,7 @@ class Governing_Data_Handler {
 
 			$error = self::get_disconnect_error( self::request_disconnect( $site_url, $api_key ) );
 			if ( null === $error ) {
+				self::clear_pending_disconnect_notice( $site_url );
 				continue;
 			}
 
@@ -360,6 +378,8 @@ class Governing_Data_Handler {
 			);
 
 			do_action( 'onesearch_brand_disconnect_notice_failed', $site_url, $error );
+
+			self::record_pending_disconnect_notice( $site_url, $site_names[ $site_url ] ?? $site_url, $api_key, $error );
 		}
 	}
 
@@ -385,6 +405,208 @@ class Governing_Data_Handler {
 	 */
 	public static function suppress_disconnect_notice( string $site_url ): void {
 		self::$suppressed_disconnect_notices[ $site_url ] = true;
+	}
+
+	/**
+	 * Persists a failed disconnect notice for the admin to retry.
+	 *
+	 * @param string $site_url  Normalized brand site URL that could not be notified.
+	 * @param string $site_name The site's display name, for the admin notice.
+	 * @param string $api_key   The (decrypted) API key to notify it with.
+	 * @param string $error     Description of why the notice failed.
+	 */
+	private static function record_pending_disconnect_notice( string $site_url, string $site_name, string $api_key, string $error ): void {
+		$pending = self::get_raw_pending_disconnect_notices();
+
+		$attempts             = isset( $pending[ $site_url ] ) ? (int) $pending[ $site_url ]['attempts'] : 0;
+		$pending[ $site_url ] = [
+			'name'       => $site_name,
+			'api_key'    => Encryptor::encrypt( $api_key ) ?: '',
+			'attempts'   => $attempts + 1,
+			'last_error' => $error,
+			'updated_at' => time(),
+		];
+
+		update_option( self::OPTION_PENDING_DISCONNECT_NOTICES, $pending, false );
+	}
+
+	/**
+	 * Clears a pending disconnect notice, e.g. once it has gone through.
+	 *
+	 * @param string $site_url Normalized brand site URL.
+	 */
+	private static function clear_pending_disconnect_notice( string $site_url ): void {
+		$pending = self::get_raw_pending_disconnect_notices();
+
+		if ( ! isset( $pending[ $site_url ] ) ) {
+			return;
+		}
+
+		unset( $pending[ $site_url ] );
+		update_option( self::OPTION_PENDING_DISCONNECT_NOTICES, $pending, false );
+	}
+
+	/**
+	 * Retries a single pending brand-disconnect notice, triggered by the admin.
+	 *
+	 * @param string $site_url Normalized brand site URL to retry.
+	 *
+	 * @return bool True if the notice went through (or there was nothing pending for this
+	 *              site), false if it still failed.
+	 */
+	public static function retry_pending_disconnect_notice( string $site_url ): bool {
+		$pending = self::get_raw_pending_disconnect_notices();
+
+		if ( ! isset( $pending[ $site_url ] ) ) {
+			return true;
+		}
+
+		$notice  = $pending[ $site_url ];
+		$api_key = ! empty( $notice['api_key'] ) ? ( Encryptor::decrypt( $notice['api_key'] ) ?: '' ) : '';
+
+		if ( empty( $api_key ) ) {
+			unset( $pending[ $site_url ] );
+			update_option( self::OPTION_PENDING_DISCONNECT_NOTICES, $pending, false );
+			return true;
+		}
+
+		$error = self::get_disconnect_error( self::request_disconnect( $site_url, $api_key ) );
+		if ( null === $error ) {
+			unset( $pending[ $site_url ] );
+			update_option( self::OPTION_PENDING_DISCONNECT_NOTICES, $pending, false );
+			return true;
+		}
+
+		$pending[ $site_url ]['attempts']   = (int) $notice['attempts'] + 1;
+		$pending[ $site_url ]['last_error'] = $error;
+		update_option( self::OPTION_PENDING_DISCONNECT_NOTICES, $pending, false );
+
+		return false;
+	}
+
+	/**
+	 * Brand-disconnect notices that could not be delivered, for display to the admin.
+	 *
+	 * @return array<string,array{name:string,attempts:int,last_error:string,updated_at:int}>
+	 */
+	public static function get_pending_disconnect_notices(): array {
+		$notices = [];
+
+		foreach ( self::get_raw_pending_disconnect_notices() as $site_url => $notice ) {
+			$notices[ $site_url ] = [
+				'name'       => ! empty( $notice['name'] ) ? (string) $notice['name'] : $site_url,
+				'attempts'   => (int) $notice['attempts'],
+				'last_error' => (string) $notice['last_error'],
+				'updated_at' => (int) $notice['updated_at'],
+			];
+		}
+
+		return $notices;
+	}
+
+	/**
+	 * Raw pending-disconnect-notices option value.
+	 *
+	 * @return array<string,array{name:string,api_key:string,attempts:int,last_error:string,updated_at:int}>
+	 */
+	private static function get_raw_pending_disconnect_notices(): array {
+		$pending = get_option( self::OPTION_PENDING_DISCONNECT_NOTICES, [] );
+
+		return is_array( $pending ) ? $pending : [];
+	}
+
+	/**
+	 * Persists a failed governing-site disconnect notice for the admin to retry.
+	 *
+	 * @param string $parent_url The governing site's URL.
+	 * @param string $api_key    The (decrypted) API key to notify it with.
+	 * @param string $error      Description of why the notice failed.
+	 */
+	private static function record_pending_governing_disconnect( string $parent_url, string $api_key, string $error ): void {
+		$existing = self::get_raw_pending_governing_disconnect();
+		$attempts = ! empty( $existing ) ? (int) $existing['attempts'] : 0;
+
+		update_option(
+			self::OPTION_PENDING_GOVERNING_DISCONNECT,
+			[
+				'url'        => $parent_url,
+				'api_key'    => Encryptor::encrypt( $api_key ) ?: '',
+				'attempts'   => $attempts + 1,
+				'last_error' => $error,
+				'updated_at' => time(),
+			],
+			false
+		);
+	}
+
+	/**
+	 * Clears the pending governing-site disconnect notice, e.g. once it has gone through.
+	 */
+	private static function clear_pending_governing_disconnect(): void {
+		delete_option( self::OPTION_PENDING_GOVERNING_DISCONNECT );
+	}
+
+	/**
+	 * Retries the pending governing-site disconnect notice, triggered by the admin.
+	 *
+	 * @return bool True if the notice went through (or there was nothing pending), false if it still failed.
+	 */
+	public static function retry_pending_governing_disconnect(): bool {
+		$pending = self::get_raw_pending_governing_disconnect();
+
+		if ( empty( $pending ) ) {
+			return true;
+		}
+
+		$api_key = ! empty( $pending['api_key'] ) ? ( Encryptor::decrypt( $pending['api_key'] ) ?: '' ) : '';
+
+		if ( empty( $api_key ) || empty( $pending['url'] ) ) {
+			self::clear_pending_governing_disconnect();
+			return true;
+		}
+
+		$error = self::get_disconnect_error( self::request_disconnect( $pending['url'], $api_key ) );
+		if ( null === $error ) {
+			self::clear_pending_governing_disconnect();
+			return true;
+		}
+
+		$pending['attempts']   = (int) $pending['attempts'] + 1;
+		$pending['last_error'] = $error;
+		update_option( self::OPTION_PENDING_GOVERNING_DISCONNECT, $pending, false );
+
+		return false;
+	}
+
+	/**
+	 * The pending governing-site disconnect notice, for display to the admin.
+	 *
+	 * @return array{url:string,attempts:int,last_error:string,updated_at:int}|null
+	 */
+	public static function get_pending_governing_disconnect(): ?array {
+		$pending = self::get_raw_pending_governing_disconnect();
+
+		if ( empty( $pending ) ) {
+			return null;
+		}
+
+		return [
+			'url'        => (string) $pending['url'],
+			'attempts'   => (int) $pending['attempts'],
+			'last_error' => (string) $pending['last_error'],
+			'updated_at' => (int) $pending['updated_at'],
+		];
+	}
+
+	/**
+	 * Raw pending-governing-disconnect option value.
+	 *
+	 * @return array{url:string,api_key:string,attempts:int,last_error:string,updated_at:int}|array{}
+	 */
+	private static function get_raw_pending_governing_disconnect(): array {
+		$pending = get_option( self::OPTION_PENDING_GOVERNING_DISCONNECT, [] );
+
+		return is_array( $pending ) ? $pending : [];
 	}
 
 	/**

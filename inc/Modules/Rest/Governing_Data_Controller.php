@@ -172,28 +172,23 @@ class Governing_Data_Controller extends Abstract_REST_Controller {
 			);
 		}
 
-		$shared_sites = Settings::get_shared_sites();
+		// The brand site already disconnected locally, so don't notify it back.
+		$removed_site = Settings::remove_shared_site( $site_url, true );
 
-		// Already gone: nothing to do, but the caller got what it asked for.
-		if ( ! isset( $shared_sites[ $site_url ] ) ) {
+		if ( false === $removed_site ) {
+			return new \WP_Error(
+				'onesearch_disconnect_failed',
+				__( 'The brand site could not be removed from the governing site.', 'onesearch' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		if ( null === $removed_site ) {
 			return rest_ensure_response(
 				[
 					'success' => true,
 					'message' => __( 'The brand site is not connected to this governing site.', 'onesearch' ),
 				]
-			);
-		}
-
-		unset( $shared_sites[ $site_url ] );
-
-		// The brand site already disconnected locally, so don't notify it back.
-		Governing_Data_Handler::suppress_disconnect_notice( $site_url );
-
-		if ( ! Settings::set_shared_sites( $shared_sites ) ) {
-			return new \WP_Error(
-				'onesearch_disconnect_failed',
-				__( 'The brand site could not be removed from the governing site.', 'onesearch' ),
-				[ 'status' => 500 ]
 			);
 		}
 
