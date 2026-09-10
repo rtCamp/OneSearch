@@ -62,10 +62,6 @@ final class PostRecordTest extends TestCase {
 
 	/**
 	 * The `site_post_id` written to records must come from get_site_post_id().
-	 *
-	 * Watcher deletes a post's records by filtering on this value, so the two must never drift.
-	 *
-	 * @see https://github.com/rtCamp/OnePress/issues/84
 	 */
 	public function test_records_are_written_with_get_site_post_id(): void {
 		$post    = self::factory()->post->create_and_get( [ 'post_content' => 'Some indexable content.' ] );
