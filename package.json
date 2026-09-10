@@ -55,47 +55,43 @@
 		"react-dom": "^18.3.1"
 	},
 	"devDependencies": {
-		"@playwright/test": "^1.60.0",
-		"@testing-library/jest-dom": "^6.9.1",
-		"@testing-library/react": "^16.3.2",
-		"@types/jest": "^29.5.14",
+		"@playwright/test": "^1.63.0",
+		"@testing-library/jest-dom": "^7.0.1",
+		"@testing-library/react": "^16.3.3",
+		"@types/jest": "^30.0.0",
 		"@types/react": "^18.3.31",
 		"@types/react-dom": "^18.3.7",
 		"@types/wordpress__block-editor": "^15.0.6",
-		"@typescript-eslint/eslint-plugin": "^8.61.0",
-		"@typescript-eslint/parser": "^8.61.0",
-		"@wordpress/babel-preset-default": "^8.48.0",
-		"@wordpress/e2e-test-utils-playwright": "1.46.0",
-		"@wordpress/env": "^11.8.0",
-		"@wordpress/eslint-plugin": "^25.4.0",
-		"@wordpress/prettier-config": "^4.48.0",
-		"@wordpress/scripts": "^32.4.0",
-		"@wordpress/stylelint-config": "^23.40.0",
+		"@wordpress/babel-preset-default": "^8.54.0",
+		"@wordpress/e2e-test-utils-playwright": "^1.54.0",
+		"@wordpress/env": "^11.14.0",
+		"@wordpress/eslint-plugin": "^25.10.0",
+		"@wordpress/prettier-config": "^4.54.0",
+		"@wordpress/scripts": "^34.2.0",
+		"@wordpress/stylelint-config": "^24.3.0",
 		"cross-env": "^10.1.0",
-		"eslint-plugin-jest": "^29.15.2",
-		"jest-watch-typeahead": "^2.2.2",
-		"lefthook": "^2.1.9",
-		"lint-staged": "^17.0.7",
+		"eslint-plugin-jest": "^29.16.6",
+		"jest-watch-typeahead": "^3.0.1",
+		"lefthook": "^2.1.12",
+		"lint-staged": "^17.5.0",
 		"npm-run-all": "^4.1.5",
 		"prettier": "npm:wp-prettier@^3",
 		"rimraf": "^6.1.3",
 		"typescript": "^6.0.3",
+		"typescript-eslint": "^8.69.0",
 		"webpack-remove-empty-scripts": "^1.1.1"
 	},
 	"overrides": {
-		"@wordpress/e2e-test-utils-playwright": "1.46.0",
-		"@wordpress/scripts": {
-			"@wordpress/e2e-test-utils-playwright": "1.46.0"
-		},
-		"@wordpress/env": "^11.8.0",
-		"fast-xml-parser": ">5.3.0",
+		"@types/node": "^22.0.0",
+		"fast-xml-parser@<5.3.1": "^5.3.1",
 		"markdownlint-cli": {
-			"minimatch": "3.1.4"
+			"minimatch@<3.1.4": "^3.1.4"
 		},
 		"prettier": "npm:wp-prettier@^3",
 		"react": "^18.3.1",
 		"react-dom": "^18.3.1",
-		"serialize-javascript": ">=7.0.3",
-		"webpack-dev-server@<=5.2.0": ">=5.2.1"
+		"serialize-javascript@<7.0.3": "^7.0.3",
+		"uuid@<11.1.1": "^11.1.1",
+		"webpack-dev-server@<5.2.1": "^5.2.1"
 	}
 }
