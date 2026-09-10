@@ -99,7 +99,7 @@ final class Watcher implements Registrable {
 			]
 		);
 
-		// A site without credentials is not a failure worth reporting.
+		// @todo this class shouldn't run if the Algolia config isn't good.
 		if ( is_wp_error( $deleted ) && ! in_array( $deleted->get_error_code(), [ 'algolia_credentials_missing', 'algolia_index_name_invalid' ], true ) ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- @todo Surface this better with a Logger class.
 			error_log( sprintf( 'OneSearch: failed to remove records for post %d: %s', $post_id, $deleted->get_error_message() ) );
