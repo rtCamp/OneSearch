@@ -235,10 +235,6 @@ class Basic_Options_Controller extends Abstract_REST_Controller {
 	/**
 	 * Remove governing site url.
 	 *
-	 * Deregisters from the governing site first, so the pairing is torn down on both
-	 * ends. The local disconnection happens either way, so an unreachable governing
-	 * site cannot trap the admin here.
-	 *
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function remove_governing_site(): WP_REST_Response|\WP_Error {
