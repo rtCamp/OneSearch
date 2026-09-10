@@ -152,14 +152,10 @@ const SiteSettings = () => {
 			if ( ! response.ok ) {
 				throw new Error( 'Network response was not ok' );
 			}
-			setGoverningSite( '' );
-			setNotice( {
-				type: 'success',
-				message: __(
-					'Governing site disconnected successfully.',
-					'onesearch'
-				),
-			} );
+
+			// Reload so the admin notice for an undelivered disconnection (rendered
+			// server-side) shows up immediately instead of only after a manual refresh.
+			window.location.reload();
 		} catch {
 			setNotice( {
 				type: 'error',
@@ -168,7 +164,6 @@ const SiteSettings = () => {
 					'onesearch'
 				),
 			} );
-		} finally {
 			setShowDisconnectionModal( false );
 		}
 	}, [ apiKey ] );

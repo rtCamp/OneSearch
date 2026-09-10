@@ -56,10 +56,7 @@ const siteSettingsFetch = ( handlers: {
 				return { ok: false } as Response;
 			}
 
-			return {
-				ok: handlers.deleteOk ?? true,
-				json: jest.fn().mockResolvedValue( {} ),
-			} as unknown as Response;
+			return { ok: handlers.deleteOk ?? true } as Response;
 		}
 
 		return { ok: false } as Response;
@@ -164,15 +161,7 @@ describe( 'SiteSettings', () => {
 		);
 		fireEvent.click( screen.getByRole( 'button', { name: 'Disconnect' } ) );
 
-		expect(
-			await screen.findByText(
-				'Governing site disconnected successfully.',
-				{
-					selector: '.components-notice__content',
-				}
-			)
-		).toBeInTheDocument();
-		expect( screen.getByDisplayValue( '' ) ).toBeInTheDocument();
+		await waitFor( () => expect( console ).toHaveErrored() );
 	} );
 
 	it( 'shows an error notice when copying the api key fails', async () => {
