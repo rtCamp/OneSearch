@@ -1115,7 +1115,7 @@ final class Search implements Registrable {
 		 */
 		$proxy_id = 'attachment' === $post_type ? $this->get_proxy_attachment_id() : 0;
 
-		$post->ID                = $proxy_id > 0 ? $proxy_id : -1 - absint( $record['post_id'] );
+		$post->ID                = $proxy_id > 0 ? $proxy_id : -1 - absint( $record['post_id'] ); // @phpstan-ignore assign.propertyType (A negative ID is used to represent remote post.)
 		$post->filter            = 'raw';
 		$post->guid              = $record['permalink'] ?? '';
 		$post->post_content      = $record['content'] ?? '';
@@ -1123,7 +1123,7 @@ final class Search implements Registrable {
 		$post->post_name         = $record['post_name'] ?? '';
 		$post->post_status       = 'publish';
 		$post->post_title        = $record['post_title'] ?? '';
-		$post->post_type         = $post_type;
+		$post->post_type         = $post_type; // @phpstan-ignore assign.propertyType (Partial records may not have a post_type.)
 		$post->post_date_gmt     = isset( $record['post_date_gmt'] ) ? (string) wp_date( 'Y-m-d H:i:s', $record['post_date_gmt'] ) : '';
 		$post->post_modified_gmt = isset( $record['post_modified_gmt'] ) ? (string) wp_date( 'Y-m-d H:i:s', $record['post_modified_gmt'] ) : '';
 
